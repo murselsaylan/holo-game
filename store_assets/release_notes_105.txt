@@ -1,0 +1,16 @@
+<tr-TR>
+Yeni: Sonsuz Tırmanış! Her oyunda yeni harita, yıldızlar, seriler, rekor çizgisi ve haftalık dünya sıralaması.
+Yıldız Avcısı: topladığın yıldızlarla alınan 5 yeni skin.
+Hesabını Google hesabına bağla, telefon değişse de ilerlemen kaybolmasın.
+Canlanma artık seni güvenli bir noktaya geri sarıyor.
+Öne çıkan skinler geri döndü, skinler nadirliğe göre yenilendi.
+Menü, mağaza ve oyun içinde büyük akıcılık iyileştirmesi.
+</tr-TR>
+<en-US>
+New: Endless Climb! A new map every run, stars, streaks, your record line and a weekly world ranking.
+Star Hunter: 5 new skins bought with the stars you collect.
+Link your account to Google and keep your progress on a new phone.
+Revive now rewinds you to a safe spot.
+Featured skins are back, skins refreshed by rarity.
+Big smoothness boost in menus, shop and gameplay.
+</en-US>

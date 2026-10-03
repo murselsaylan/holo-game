@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android Auto Backup: only the player's save (progress, diamonds, skins, player id) goes to the user's Google
+     backup - the unpacked game files would blow the 25 MB quota and make every backup fail. -->
+<full-backup-content>
+    <include domain="file" path="save_data.json" />
+</full-backup-content>

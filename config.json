@@ -1,0 +1,9 @@
+{
+  "server_url": "https://btpiblrrsjmhuacwkopr.supabase.co/functions/v1/scores",
+  "server_region": "ap-northeast-2",
+  "release_mode": true,
+  "dev_unlock_all": false,
+  "dev_free_purchases": false,
+  "test_tools": false,
+  "google_client_id": "362430189424-jamftgpare31ec560qrpuoto2da9iqej.apps.googleusercontent.com"
+}

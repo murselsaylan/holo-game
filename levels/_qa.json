@@ -1,0 +1,1302 @@
+{
+ "1": {
+  "level": 1,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 57,
+  "jitter": {
+   "1": 1.0,
+   "2": 0.95,
+   "3": 0.85
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "2": {
+  "level": 2,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 48,
+  "jitter": {
+   "1": 1.0,
+   "2": 0.95,
+   "3": 1.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "3": {
+  "level": 3,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 45,
+  "jitter": {
+   "1": 0.85,
+   "2": 0.9,
+   "3": 0.6
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "4": {
+  "level": 4,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 12,
+  "jitter": {
+   "1": 0.75,
+   "2": 0.5,
+   "3": 0.55
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "5": {
+  "level": 5,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 51,
+  "jitter": {
+   "1": 1.0,
+   "2": 1.0,
+   "3": 0.9
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "6": {
+  "level": 6,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 42,
+  "jitter": {
+   "1": 1.0,
+   "2": 0.8,
+   "3": 0.75
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "7": {
+  "level": 7,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 48,
+  "jitter": {
+   "1": 0.8,
+   "2": 0.4,
+   "3": 0.3
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "8": {
+  "level": 8,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 36,
+  "jitter": {
+   "1": 1.0,
+   "2": 0.85,
+   "3": 0.65
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "9": {
+  "level": 9,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 45,
+  "jitter": {
+   "1": 0.95,
+   "2": 0.95,
+   "3": 0.5
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "10": {
+  "level": 10,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 51,
+  "jitter": {
+   "1": 1.0,
+   "2": 0.9,
+   "3": 0.6
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "11": {
+  "level": 11,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 39,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "12": {
+  "level": 12,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 45,
+  "jitter": {
+   "1": 1.0,
+   "2": 0.8,
+   "3": 0.45
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "13": {
+  "level": 13,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 51,
+  "jitter": {
+   "1": 0.55,
+   "2": 0.45,
+   "3": 0.15
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "14": {
+  "level": 14,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 48,
+  "jitter": {
+   "1": 1.0,
+   "2": 0.9,
+   "3": 0.75
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "15": {
+  "level": 15,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 42,
+  "jitter": {
+   "1": 0.05,
+   "2": 0.05,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "16": {
+  "level": 16,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 33,
+  "jitter": {
+   "1": 0.4,
+   "2": 0.2,
+   "3": 0.2
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "17": {
+  "level": 17,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 42,
+  "jitter": {
+   "1": 0.95,
+   "2": 0.85,
+   "3": 0.45
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "18": {
+  "level": 18,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 36,
+  "jitter": {
+   "1": 0.3,
+   "2": 0.05,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "19": {
+  "level": 19,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 39,
+  "jitter": {
+   "1": 0.6,
+   "2": 0.4,
+   "3": 0.4
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "20": {
+  "level": 20,
+  "replay": true,
+  "taps_per_s": 4,
+  "min_gap_steps": 18,
+  "jitter": {
+   "1": 1.0,
+   "2": 0.8,
+   "3": 0.4
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "21": {
+  "level": 21,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 33,
+  "jitter": {
+   "1": 0.1,
+   "2": 0.05,
+   "3": 0.05
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "22": {
+  "level": 22,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 45,
+  "jitter": {
+   "1": 1.0,
+   "2": 0.85,
+   "3": 0.55
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "23": {
+  "level": 23,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 36,
+  "jitter": {
+   "1": 0.6,
+   "2": 0.3,
+   "3": 0.05
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "24": {
+  "level": 24,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 42,
+  "jitter": {
+   "1": 0.7,
+   "2": 0.25,
+   "3": 0.2
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "25": {
+  "level": 25,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 27,
+  "jitter": {
+   "1": 0.05,
+   "2": 0.05,
+   "3": 0.1
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "26": {
+  "level": 26,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 42,
+  "jitter": {
+   "1": 1.0,
+   "2": 0.7,
+   "3": 0.55
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "27": {
+  "level": 27,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 42,
+  "jitter": {
+   "1": 0.6,
+   "2": 0.3,
+   "3": 0.3
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "28": {
+  "level": 28,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 42,
+  "jitter": {
+   "1": 0.15,
+   "2": 0.1,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "29": {
+  "level": 29,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 39,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "30": {
+  "level": 30,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 36,
+  "jitter": {
+   "1": 0.4,
+   "2": 0.05,
+   "3": 0.05
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "31": {
+  "level": 31,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 33,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "32": {
+  "level": 32,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 33,
+  "jitter": {
+   "1": 0.1,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "33": {
+  "level": 33,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 18,
+  "jitter": {
+   "1": 0.35,
+   "2": 0.1,
+   "3": 0.1
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "34": {
+  "level": 34,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 42,
+  "jitter": {
+   "1": 0.7,
+   "2": 0.2,
+   "3": 0.05
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "35": {
+  "level": 35,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 36,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "36": {
+  "level": 36,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 33,
+  "jitter": {
+   "1": 0.9,
+   "2": 0.4,
+   "3": 0.45
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "37": {
+  "level": 37,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 12,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "38": {
+  "level": 38,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 39,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "39": {
+  "level": 39,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.1,
+   "2": 0.05,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "40": {
+  "level": 40,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 36,
+  "jitter": {
+   "1": 0.1,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "41": {
+  "level": 41,
+  "replay": true,
+  "taps_per_s": 5,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "42": {
+  "level": 42,
+  "replay": true,
+  "taps_per_s": 5,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.05,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "43": {
+  "level": 43,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 39,
+  "jitter": {
+   "1": 0.75,
+   "2": 0.4,
+   "3": 0.2
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "44": {
+  "level": 44,
+  "replay": true,
+  "taps_per_s": 5,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "45": {
+  "level": 45,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 33,
+  "jitter": {
+   "1": 0.8,
+   "2": 0.15,
+   "3": 0.05
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "46": {
+  "level": 46,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 27,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "47": {
+  "level": 47,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 15,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "48": {
+  "level": 48,
+  "replay": true,
+  "taps_per_s": 4,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.05,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "49": {
+  "level": 49,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 33,
+  "jitter": {
+   "1": 0.35,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "50": {
+  "level": 50,
+  "replay": true,
+  "taps_per_s": 5,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "51": {
+  "level": 51,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 30,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "52": {
+  "level": 52,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 18,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "53": {
+  "level": 53,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 36,
+  "jitter": {
+   "1": 0.05,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "54": {
+  "level": 54,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 33,
+  "jitter": {
+   "1": 0.05,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "55": {
+  "level": 55,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 27,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "56": {
+  "level": 56,
+  "replay": true,
+  "taps_per_s": 4,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "57": {
+  "level": 57,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 36,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "58": {
+  "level": 58,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 24,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "59": {
+  "level": 59,
+  "replay": true,
+  "taps_per_s": 4,
+  "min_gap_steps": 12,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "60": {
+  "level": 60,
+  "replay": true,
+  "taps_per_s": 6,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "61": {
+  "level": 61,
+  "replay": true,
+  "taps_per_s": 6,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "62": {
+  "level": 62,
+  "replay": true,
+  "taps_per_s": 4,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "63": {
+  "level": 63,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 21,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "64": {
+  "level": 64,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 30,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "65": {
+  "level": 65,
+  "replay": true,
+  "taps_per_s": 6,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "66": {
+  "level": 66,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 30,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "67": {
+  "level": 67,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 27,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "68": {
+  "level": 68,
+  "replay": true,
+  "taps_per_s": 4,
+  "min_gap_steps": 12,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "69": {
+  "level": 69,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 27,
+  "jitter": {
+   "1": 0.1,
+   "2": 0.05,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "70": {
+  "level": 70,
+  "replay": true,
+  "taps_per_s": 5,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "71": {
+  "level": 71,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 27,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "72": {
+  "level": 72,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 27,
+  "jitter": {
+   "1": 0.3,
+   "2": 0.2,
+   "3": 0.05
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "73": {
+  "level": 73,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 18,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "74": {
+  "level": 74,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 12,
+  "jitter": {
+   "1": 0.05,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "75": {
+  "level": 75,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "76": {
+  "level": 76,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 26,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "77": {
+  "level": 77,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 21,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "78": {
+  "level": 78,
+  "replay": true,
+  "taps_per_s": 6,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "79": {
+  "level": 79,
+  "replay": true,
+  "taps_per_s": 5,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "80": {
+  "level": 80,
+  "replay": true,
+  "taps_per_s": 5,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "81": {
+  "level": 81,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 24,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "82": {
+  "level": 82,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 27,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "83": {
+  "level": 83,
+  "replay": true,
+  "taps_per_s": 4,
+  "min_gap_steps": 12,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "84": {
+  "level": 84,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 24,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "85": {
+  "level": 85,
+  "replay": true,
+  "taps_per_s": 5,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "86": {
+  "level": 86,
+  "replay": true,
+  "taps_per_s": 4,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "87": {
+  "level": 87,
+  "replay": true,
+  "taps_per_s": 2,
+  "min_gap_steps": 27,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "88": {
+  "level": 88,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 27,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "89": {
+  "level": 89,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 24,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "90": {
+  "level": 90,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 24,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "91": {
+  "level": 91,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 21,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "92": {
+  "level": 92,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "93": {
+  "level": 93,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 24,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "94": {
+  "level": 94,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 24,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "95": {
+  "level": 95,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 27,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "96": {
+  "level": 96,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 24,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "97": {
+  "level": 97,
+  "replay": true,
+  "taps_per_s": 3,
+  "min_gap_steps": 24,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "98": {
+  "level": 98,
+  "replay": true,
+  "taps_per_s": 6,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "99": {
+  "level": 99,
+  "replay": true,
+  "taps_per_s": 4,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ },
+ "100": {
+  "level": 100,
+  "replay": true,
+  "taps_per_s": 5,
+  "min_gap_steps": 9,
+  "jitter": {
+   "1": 0.0,
+   "2": 0.0,
+   "3": 0.0
+  },
+  "coarse": true,
+  "spawn": true
+ }
+}

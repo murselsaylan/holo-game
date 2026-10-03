@@ -1,0 +1,42 @@
+{
+ "61": {
+  "ref_ok": true,
+  "margin_needed": 19.44,
+  "margin_ok": true,
+  "swaps0": 70,
+  "route_swaps": 75.6,
+  "exploit": false
+ },
+ "64": {
+  "ref_ok": true,
+  "margin_needed": 14.080000000000002,
+  "margin_ok": true,
+  "swaps0": 62,
+  "route_swaps": 77.8,
+  "exploit": false
+ },
+ "88": {
+  "ref_ok": true,
+  "margin_needed": 6.16,
+  "margin_ok": true,
+  "swaps0": 62,
+  "route_swaps": 67.7,
+  "exploit": false
+ },
+ "78": {
+  "ref_ok": true,
+  "margin_needed": 6.16,
+  "margin_ok": true,
+  "swaps0": 54,
+  "route_swaps": 78.0,
+  "exploit": false
+ },
+ "57": {
+  "ref_ok": true,
+  "margin_needed": 12.32,
+  "margin_ok": false,
+  "swaps0": 24,
+  "route_swaps": 38.1,
+  "exploit": false
+ }
+}

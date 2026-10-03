@@ -1,0 +1,60 @@
+name: Build HOLO iOS
+
+# Builds the iOS app on GitHub's macOS machines (no Mac needed) and runs it in the iOS simulator.
+# Actions -> "Build HOLO iOS" -> Run workflow. Artifacts:
+#   holo-ios-simulator   HOLO.app for the iOS simulator (zip)
+#   holo-ios-screens     simulator screenshots + the app's log (did it start, any Python error)
+# A build for real iPhones / TestFlight needs an Apple Developer account (signing) - not set up yet.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['**.py', 'assets/**', 'levels/**', 'config.json', '.github/workflows/ios.yml']
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Tools
+        run: pip install pygame-ios requests pygame-ce==2.5.6
+      - name: Xcode project
+        run: python tools/make_ios_project.py
+      - name: Build for the simulator
+        working-directory: build_ios/HOLO/pygame-ios-template
+        run: |
+          xcodebuild -project pygame-ios.xcodeproj -target pygame-ios -configuration Debug \
+            -sdk iphonesimulator -arch arm64 CODE_SIGNING_ALLOWED=NO SYMROOT="$PWD/out" build | tail -40
+          ls out/Debug-iphonesimulator
+      - name: Run in the simulator
+        working-directory: build_ios/HOLO/pygame-ios-template
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/screens"
+          DEV=$(xcrun simctl list devices available | grep -E "iPhone 1[5-7]( Pro)? \(" | head -1 | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
+          echo "device $DEV"
+          xcrun simctl boot "$DEV"
+          xcrun simctl bootstatus "$DEV" -b
+          xcrun simctl install "$DEV" out/Debug-iphonesimulator/pygame-ios.app
+          xcrun simctl launch --console-pty "$DEV" com.hologame.holo > "$GITHUB_WORKSPACE/screens/app.log" 2>&1 &
+          for s in 15 30 45 60; do
+            sleep 15
+            xcrun simctl io "$DEV" screenshot "$GITHUB_WORKSPACE/screens/shot_${s}s.png" || true
+          done
+          xcrun simctl spawn "$DEV" log show --last 3m --style compact --predicate 'process == "pygame-ios"' \
+            > "$GITHUB_WORKSPACE/screens/system.log" 2>&1 || true
+          tail -60 "$GITHUB_WORKSPACE/screens/app.log" || true
+      - name: Package the simulator app
+        working-directory: build_ios/HOLO/pygame-ios-template/out/Debug-iphonesimulator
+        run: ditto -c -k --keepParent pygame-ios.app "$GITHUB_WORKSPACE/HOLO-ios-simulator.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: holo-ios-screens
+          path: screens
+      - uses: actions/upload-artifact@v4
+        with:
+          name: holo-ios-simulator
+          path: HOLO-ios-simulator.zip

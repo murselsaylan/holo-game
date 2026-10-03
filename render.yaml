@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: holo-scores
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements-server.txt
+    startCommand: python server/leaderboard_server.py
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL        # postgres connection string from Neon (set in the Render dashboard, never in git)
+        sync: false
+      - key: HOLO_TRUST_PROXY
+        value: "1"
+      - key: PYTHON_VERSION
+        value: "3.12.3"

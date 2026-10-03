@@ -1,0 +1,32 @@
+name: Build HOLO APK
+
+# Push this folder to a GitHub repository, open Actions -> "Build HOLO APK" -> Run workflow.
+# The debug APK appears as a build artifact ("holo-apk") after ~20-30 minutes.
+on:
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: System packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq git zip unzip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev
+      - name: Buildozer
+        run: pip install --upgrade Cython==0.29.36 buildozer virtualenv
+      - name: Build debug APK
+        run: buildozer -v android debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: holo-apk
+          path: bin/*.apk

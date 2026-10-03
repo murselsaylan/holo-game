@@ -1,0 +1,134 @@
+<title>HOLO Gizlilik</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --bg:#f6f7fb; --panel:#ffffff; --ink:#161a24; --sub:#5b6274; --line:#e3e6ef;
+    --accent:#0ea5e9; --accent-ink:#075985; --accent-soft:#e0f2fe;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0a0d14; --panel:#12161f; --ink:#eef1f8; --sub:#9aa3b8; --line:#232838;
+      --accent:#38bdf8; --accent-ink:#bae6fd; --accent-soft:#0f2536;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0a0d14; --panel:#12161f; --ink:#eef1f8; --sub:#9aa3b8; --line:#232838;
+    --accent:#38bdf8; --accent-ink:#bae6fd; --accent-soft:#0f2536;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--bg); color:var(--ink); margin:0; padding-inline:20px;
+    font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:760px; margin:0 auto; padding-block:56px 80px;}
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:700;
+    letter-spacing:.08em; text-transform:uppercase; color:var(--accent-ink);
+    background:var(--accent-soft); padding:6px 12px; border-radius:999px;
+  }
+  .orb{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent)}
+  h1{
+    font-family:"Space Grotesk",Inter,sans-serif; font-size:clamp(30px,5vw,42px); line-height:1.1;
+    letter-spacing:-.01em; margin:18px 0 6px; text-wrap:balance;
+  }
+  .meta{color:var(--sub); font-size:14px; margin:0 0 40px;}
+  .meta b{color:var(--ink)}
+  section{margin-bottom:34px}
+  h2{
+    font-family:"Space Grotesk",Inter,sans-serif; font-size:19px; margin:0 0 10px;
+    display:flex; align-items:center; gap:10px;
+  }
+  h2 .n{
+    display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px;
+    border-radius:8px; background:var(--accent-soft); color:var(--accent-ink); font-size:13px; font-weight:700;
+    flex:none;
+  }
+  p{color:var(--ink); line-height:1.65; margin:0 0 10px; max-width:65ch}
+  p.sub{color:var(--sub)}
+  ul{margin:8px 0 0; padding-left:20px; color:var(--ink); line-height:1.7}
+  li{margin-bottom:4px}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:22px 24px;
+  }
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:6px}
+  @media (max-width:560px){.grid{grid-template-columns:1fr}}
+  .stat{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px;
+  }
+  .stat b{display:block; font-size:14px; margin-bottom:2px}
+  .stat span{color:var(--sub); font-size:13px}
+  table{width:100%; border-collapse:collapse; margin-top:8px; font-size:14px}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{color:var(--sub); font-weight:600; width:34%}
+  .no{
+    display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--sub);
+    background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:5px 10px; margin:3px 6px 0 0;
+  }
+  .no::before{content:"✕"; color:#ef4444; font-weight:700}
+  footer{margin-top:56px; padding-top:20px; border-top:1px solid var(--line); color:var(--sub); font-size:13px; line-height:1.7}
+  a{color:var(--accent-ink)}
+</style>
+
+<div class="wrap">
+  <span class="eyebrow"><span class="orb"></span>HOLO</span>
+  <h1>Gizlilik Politikası</h1>
+  <p class="meta">Son güncelleme: <b>22 Eylül 2026</b> &nbsp;·&nbsp; Geliştirici: <b>Mürsel Saylan</b> &nbsp;·&nbsp; İletişim: <b>murselsaylan5@gmail.com</b></p>
+
+  <section class="card">
+    <p>HOLO, iki küreyi tek bir bağla döndürerek engellerden kaçtığınız, tamamı çevrimdışı oynanabilen bir refleks oyunudur.
+    Bu sayfa, oyunun <b>dünya sıralaması</b> özelliği için sunucumuza hangi bilgilerin gittiğini ve nelerin
+    <b>kesinlikle toplanmadığını</b> açıklar.</p>
+  </section>
+
+  <section>
+    <h2><span class="n">1</span>Topladığımız veriler</h2>
+    <p class="sub">Yalnızca dünya sıralamasını göstermek ve skorların gerçekten oynanarak elde edildiğini doğrulamak için:</p>
+    <div class="grid">
+      <div class="stat"><b>Takma ad</b><span>kendi seçtiğin görünür isim</span></div>
+      <div class="stat"><b>Ülke bayrağı</b><span>kendi seçtiğin ülke kodu</span></div>
+      <div class="stat"><b>Rastgele oyuncu kimliği</b><span>cihazda otomatik üretilir, kimliğinle eşleşmez</span></div>
+      <div class="stat"><b>Bölüm kayıtları</b><span>dokunuş zamanları, skor ve yıldız sayısı</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">2</span>Toplamadıklarımız</h2>
+    <span class="no">Ad soyad</span><span class="no">E-posta</span><span class="no">Telefon</span>
+    <span class="no">Konum</span><span class="no">Rehber</span><span class="no">Mikrofon / kamera</span>
+    <span class="no">Reklam kimliği</span><span class="no">Üçüncü taraf analiz / reklam SDK'sı</span>
+  </section>
+
+  <section>
+    <h2><span class="n">3</span>Satın almalar</h2>
+    <p>Uygulama içi satın almalar (elmas paketleri, görünümler) <b>Google Play Faturalandırma</b> tarafından işlenir.
+    Kart veya ödeme bilgin bize hiçbir zaman ulaşmaz.</p>
+  </section>
+
+  <section>
+    <h2><span class="n">4</span>Verinin kullanımı, saklanması, paylaşımı</h2>
+    <div class="card">
+      <table>
+        <tr><th>Amaç</th><td>Yalnızca dünya sıralamasını göstermek ve skor/dokunuş kaydını sunucuda yeniden oynatıp doğrulamak (hile önleme)</td></tr>
+        <tr><th>Barındırma</th><td>Supabase (Postgres tabanlı sunucu)</td></tr>
+        <tr><th>Satış / paylaşım</th><td>Yok — veriler üçüncü kişilere satılmaz, paylaşılmaz veya reklam amacıyla kullanılmaz</td></tr>
+        <tr><th>Silme talebi</th><td><a href="mailto:murselsaylan5@gmail.com">murselsaylan5@gmail.com</a> adresine oyuncu kimliğinle yaz, kayıtların silinir</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">5</span>Çocukların gizliliği</h2>
+    <p>HOLO genel kitleye yöneliktir. Bilerek 13 yaş altı kullanıcılardan yukarıdaki listenin dışında kişisel veri toplamayız.</p>
+  </section>
+
+  <section>
+    <h2><span class="n">6</span>Değişiklikler</h2>
+    <p>Bu politika güncellenirse yeni sürüm bu sayfada yayınlanır ve üstteki tarih güncellenir.</p>
+  </section>
+
+  <footer>
+    HOLO — tek geliştiricili bağımsız oyun. Sorular için: <a href="mailto:murselsaylan5@gmail.com">murselsaylan5@gmail.com</a>
+  </footer>
+</div>
