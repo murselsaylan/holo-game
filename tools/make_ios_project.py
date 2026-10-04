@@ -96,6 +96,7 @@ def configure():
     info["UISupportedInterfaceOrientations~ipad"] = ["UIInterfaceOrientationPortrait",
                                                      "UIInterfaceOrientationPortraitUpsideDown"]
     info["UIStatusBarHidden"] = True
+    info["UIApplicationSupportsIndirectInputEvents"] = True     # iPad trackpad / mouse taps
     info["UIViewControllerBasedStatusBarAppearance"] = False
     info["ITSAppUsesNonExemptEncryption"] = False       # HTTPS only (exempt)
     with open(info_path, "wb") as f:

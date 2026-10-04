@@ -40,12 +40,41 @@ jobs:
           xcrun simctl bootstatus "$DEV" -b
           xcrun simctl install "$DEV" out/Debug-iphonesimulator/pygame-ios.app
           xcrun simctl launch --console-pty "$DEV" com.hologame.holo > "$GITHUB_WORKSPACE/screens/app.log" 2>&1 &
-          for s in 15 30 45 60; do
+          for s in 15 30; do
             sleep 15
-            xcrun simctl io "$DEV" screenshot "$GITHUB_WORKSPACE/screens/shot_${s}s.png" || true
+            xcrun simctl io "$DEV" screenshot "$GITHUB_WORKSPACE/screens/1_first_start_${s}s.png" || true
           done
-          xcrun simctl spawn "$DEV" log show --last 3m --style compact --predicate 'process == "pygame-ios"' \
-            > "$GITHUB_WORKSPACE/screens/system.log" 2>&1 || true
+          xcrun simctl terminate "$DEV" com.hologame.holo || true
+          # 2nd and 3rd start: a ready test pilot, offline (never registered on the live ranking server)
+          APP=$(xcrun simctl get_app_container "$DEV" com.hologame.holo app)
+          DATA=$(xcrun simctl get_app_container "$DEV" com.hologame.holo data)
+          mkdir -p "$DATA/Library/Application Support/holo"
+          echo '{"save_version": 999, "is_profile_set": true, "player_name": "IOS TEST", "player_country": "TR", "howto_seen": true}'             > "$DATA/Library/Application Support/holo/save_data.json"
+          CFG="$APP/app/pygame-ios/config.json"
+          python3 - "$CFG" <<'PY'
+          import json, sys
+          c = json.load(open(sys.argv[1])); c.update(server_url="http://127.0.0.1:9", release_mode=False)
+          json.dump(c, open(sys.argv[1], "w"))
+          PY
+          xcrun simctl launch "$DEV" com.hologame.holo >> "$GITHUB_WORKSPACE/screens/app.log" 2>&1
+          for s in 6 12 20; do
+            sleep 6
+            xcrun simctl io "$DEV" screenshot "$GITHUB_WORKSPACE/screens/2_menu_${s}s.png" || true
+          done
+          xcrun simctl terminate "$DEV" com.hologame.holo || true
+          python3 - "$CFG" <<'PY'
+          import json, sys
+          c = json.load(open(sys.argv[1])); c.update(perf_autoplay=[1, 2], intro=False, perf_log=True)
+          json.dump(c, open(sys.argv[1], "w"))
+          PY
+          xcrun simctl launch --console-pty "$DEV" com.hologame.holo > "$GITHUB_WORKSPACE/screens/play.log" 2>&1 &
+          for s in 8 14 20 30; do
+            sleep 6
+            xcrun simctl io "$DEV" screenshot "$GITHUB_WORKSPACE/screens/3_play_${s}s.png" || true
+          done
+          xcrun simctl spawn "$DEV" log show --last 5m --style compact --predicate 'process == "pygame-ios"'             > "$GITHUB_WORKSPACE/screens/system.log" 2>&1 || true
+          ls "$DATA/Library/Application Support/holo" > "$GITHUB_WORKSPACE/screens/save_dir.txt" 2>&1 || true
+          cat "$DATA/Library/Application Support/holo/crash.log" > "$GITHUB_WORKSPACE/screens/crash.log" 2>/dev/null || true
           tail -60 "$GITHUB_WORKSPACE/screens/app.log" || true
       - name: Package the simulator app
         working-directory: build_ios/HOLO/pygame-ios-template/out/Debug-iphonesimulator
