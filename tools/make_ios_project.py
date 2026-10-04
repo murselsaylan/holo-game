@@ -77,7 +77,7 @@ def add_packages():
     for plat in ("iphoneos", "iphonesimulator"):
         target = os.path.join(APP_DIR, f"app_packages.{plat}")
         subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "--no-deps", "--upgrade", "--target", target,
-                        "certifi"], check=True)
+                        "certifi", "std-nslog"], check=True)        # std-nslog: print() shows up in the iOS log
         # numpy ships with the template but the game never imports it: ~40 MB less in the app
         for extra in os.listdir(target):
             if extra.startswith("numpy"):
