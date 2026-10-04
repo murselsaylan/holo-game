@@ -11,6 +11,10 @@ on:
     branches: [main]
     paths: ['**.py', 'assets/**', 'levels/**', 'config.json', '.github/workflows/ios.yml']
 
+defaults:
+  run:
+    shell: bash -eo pipefail {0}     # a failing xcodebuild fails the step even when piped to tail
+
 jobs:
   ios:
     runs-on: macos-15

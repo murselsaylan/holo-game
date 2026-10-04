@@ -42,11 +42,14 @@ def _ios_insets(screen_h):
     top = bottom = None
     try:
         from rubicon.objc import ObjCClass   # shipped with the pygame-ios template
-        app = ObjCClass("UIApplication").sharedApplication
-        win = app.keyWindow or app.windows.firstObject
+        def prop(obj, name):                     # rubicon exposes some UIKit properties as methods
+            v = getattr(obj, name)
+            return v() if callable(v) else v
+        app = prop(ObjCClass("UIApplication"), "sharedApplication")
+        win = prop(app, "keyWindow") or prop(prop(app, "windows"), "firstObject")
         if win is not None:
-            ins = win.safeAreaInsets
-            h_pt = float(ObjCClass("UIScreen").mainScreen.bounds.size.height)
+            ins = prop(win, "safeAreaInsets")
+            h_pt = float(prop(prop(ObjCClass("UIScreen"), "mainScreen"), "bounds").size.height)
             k = screen_h / max(1.0, h_pt)
             top, bottom = ins.top * k, ins.bottom * k
     except Exception as e:
