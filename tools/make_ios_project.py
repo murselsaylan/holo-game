@@ -77,7 +77,7 @@ def add_packages():
     for plat in ("iphoneos", "iphonesimulator"):
         target = os.path.join(APP_DIR, f"app_packages.{plat}")
         subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "--no-deps", "--upgrade", "--target", target,
-                        "certifi", "std-nslog"], check=True)        # std-nslog: print() shows up in the iOS log
+                        "certifi"], check=True)
         # numpy ships with the template but the game never imports it: ~40 MB less in the app
         for extra in os.listdir(target):
             if extra.startswith("numpy"):
@@ -105,7 +105,10 @@ def configure():
     pbx_path = os.path.join(TEMPLATE, "pygame-ios.xcodeproj", "project.pbxproj")
     pbx = open(pbx_path, encoding="utf-8").read()
     pbx = re.sub(r"PRODUCT_BUNDLE_IDENTIFIER = [^;]*;", f"PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};", pbx)
+    pbx = re.sub(r'TARGETED_DEVICE_FAMILY = [^;]*;', 'TARGETED_DEVICE_FAMILY = 1;', pbx)      # iPhone only (portrait game)
+    pbx = re.sub(r'IPHONEOS_DEPLOYMENT_TARGET = [^;]*;', 'IPHONEOS_DEPLOYMENT_TARGET = 15.0;', pbx)
     open(pbx_path, "w", encoding="utf-8").write(pbx)
+    _write_scheme(pbx)
 
     import pygame
     assets = os.path.join(APP_DIR, "Images.xcassets")
@@ -120,6 +123,28 @@ def configure():
         if name.endswith(".png"):
             pygame.image.save(splash, os.path.join(splash_dir, name))
     print("configured", APP_NAME, BUNDLE_ID, version.__version__)
+
+
+def _write_scheme(pbx):
+    """A shared scheme, so `xcodebuild archive -scheme pygame-ios` works on a machine that never opened the project."""
+    m = re.search(r"(\w{24}) /\* pygame-ios \*/ = \{\s*isa = PBXNativeTarget;", pbx)
+    if not m:
+        print("scheme: target id not found")
+        return
+    ref = (f'<BuildableReference BuildableIdentifier = "primary" BlueprintIdentifier = "{m.group(1)}" '
+           'BuildableName = "pygame-ios.app" BlueprintName = "pygame-ios" ReferencedContainer = "container:pygame-ios.xcodeproj">'
+           '</BuildableReference>')
+    xml = ('<?xml version="1.0" encoding="UTF-8"?>\n<Scheme LastUpgradeVersion = "1600" version = "1.7">\n'
+           '<BuildAction parallelizeBuildables = "YES" buildImplicitDependencies = "YES"><BuildActionEntries>'
+           '<BuildActionEntry buildForTesting = "YES" buildForRunning = "YES" buildForProfiling = "YES" buildForArchiving = "YES" '
+           f'buildForAnalyzing = "YES">{ref}</BuildActionEntry></BuildActionEntries></BuildAction>\n'
+           f'<LaunchAction buildConfiguration = "Debug"><BuildableProductRunnable runnableDebuggingMode = "0">{ref}'
+           '</BuildableProductRunnable></LaunchAction>\n'
+           '<ArchiveAction buildConfiguration = "Release" revealArchiveInOrganizer = "YES"></ArchiveAction>\n</Scheme>\n')
+    d = os.path.join(TEMPLATE, "pygame-ios.xcodeproj", "xcshareddata", "xcschemes")
+    os.makedirs(d, exist_ok=True)
+    with open(os.path.join(d, "pygame-ios.xcscheme"), "w", encoding="utf-8") as f:
+        f.write(xml)
 
 
 if __name__ == "__main__":

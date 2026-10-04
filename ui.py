@@ -17,6 +17,7 @@ from sim import MAX_LEVELS
 from version import __version__
 import space_art
 import config
+import paths
 import achievements as ach_mod
 import skin_catalog as catalog
 
@@ -2647,7 +2648,8 @@ class ProfileModal:
             self.on_save()
 
     def _recovery_buttons(self):
-        if not self.on_recovery:
+        # iOS: no Google sign-in (App Store rule 4.8 would then require Sign in with Apple as well)
+        if not self.on_recovery or paths.is_ios():
             return []
         # a code only exists for a pilot that has been set up; restoring is offered from the very first screen on
         return [self.btn_code, self.btn_restore] if self.save_mgr.is_profile_set else [self.btn_restore]

@@ -30,6 +30,12 @@ jobs:
           xcodebuild -project pygame-ios.xcodeproj -target pygame-ios -configuration Debug \
             -sdk iphonesimulator -arch arm64 CODE_SIGNING_ALLOWED=NO SYMROOT="$PWD/out" build | tail -40
           ls out/Debug-iphonesimulator
+      - name: Device build check (unsigned, same scheme as the TestFlight build)
+        working-directory: build_ios/HOLO/pygame-ios-template
+        run: |
+          xcodebuild -project pygame-ios.xcodeproj -scheme pygame-ios -configuration Release \
+            -destination "generic/platform=iOS" CODE_SIGNING_ALLOWED=NO SYMROOT="$PWD/out_device" build | tail -25
+          ls out_device/Release-iphoneos
       - name: Run in the simulator
         working-directory: build_ios/HOLO/pygame-ios-template
         run: |
@@ -74,6 +80,7 @@ jobs:
           done
           xcrun simctl spawn "$DEV" log show --last 5m --style compact --predicate 'process == "pygame-ios"'             > "$GITHUB_WORKSPACE/screens/system.log" 2>&1 || true
           ls "$DATA/Library/Application Support/holo" > "$GITHUB_WORKSPACE/screens/save_dir.txt" 2>&1 || true
+          cp "$DATA/Library/Application Support/holo/holo.log" "$GITHUB_WORKSPACE/screens/holo.log" 2>/dev/null || true
           cat "$DATA/Library/Application Support/holo/crash.log" > "$GITHUB_WORKSPACE/screens/crash.log" 2>/dev/null || true
           tail -60 "$GITHUB_WORKSPACE/screens/app.log" || true
       - name: Package the simulator app

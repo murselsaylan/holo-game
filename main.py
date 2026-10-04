@@ -22,6 +22,12 @@ if __name__ == "__main__":
     _here = os.path.dirname(os.path.abspath(__file__))
     if _here not in sys.path:
         sys.path.insert(0, _here)
+    if sys.platform == "ios":                    # iOS does not show print() anywhere: keep it in the save folder
+        try:
+            import paths
+            sys.stdout = sys.stderr = open(os.path.join(paths.user_dir(), "holo.log"), "w", encoding="utf-8", buffering=1)
+        except Exception:
+            pass
     try:
         from holo import HoloGame
         HoloGame().run()

@@ -1,0 +1,78 @@
+name: HOLO iOS -> TestFlight
+
+# Signed App Store build, uploaded to App Store Connect (TestFlight). Run by hand: Actions -> this workflow -> Run.
+# Repository secrets (Settings -> Secrets and variables -> Actions):
+#   APPLE_TEAM_ID          10-character Team ID (developer.apple.com -> Membership details)
+#   ASC_KEY_ID             App Store Connect API key id
+#   ASC_ISSUER_ID          App Store Connect API issuer id
+#   ASC_KEY_P8_BASE64      the AuthKey_XXXX.p8 file, base64-encoded (role: Admin - Xcode creates the certificates)
+# The app record com.hologame.holo must exist in App Store Connect before the first upload.
+on:
+  workflow_dispatch:
+
+jobs:
+  testflight:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Tools
+        run: pip install pygame-ios requests pygame-ce==2.5.6
+      - name: Xcode project
+        run: python tools/make_ios_project.py
+      - name: App Store Connect key
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/keys"
+          echo "$ASC_KEY_P8_BASE64" | base64 --decode > "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8"
+      - name: Build number
+        working-directory: build_ios/HOLO/pygame-ios-template
+        run: |
+          # every upload needs a higher build number (at most 3 numbers): the run number of this workflow
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ github.run_number }}" pygame-ios/pygame-ios-Info.plist
+      - name: Archive
+        working-directory: build_ios/HOLO/pygame-ios-template
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          xcodebuild archive -project pygame-ios.xcodeproj -scheme pygame-ios -configuration Release \
+            -destination "generic/platform=iOS" -archivePath "$RUNNER_TEMP/HOLO.xcarchive" \
+            DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" | tail -60
+          # Apple's privacy manifest belongs at the root of the app bundle
+          cp "$GITHUB_WORKSPACE/ios/PrivacyInfo.xcprivacy" "$RUNNER_TEMP/HOLO.xcarchive/Products/Applications/pygame-ios.app/"
+      - name: Upload to TestFlight
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          EOF
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/HOLO.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" | tail -60
+      - name: Remove the key
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/keys"
