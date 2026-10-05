@@ -2,8 +2,6 @@ name: HOLO iOS -> TestFlight
 
 # Signed App Store build, uploaded to App Store Connect (TestFlight). Run by hand: Actions -> this workflow -> Run.
 # Repository secrets (Settings -> Secrets and variables -> Actions):
-#   ASC_KEY_ID             App Store Connect API key id
-#   ASC_ISSUER_ID          App Store Connect API issuer id
 #   ASC_KEY_P8             the text of the AuthKey_XXXX.p8 file, pasted as is (role: Admin - Xcode creates the certificates)
 # The app record com.hologame.holo must exist in App Store Connect before the first upload.
 on:
@@ -28,7 +26,7 @@ jobs:
         run: python tools/make_ios_project.py
       - name: App Store Connect key
         env:
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_KEY_ID: HU859PN88B                 # App Store Connect API key id (not a secret; the .p8 is)
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
           mkdir -p "$RUNNER_TEMP/keys"
@@ -43,8 +41,8 @@ jobs:
         working-directory: build_ios/HOLO/pygame-ios-template
         env:
           TEAM: 943GLGA58Q                 # Apple Developer Team ID (not a secret)
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: HU859PN88B                 # App Store Connect API key id (not a secret; the .p8 is)
+          ASC_ISSUER_ID: d24b4319-f096-4bd2-8998-5e322d50bb39
         run: |
           xcodebuild archive -project pygame-ios.xcodeproj -scheme pygame-ios -configuration Release \
             -destination "generic/platform=iOS" -archivePath "$RUNNER_TEMP/HOLO.xcarchive" \
@@ -57,8 +55,8 @@ jobs:
       - name: Upload to TestFlight
         env:
           TEAM: 943GLGA58Q                 # Apple Developer Team ID (not a secret)
-          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: HU859PN88B                 # App Store Connect API key id (not a secret; the .p8 is)
+          ASC_ISSUER_ID: d24b4319-f096-4bd2-8998-5e322d50bb39
         run: |
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
