@@ -107,6 +107,9 @@ def configure():
     pbx = re.sub(r"PRODUCT_BUNDLE_IDENTIFIER = [^;]*;", f"PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};", pbx)
     pbx = re.sub(r'TARGETED_DEVICE_FAMILY = [^;]*;', 'TARGETED_DEVICE_FAMILY = 1;', pbx)      # iPhone only (portrait game)
     pbx = re.sub(r'IPHONEOS_DEPLOYMENT_TARGET = [^;]*;', 'IPHONEOS_DEPLOYMENT_TARGET = 15.0;', pbx)
+    # unsigned archive (App Store signature comes at export): the template's "Sign Python Binary Modules" phase
+    # would run codesign with an empty identity and fail - fall back to an ad-hoc signature, replaced at export
+    pbx = pbx.replace('--sign \\\"$EXPANDED_CODE_SIGN_IDENTITY\\\"', '--sign \\\"${EXPANDED_CODE_SIGN_IDENTITY:--}\\\"')
     open(pbx_path, "w", encoding="utf-8").write(pbx)
     _write_scheme(pbx)
 
