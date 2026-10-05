@@ -44,12 +44,12 @@ jobs:
           ASC_KEY_ID: HU859PN88B                 # App Store Connect API key id (not a secret; the .p8 is)
           ASC_ISSUER_ID: d24b4319-f096-4bd2-8998-5e322d50bb39
         run: |
+          # archived unsigned: automatic signing would first want a *development* profile, which needs a registered
+          # iPhone. The App Store signature (cloud-managed distribution certificate) is applied by -exportArchive below.
           xcodebuild archive -project pygame-ios.xcodeproj -scheme pygame-ios -configuration Release \
             -destination "generic/platform=iOS" -archivePath "$RUNNER_TEMP/HOLO.xcarchive" \
             DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8" \
-            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" | tail -60
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" | tail -60
           # Apple's privacy manifest belongs at the root of the app bundle
           cp "$GITHUB_WORKSPACE/ios/PrivacyInfo.xcprivacy" "$RUNNER_TEMP/HOLO.xcarchive/Products/Applications/pygame-ios.app/"
       - name: Upload to TestFlight
