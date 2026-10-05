@@ -2,7 +2,6 @@ name: HOLO iOS -> TestFlight
 
 # Signed App Store build, uploaded to App Store Connect (TestFlight). Run by hand: Actions -> this workflow -> Run.
 # Repository secrets (Settings -> Secrets and variables -> Actions):
-#   APPLE_TEAM_ID          10-character Team ID (developer.apple.com -> Membership details)
 #   ASC_KEY_ID             App Store Connect API key id
 #   ASC_ISSUER_ID          App Store Connect API issuer id
 #   ASC_KEY_P8_BASE64      the AuthKey_XXXX.p8 file, base64-encoded (role: Admin - Xcode creates the certificates)
@@ -42,7 +41,7 @@ jobs:
       - name: Archive
         working-directory: build_ios/HOLO/pygame-ios-template
         env:
-          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          TEAM: 943GLGA58Q                 # Apple Developer Team ID (not a secret)
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
@@ -56,7 +55,7 @@ jobs:
           cp "$GITHUB_WORKSPACE/ios/PrivacyInfo.xcprivacy" "$RUNNER_TEMP/HOLO.xcarchive/Products/Applications/pygame-ios.app/"
       - name: Upload to TestFlight
         env:
-          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          TEAM: 943GLGA58Q                 # Apple Developer Team ID (not a secret)
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
