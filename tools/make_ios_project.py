@@ -82,6 +82,19 @@ def add_packages():
         for extra in os.listdir(target):
             if extra.startswith("numpy"):
                 shutil.rmtree(os.path.join(target, extra), ignore_errors=True)
+        # meson build leftovers inside the pygame-ce package (object files, static libs, *.dylib.p folders):
+        # the App Store export refuses to sign them ("operation inapplicable ... for this type of code")
+        removed = 0
+        for base, dirs, files in os.walk(target, topdown=True):
+            for d in [d for d in dirs if d.endswith(".p")]:
+                shutil.rmtree(os.path.join(base, d), ignore_errors=True)
+                dirs.remove(d)
+                removed += 1
+            for f in files:
+                if f.endswith((".o", ".a", ".pyx", ".pxd", ".c", ".h")) or f == "meson.build":
+                    os.remove(os.path.join(base, f))
+                    removed += 1
+        print("removed", removed, "build leftovers from", os.path.basename(target))
 
 
 def configure():
