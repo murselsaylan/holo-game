@@ -4,7 +4,7 @@ name: HOLO iOS -> TestFlight
 # Repository secrets (Settings -> Secrets and variables -> Actions):
 #   ASC_KEY_ID             App Store Connect API key id
 #   ASC_ISSUER_ID          App Store Connect API issuer id
-#   ASC_KEY_P8_BASE64      the AuthKey_XXXX.p8 file, base64-encoded (role: Admin - Xcode creates the certificates)
+#   ASC_KEY_P8             the text of the AuthKey_XXXX.p8 file, pasted as is (role: Admin - Xcode creates the certificates)
 # The app record com.hologame.holo must exist in App Store Connect before the first upload.
 on:
   workflow_dispatch:
@@ -29,10 +29,12 @@ jobs:
       - name: App Store Connect key
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
           mkdir -p "$RUNNER_TEMP/keys"
-          echo "$ASC_KEY_P8_BASE64" | base64 --decode > "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s
+' "$ASC_KEY_P8" > "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8"
+          grep -q "BEGIN PRIVATE KEY" "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8" || { echo "ASC_KEY_P8 secret is not a .p8 key"; exit 1; }
       - name: Build number
         working-directory: build_ios/HOLO/pygame-ios-template
         run: |
