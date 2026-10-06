@@ -2414,9 +2414,24 @@ class ShopScreen:
     def _layout(self):
         lay = getattr(self, "_lay", None)
         if lay is not None:
-            return lay
+            import datetime
+            if getattr(self, "_feat_day", None) == datetime.date.today().isoformat():
+                return lay
+            self._lay = None
+            self.refresh_texts()                         # pack / shield rows move with the list
+            return self._layout()
         x0 = (VW - (self.COLS * self.CARD_W + (self.COLS - 1) * self.GAP_X)) // 2
         cards, heads, y = {}, [], 8
+        # today's showcase (the old separate "featured" page) heads the list
+        import datetime
+        self._feat_day = datetime.date.today().isoformat()
+        self._feat = catalog.featured_skins(3, self._feat_day)
+        self._feat_rects = {}
+        heads.append(("feat", y))
+        y += self.HEAD_H
+        for i, sid in enumerate(self._feat):
+            self._feat_rects[sid] = pygame.Rect(x0 + i * (self.CARD_W + self.GAP_X), y, self.CARD_W, self.CARD_H)
+        y += self.CARD_H + self.GAP_Y + 14
         by_theme = {}
         for sid in self.skins:
             by_theme.setdefault(catalog.THEME_OF[sid], []).append(sid)
@@ -2463,6 +2478,14 @@ class ShopScreen:
     def _click(self):
         if self.audio:
             self.audio.play_sfx("sfx_click")
+
+    def show_top(self):
+        """Opened from the menu: the list at the top, the first skin of today's showcase selected."""
+        self._layout()
+        if self._feat:
+            self.selected = self._feat[0]
+        self._scroll.y = 0.0
+        self._scroll.vel = 0.0
 
     def select(self, sid):
         """Jump to a skin (used when the skin screen sends the player here)."""
@@ -2530,6 +2553,11 @@ class ShopScreen:
     def _list_tap(self, pos):
         """A tap inside the scrolling list: a skin card, a diamond pack or the shield."""
         lp = (pos[0], pos[1] - self.VIEW_Y + self._scroll.y)
+        self._layout()
+        for sid, r in self._feat_rects.items():
+            if r.collidepoint(lp):
+                self.selected = sid
+                return self._click
         for i, sid in enumerate(self.skins):
             if self._card_rect(i).collidepoint(lp):
                 self.selected = sid
@@ -2585,7 +2613,7 @@ class ShopScreen:
     def _content(self):
         """The whole scrolling list as one opaque surface, rebuilt only when something on it changes."""
         sm = self.save_mgr
-        key = (self.selected, tuple(sm.is_skin_unlocked(s) for s in self.skins), sm.shield_stock,
+        key = (self.selected, getattr(self, "_feat_day", None), tuple(sm.is_skin_unlocked(s) for s in self.skins), sm.shield_stock,
                tuple(self.shop.pack_price(p[0], p[2]) for p in shop_mod.DIAMOND_PACKS), get_language(), VW)
         if getattr(self, "_content_key", None) == key and getattr(self, "_content_img", None) is not None:
             return self._content_img
@@ -2594,13 +2622,17 @@ class ShopScreen:
         img.fill(bg)
         lang = get_language()
         for ti, hy in self._layout()[1]:
+            if ti == "feat":
+                section_title(img, hy + 30, t("featured_title"), ACCENT_GOLD, t("shop_featured_tag").replace("✨ ", ""), x0=34)
+                continue
             name = catalog.theme_name(ti, lang).upper()
             members = catalog.THEMES[ti][2]
             owned = sum(1 for m in members if sm.is_skin_unlocked(m))
             section_title(img, hy + 30, name, ACCENT_CYAN, f"{owned}/5", x0=34)
-        for i, sid in enumerate(self.skins):
+        cards = [(sid, self._feat_rects[sid]) for sid in self._feat] + \
+                [(sid, self._card_rect(i)) for i, sid in enumerate(self.skins)]
+        for sid, r in cards:
             s = SKINS[sid]
-            r = self._card_rect(i)
             sel = sid == self.selected
             got = sm.is_skin_unlocked(sid)
             prem = self.shop.is_premium(sid)

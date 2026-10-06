@@ -275,7 +275,7 @@ class HoloGame:
     def _build_ui(self):
         self.menu_ui = ui.MainMenu(
             self.save_mgr, on_continue=self.continue_campaign, on_levels=self.open_level_select,
-            on_leaderboard=self.open_leaderboard, on_skins=self.open_skins, on_shop=self.open_featured, on_achievements=self.open_achievements,
+            on_leaderboard=self.open_leaderboard, on_skins=self.open_skins, on_shop=lambda: self.open_shop(top=True), on_achievements=self.open_achievements,
             on_profile=lambda: self.open_profile("menu"), on_settings=lambda: self.open_settings("menu"),
             on_quit=None if self.android else self.quit_game, rank_provider=lambda: self.online.rank_info,
             on_daily=self.open_daily, on_endless=self.open_endless)
@@ -287,7 +287,7 @@ class HoloGame:
         self.online.on_purchase = self.shop.purchase_result
         self.ach_ui = ui.AchievementsScreen(self.save_mgr, self.open_menu, audio_manager=self.audio)
         self.daily_ui = ui.DailyMissionsScreen(self.save_mgr, self.open_menu, audio_manager=self.audio)
-        self.shop_ui = ui.ShopScreen(self.save_mgr, self.shop, self.open_featured, audio_manager=self.audio)
+        self.shop_ui = ui.ShopScreen(self.save_mgr, self.shop, self.open_menu, audio_manager=self.audio)
         self.featured_ui = ui.FeaturedScreen(self.save_mgr, self.shop, self.open_menu, self.open_shop, audio_manager=self.audio)
         lvl_cb = self.open_level_select
         self.pause_modal = ui.PauseModal(self.resume_game, self.restart_level, lambda: self.open_settings("paused"),
@@ -529,9 +529,14 @@ class HoloGame:
         self.featured_ui.refresh()
         self._click()
 
-    def open_shop(self):
+    def open_shop(self, top=False):
+        """The shop: today's showcase at the top, every catalogue, the diamond packs and the shield below it.
+        From the menu it opens at the top (showcase selected); from the skins page on the skin being looked at."""
         self.state = "shop"
-        self.shop_ui.select(self.skin_ui.selected_skin)
+        if top:
+            self.shop_ui.show_top()
+        else:
+            self.shop_ui.select(self.skin_ui.selected_skin)
         self._click()
 
     def open_settings(self, from_state):
