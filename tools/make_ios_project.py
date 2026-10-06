@@ -66,10 +66,21 @@ def stage():
     print("staged", n, "files")
 
 
+TEMPLATE_URL = ("https://github.com/seekerluke/pygame-ios-templates/releases/download/v0.0.3/"
+                f"pygame-ios-template-{PYGAME_CE}.zip")
+
+
 def run_cli(template_zip):
-    args = [sys.executable, "-m", "pygame_ios", STAGE, "main.py", PYGAME_CE]
-    if template_zip:
-        args.append(os.path.abspath(template_zip))
+    # a pinned template, downloaded directly: the CLI's own lookup asks the GitHub API for the latest release, which is
+    # rate-limited on shared CI machines (403) - and a pinned version can't change under us either
+    if not template_zip:
+        template_zip = os.path.join(OUT, f"pygame-ios-template-{PYGAME_CE}.zip")
+        if not os.path.isfile(template_zip):
+            import urllib.request
+            print("downloading", TEMPLATE_URL)
+            urllib.request.urlretrieve(TEMPLATE_URL, template_zip + ".part")
+            os.replace(template_zip + ".part", template_zip)
+    args = [sys.executable, "-m", "pygame_ios", STAGE, "main.py", PYGAME_CE, os.path.abspath(template_zip)]
     subprocess.run(args, check=True)
 
 
