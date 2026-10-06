@@ -15,6 +15,8 @@ import time
 
 import pygame
 
+import gfx
+
 import endless as E
 import level_manager as lm
 import space_art
@@ -54,11 +56,11 @@ class _SectorArt:
         if self.far is None and self._raw is not None:
             raw = self._raw
             if self.tex is None:
-                self.tex = raw[2].convert()
+                self.tex = gfx.cv(raw[2])
             elif self.far_flip is None:
-                self.far_flip = raw[1].convert()
+                self.far_flip = gfx.cv(raw[1])
             else:
-                self.far = raw[0].convert()
+                self.far = gfx.cv(raw[0])
                 self._raw = None
         return self.far is not None
 

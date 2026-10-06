@@ -1,6 +1,8 @@
 """Portrait, touch-first UI for HOLO. Logical screen: VW x VH (900 x >=1620)."""
 import math
 import pygame
+
+import gfx
 from render_cache import SurfaceCache
 
 from theme import (PANEL_BG, ACCENT_CYAN, ACCENT_GOLD, ACCENT_GREEN, TEXT_WHITE,
@@ -87,13 +89,13 @@ def text_surface(txt, size, color, bold=True, max_w=None, bg=None):
             f = get_font(max(14, int(size * max_w / s.get_width())), bold)
             s = f.render(str(txt), True, color)
         if bg == "key":
-            flat = pygame.Surface(s.get_size()).convert()
+            flat = gfx.cv(pygame.Surface(s.get_size()))
             flat.fill((0, 0, 0))
             flat.blit(s, (0, 0))
             flat.set_colorkey((0, 0, 0), pygame.RLEACCEL)
             s = flat
         elif bg is not None:
-            flat = pygame.Surface(s.get_size()).convert()
+            flat = gfx.cv(pygame.Surface(s.get_size()))
             flat.fill(bg)
             flat.blit(s, (0, 0))
             s = flat
@@ -466,7 +468,7 @@ class Button:
             top, bot = _PAD + rad, _PAD + h - rad
             if bot - top >= 8:
                 core_r = pygame.Rect(_PAD, top, w, bot - top)
-                core = comp.subsurface(core_r).copy().convert()
+                core = gfx.cv(comp.subsurface(core_r).copy())
                 bands = [pygame.Rect(0, 0, W, top), pygame.Rect(0, bot, W, H - bot),
                          pygame.Rect(0, top, _PAD, bot - top), pygame.Rect(_PAD + w, top, W - _PAD - w, bot - top)]
                 parts = (core, core_r.topleft, bands)
@@ -812,7 +814,7 @@ class HUD:
                min(100, max(0, int(progress * 100))), self.shield_stock, self.shield_active, get_language(), VW)
         if getattr(self, "_key", None) != key:
             if getattr(self, "_img", None) is None or self._img.get_width() != VW:
-                self._img = pygame.Surface((VW, HUD_H + 1)).convert()   # +1: the 2 px bottom rule spills one row
+                self._img = gfx.cv(pygame.Surface((VW, HUD_H + 1)))   # +1: the 2 px bottom rule spills one row
             self._draw_static(self._img, level_id, max_levels, stars_collected, shields, progress, sector_title,
                               sector, attempts, title)
             self._key = key
@@ -886,7 +888,7 @@ class HUD:
         key = (score, clock, swaps, combo_mult, get_language(), VW)
         if getattr(self, "_fkey", None) != key:        # opaque sprite, re-rendered only when a value changes
             if getattr(self, "_fimg", None) is None or self._fimg.get_width() != VW:
-                self._fimg = pygame.Surface((VW, 72)).convert()
+                self._fimg = gfx.cv(pygame.Surface((VW, 72)))
             img, cy = self._fimg, 36
             img.fill((12, 16, 26))
             pygame.draw.line(img, BORDER_COLOR, (24, 1), (VW - 24, 1))
@@ -2019,7 +2021,7 @@ class LeaderboardScreen:
         if spr is not None:
             return spr
         h = self.ROW_H - 12
-        spr = pygame.Surface((w, h)).convert()
+        spr = gfx.cv(pygame.Surface((w, h)))
         spr.fill((16, 20, 32))                      # the list panel behind the rounded corners
         r = spr.get_rect()
         pygame.draw.rect(spr, (34, 52, 84) if is_me else ((26, 34, 54) if i % 2 == 0 else (20, 27, 42)), r, border_radius=14)
@@ -2587,7 +2589,7 @@ class ShopScreen:
                tuple(self.shop.pack_price(p[0], p[2]) for p in shop_mod.DIAMOND_PACKS), get_language(), VW)
         if getattr(self, "_content_key", None) == key and getattr(self, "_content_img", None) is not None:
             return self._content_img
-        img = pygame.Surface((VW, self._content_h())).convert()
+        img = gfx.cv(pygame.Surface((VW, self._content_h())))
         bg = (10, 14, 26)
         img.fill(bg)
         lang = get_language()
@@ -3623,7 +3625,7 @@ class EndlessHUD(HUD):
         key = (metres, best, shields, sector, points, stars, self.shield_stock, self.shield_active, get_language(), VW)
         if getattr(self, "_ekey", None) != key:
             if getattr(self, "_eimg", None) is None or self._eimg.get_width() != VW:
-                self._eimg = pygame.Surface((VW, HUD_H + 1)).convert()
+                self._eimg = gfx.cv(pygame.Surface((VW, HUD_H + 1)))
             img = self._eimg
             pygame.draw.rect(img, (12, 16, 26), (0, 0, VW, HUD_H + 1))
             pygame.draw.line(img, (40, 55, 80), (0, HUD_H - 1), (VW, HUD_H - 1), 2)

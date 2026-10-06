@@ -7,6 +7,8 @@ the screen: `draw` takes a camera offset `oy`.
 import math
 import random
 import pygame
+
+import gfx
 from render_cache import SurfaceCache
 
 import space_art
@@ -58,7 +60,7 @@ def glow_sprite(radius, color, strength=1.0):
         for i in range(8, 0, -1):
             k = 0.30 * strength * ((9 - i) / 8.0) ** 1.6
             pygame.draw.circle(spr, tuple(max(0, min(255, int(c * k))) for c in color), (r + 1, r + 1), int(r * i / 8.0))
-        spr = _GLOW.put(key, spr.convert())
+        spr = _GLOW.put(key, gfx.cv(spr))
     return spr
 
 
@@ -139,7 +141,7 @@ class Level:
         pal = self.palette
         H_I = int(d.height)
         far_h = int(1900 + 0.3 * max(0, H_I - 1400))
-        self.far = space_art.make_far_layer(self.sector, self.id, W_I, far_h).convert()
+        self.far = gfx.cv(space_art.make_far_layer(self.sector, self.id, W_I, far_h))
 
         walls = pygame.Surface((W_I, H_I), pygame.SRCALPHA)
         for (x, y, w, h) in d.walls:
@@ -189,7 +191,7 @@ class Level:
         for s_ in d.spinners:
             pygame.draw.circle(fg, (60, 64, 80), (int(s_[0]), int(s_[1])), 14)
             pygame.draw.circle(fg, (150, 40, 90), (int(s_[0]), int(s_[1])), 9)
-        self.fg = fg.convert()
+        self.fg = gfx.cv(fg)
         self.fg.set_colorkey(self.KEY, pygame.RLEACCEL)
         rng = random.Random(self.id * 17)
         self.twinkles = [(rng.randrange(20, W_I - 20), rng.randrange(0, far_h), rng.uniform(0, 6.28)) for _ in range(46)]
@@ -252,7 +254,7 @@ class Level:
             for sx in range(-key[1], key[0] + 20, 18):
                 pygame.draw.line(spr, (255, 135, 20), (sx, 0), (sx + key[1], key[1]), 3)
             pygame.draw.rect(spr, (255, 175, 30), spr.get_rect(), 2, border_radius=4)
-            self._piston[key] = spr.convert()
+            self._piston[key] = gfx.cv(spr)
         return spr
 
     def reset_fx(self):

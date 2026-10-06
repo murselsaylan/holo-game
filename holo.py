@@ -5,6 +5,9 @@ import time
 
 import pygame
 
+import gfx
+
+import os
 import paths
 import config
 import ui
@@ -149,8 +152,11 @@ class HoloGame:
         self.scaled = False
         self.vsync = False
         self.window = None
+        self._gpu = None                 # iPhone: (window, renderer, texture) of the high-DPI path
         if self.headless:
             self.window = pygame.display.set_mode((VW // 2, self.vh // 2))
+        elif paths.is_ios() and self._open_ios_window(win_vh):
+            pass
         elif self.android:
             try:
                 # vsync stays off (config "vsync": true turns it on): on 90/120 Hz phones it made the uncapped loop
@@ -184,6 +190,39 @@ class HoloGame:
         self._present_buffer = None
         self.is_fullscreen = False
 
+    def _open_ios_window(self, win_vh):
+        """iPhone: a high-DPI (Retina) window and a GPU renderer that scales the frame to the panel's real pixels.
+        display.set_mode(SCALED) opens a 1x window on iOS: the picture was squeezed to a third of the panel's
+        pixels first and looked soft. The renderer's logical size maps touches to frame coordinates, like SCALED."""
+        try:
+            os.environ.setdefault("SDL_RENDER_SCALE_QUALITY", "1")          # linear filtering when scaling up
+            from pygame._sdl2.video import Renderer, Texture
+            info = pygame.display.Info()
+            win = pygame.Window("HOLO", size=(info.current_w, info.current_h), fullscreen=True, allow_high_dpi=True)
+            ren = Renderer(win, vsync=False)
+            ren.logical_size = (VW, win_vh)
+            tex = Texture(ren, (VW, win_vh), streaming=True)
+            self.window = pygame.Surface((VW, win_vh))
+            gfx.set_target(self.window)                                      # Surface.convert() target
+            self._gpu = (win, ren, tex)
+            self.scaled = True
+            return True
+        except Exception as e:
+            print("iOS high-DPI window unavailable, using SCALED:", e)
+            self._gpu = None
+            gfx.set_target(None)
+            return False
+
+    def _flip(self):
+        if self._gpu is not None:
+            win, ren, tex = self._gpu
+            tex.update(self.window)
+            ren.clear()
+            tex.draw()
+            ren.present()
+        else:
+            pygame.display.flip()
+
     def to_virtual(self, pos):
         if self.scaled:
             return (pos[0], pos[1] - self.safe_top)
@@ -207,7 +246,7 @@ class HoloGame:
         st, sb = self.safe_top, self.safe_bottom
         # the backdrop is painted for the whole screen, camera cut-out / gesture-bar strips included: the frame shows
         # the middle part, the strips above and below it get the rest (full-bleed, no black bands on phones)
-        full = space_art.make_menu_backdrop(VW, self.vh + st + sb).convert()
+        full = gfx.cv(space_art.make_menu_backdrop(VW, self.vh + st + sb))
         veil = pygame.Surface(full.get_size(), pygame.SRCALPHA)
         veil.fill((4, 6, 12, 150))
         full_dark = full.copy()
@@ -279,7 +318,7 @@ class HoloGame:
     def _warm_up(self):
         """Render the first screen once off-screen while Android still shows the loading splash (assets/presplash.png),
         so its text / button / glow caches exist before the first visible frame - no stutter right after start."""
-        f = pygame.Surface((VW, self.vh)).convert()
+        f = gfx.cv(pygame.Surface((VW, self.vh)))
         # the first frame of every menu screen used to build its sprites / texts on the spot (10-25 ms on a PC,
         # a visible hitch on phones the first time a screen opened) - build them all now, behind the splash
         for st in (self.state, "menu", "featured", "shop", "skins", "leaderboard", "levels", "achievements", "daily", "settings"):
@@ -882,7 +921,7 @@ class HoloGame:
         s.events.clear()
 
     def _on_win(self):
-        if self._autoplay is not None:
+        if self._autoplay is not None and getattr(self, "_selftest", None) is None:
             self._autoplay_next()
             return
         s = self.sim
@@ -1004,6 +1043,15 @@ class HoloGame:
             self._autoplay = [sorted(taps) if taps else list(range(60, 60 * 60 * 20, 52)), 0, True]
             self._autoplay_levels = []
             print("[perf] autoplay endless")
+            return
+        if config.get("perf_autoplay") == "selftest":           # play levels for real: victory screen, "next"
+            self._selftest = [int(x) for x in config.get("selftest_levels") or [1, 2]]
+            self._selftest_t = 0.0
+            self.save_mgr.data["howto_seen"] = True
+            lid = self._selftest.pop(0)
+            self.load_and_play_level(lid)
+            self._autoplay = [sorted(self.level.data.raw.get("ref_taps", [])), 0, True]
+            print(f"[selftest] level {lid}", flush=True)
             return
         levels = [int(x) for x in config.get("perf_autoplay") or []]
         if not levels:
@@ -1169,7 +1217,7 @@ class HoloGame:
         key = (title, sub, ui.get_language())
         cached = getattr(self, "_toast_img", None)
         if cached is None or cached[0] != key:
-            img = pygame.Surface((w, 116)).convert()
+            img = gfx.cv(pygame.Surface((w, 116)))
             img.fill((255, 0, 255))
             r0 = img.get_rect()
             pygame.draw.rect(img, (10, 22, 46), r0, border_radius=28)
@@ -1187,6 +1235,19 @@ class HoloGame:
         if self.state == "menu" and not getattr(self, "_autoplay_started", False) and config.get("perf_autoplay"):
             self._autoplay_started = True
             self._start_autoplay()
+        if getattr(self, "_selftest", None) is not None and self.state in ("victory", "failed"):
+            self._selftest_t += dt
+            if self._selftest_t > 3.0:                  # the victory screen had 3 s: press "next" like a player
+                self._selftest_t = 0.0
+                print(f"[selftest] {self.state} on level {self.level_id}", flush=True)
+                if self.state == "victory" and self._selftest:
+                    self._selftest.pop(0)
+                    self.victory_modal.btn_next.callback()
+                    self._autoplay = [sorted(self.level.data.raw.get("ref_taps", [])), 0, True]
+                    print(f"[selftest] level {self.level_id}", flush=True)
+                else:
+                    self._selftest = None
+                    print("[selftest] done", flush=True)
         self.shop.poll()                              # store events (also purchases finished while in another screen)
         self._sync_music()
         self._check_achievements()
@@ -1570,7 +1631,7 @@ class HoloGame:
                 screen.draw(f)
             finally:
                 screen._static = False
-            surf = cache[1] if cache is not None and cache[1].get_size() == f.get_size() else pygame.Surface(f.get_size()).convert()
+            surf = cache[1] if cache is not None and cache[1].get_size() == f.get_size() else gfx.cv(pygame.Surface(f.get_size()))
             surf.blit(f, (0, 0))
             self._screen_frame = (sig, surf)
         else:
@@ -1770,7 +1831,7 @@ class HoloGame:
             k = min(1.0, left / 0.4, (4.2 - left) / 0.3)
             band = getattr(self, "_hint_band", None)
             if band is None:
-                band = self._hint_band = pygame.Surface((VW, 92)).convert()
+                band = self._hint_band = gfx.cv(pygame.Surface((VW, 92)))
                 band.fill((6, 12, 26))
             by = int(self.view_h * 0.70)
             if k >= 0.99:                                   # most of the 4 s: a plain opaque band + opaque text
@@ -1899,7 +1960,7 @@ class HoloGame:
                 transform = pygame.transform.scale if self.android else pygame.transform.smoothscale
                 img = transform(f, (sw, sh), self._present_buffer)
             self.window.blit(img, ((self.win_w - sw) // 2 + int(ox * scale), (self.win_h - sh) // 2 + int(oy * scale)))
-        pygame.display.flip()
+        self._flip()
 
     # ------------------------------------------------------------------ main loop
     def run(self):
@@ -1963,7 +2024,7 @@ class _Gradient:
     def __init__(self, color, length, thickness, alpha_at, columns, step=3):
         self.columns = columns                    # True: the ramp runs along x (strips are columns)
         self.strips = [(o, alpha_at(min(length - 1, o + step // 2))) for o in range(0, length, step)]
-        self.surf = pygame.Surface((step, thickness) if columns else (thickness, step)).convert()
+        self.surf = gfx.cv(pygame.Surface((step, thickness) if columns else (thickness, step)))
         self.surf.fill(color)
 
     def draw(self, dst, pos, mult):

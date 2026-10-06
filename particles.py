@@ -1,4 +1,6 @@
 import pygame
+
+import gfx
 import math
 import random
 
@@ -297,7 +299,7 @@ class ParticleSystem:
                 k = lvl / 4.0
                 col = tuple(max(8, int(c * k)) for c in ft.color[:3])
                 raw = font.render(ft.text, True, col)
-                txt = pygame.Surface((raw.get_width() + 4, raw.get_height() + 4)).convert()
+                txt = gfx.cv(pygame.Surface((raw.get_width() + 4, raw.get_height() + 4)))
                 txt.fill((0, 0, 0))
                 txt.blit(font.render(ft.text, True, (1, 1, 1)), (3, 3))   # near-black drop shadow (opaque)
                 txt.blit(raw, (1, 1))
