@@ -61,7 +61,8 @@ def skin_thumbnail(sid, width=110, height=70, radius=16):
         thumb = pygame.Surface((width, height), pygame.SRCALPHA)
         sk = SKINS.get(sid, SKINS["neon_pulse"])
         cy = height // 2
-        p1, p2 = (width // 2 - 34, cy), (width // 2 + 34, cy)
+        d = max(34, int(width * 0.26))                   # bigger cards spread the pair a little more
+        p1, p2 = (width // 2 - d, cy), (width // 2 + d, cy)
         draw_tether(thumb, p1, p2, sk, 0.65)
         draw_orb(thumb, p1, radius, sk["color1"], sk["glow1"], False, sk, 0.65)
         draw_orb(thumb, p2, radius, sk["color2"], sk["glow2"], True, sk, 0.65)
@@ -1412,6 +1413,134 @@ class MainMenu:
 
 
 # ======================================================================================== achievements
+# ======================================================================================== themed list pieces
+# The goals / achievements / login screens use the game's own cockpit look: dark glass cards with a neon rim and HUD
+# brackets, an orbit emblem (a ring with an orb on it - the two-orb motif), neon progress bars with a glowing head.
+_THEME_CACHE = {}
+
+
+def _tcache(key, make):
+    s = _THEME_CACHE.get(key)
+    if s is None:
+        if len(_THEME_CACHE) > 300:
+            _THEME_CACHE.clear()
+        s = _THEME_CACHE[key] = make()
+    return s
+
+
+def theme_card(surface, r, accent, mode="idle", radius=26):
+    """mode: "idle" (quiet rim), "ready" (accent rim + glow - something to take), "done" (green rim)."""
+    edge = {"idle": (46, 68, 108), "ready": accent, "done": (60, 200, 130)}[mode]
+    top = (18, 40, 46) if mode == "done" else (22, 32, 58)
+    if mode == "ready":
+        surface.blit(neon_halo(r.w, r.h, accent, radius), (r.x - 12, r.y - 12))
+    surface.blit(cockpit_surface(r.w, r.h, top, (8, 12, 26), edge, radius), r.topleft)
+
+
+def orbit_badge(surface, cx, cy, rad, col, icon="gem", lit=True):
+    """Round emblem: glass disc, neon orbit ring with an orb riding on it, an icon in the middle."""
+    ring = col if lit else (58, 76, 112)
+
+    def make():
+        d = rad * 2 + 24
+        s = pygame.Surface((d, d), pygame.SRCALPHA)
+        c = d // 2
+        if lit:
+            for k, a in ((rad + 10, 26), (rad + 5, 40)):
+                pygame.draw.circle(s, ring + (a,), (c, c), k)
+        for i in range(rad, 0, -2):                      # disc: light centre, deep edge
+            f = i / float(rad)
+            base = (14, 22, 44) if lit else (14, 18, 30)
+            pygame.draw.circle(s, tuple(int(v * (1.25 - 0.45 * f)) for v in base) + (255,), (c, c), i)
+        pygame.draw.circle(s, ring + (255,), (c, c), rad, 3)
+        pygame.draw.circle(s, ring + (110,), (c, c), rad - 9, 1)
+        ox, oy = c + int(rad * 0.71), c - int(rad * 0.71)  # the orb on the ring (top right)
+        orb = (255, 255, 255) if lit else (120, 135, 165)
+        if lit:
+            pygame.draw.circle(s, ring + (90,), (ox, oy), 9)
+        pygame.draw.circle(s, ring + (255,), (ox, oy), 6)
+        pygame.draw.circle(s, orb + (255,), (ox - 1, oy - 1), 3)
+        return s
+
+    spr = _tcache(("badge", rad, ring, lit), make)
+    surface.blit(spr, spr.get_rect(center=(cx, cy)))
+    k = rad / 42.0
+    if icon == "gem":
+        draw_vector_gem(surface, cx, cy, int(17 * k)) if lit else pygame.draw.polygon(
+            surface, (70, 90, 125), [(cx, cy - 17 * k), (cx + 17 * k, cy - 3 * k), (cx, cy + 17 * k), (cx - 17 * k, cy - 3 * k)], 2)
+    elif icon == "star":
+        draw_vector_star(surface, cx, cy, int(20 * k), filled=lit, color=ACCENT_GOLD if lit else (90, 105, 140))
+    elif icon == "check":
+        pygame.draw.lines(surface, (255, 255, 255), False,
+                          [(cx - 16 * k, cy + 1), (cx - 4 * k, cy + 13 * k), (cx + 18 * k, cy - 12 * k)], max(4, int(7 * k)))
+    elif icon == "hex":
+        pts = [(cx + math.cos(a) * 18 * k, cy + math.sin(a) * 18 * k) for a in [math.pi / 6 + i * math.pi / 3 for i in range(6)]]
+        pygame.draw.polygon(surface, ring, pts, 3)
+
+
+def neon_bar(surface, r, frac, col, done=False):
+    """Progress bar: dark track, gradient fill, glowing orb at its head."""
+    frac = max(0.0, min(1.0, frac))
+    fill_col = (60, 210, 130) if done else col
+
+    def make_track():
+        s = pygame.Surface((r.w, r.h), pygame.SRCALPHA)
+        pygame.draw.rect(s, (8, 12, 26, 255), (0, 0, r.w, r.h), border_radius=r.h // 2)
+        pygame.draw.rect(s, (44, 62, 98, 255), (0, 0, r.w, r.h), 1, border_radius=r.h // 2)
+        return s
+
+    def make_fill():
+        s = pygame.Surface((r.w, r.h), pygame.SRCALPHA)
+        lo = tuple(int(v * 0.45) for v in fill_col)
+        for x in range(r.w):
+            k = x / float(max(1, r.w - 1))
+            pygame.draw.line(s, tuple(int(lo[i] + (fill_col[i] - lo[i]) * k) for i in range(3)) + (255,), (x, 0), (x, r.h))
+        pygame.draw.line(s, (255, 255, 255, 60), (r.h // 2, 2), (r.w - r.h // 2, 2))
+        mask = pygame.Surface((r.w, r.h), pygame.SRCALPHA)
+        pygame.draw.rect(mask, (255, 255, 255, 255), (0, 0, r.w, r.h), border_radius=r.h // 2)
+        s.blit(mask, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+        return s
+
+    surface.blit(_tcache(("track", r.w, r.h), make_track), r.topleft)
+    w = int(r.w * frac)
+    if w <= 0:
+        return
+    w = max(r.h, w)
+    surface.blit(_tcache(("fill", r.w, r.h, fill_col), make_fill), r.topleft, area=pygame.Rect(0, 0, w, r.h))
+    hx, hy = r.x + w - r.h // 2, r.centery
+    pygame.draw.circle(surface, tuple(min(255, v + 60) for v in fill_col), (hx, hy), r.h // 2 + 3)
+    pygame.draw.circle(surface, (255, 255, 255), (hx, hy), max(2, r.h // 2 - 2))
+
+
+def section_title(surface, y, text, col, right=None, x0=44):
+    """Section heading: glowing orb, title, a neon rule running to the right edge."""
+    pygame.draw.circle(surface, tuple(int(v * 0.35) for v in col), (x0 + 8, y), 11)
+    pygame.draw.circle(surface, col, (x0 + 8, y), 6)
+    tr = draw_text(surface, text, 28, col, (x0 + 26, y), anchor="midleft")
+    end = VW - x0
+    if right:
+        rr = draw_text(surface, right, 22, TEXT_MUTED, (end, y), anchor="midright", bold=False)
+        end = rr.x - 16
+    if end - tr.right > 40:
+        pygame.draw.line(surface, tuple(int(v * 0.55) for v in col), (tr.right + 16, y), (end, y), 2)
+
+
+def state_pill(surface, r, text, mode):
+    """The right-hand state of a row when there is nothing to press: "done" (green) or "locked" (quiet)."""
+    edge = (60, 200, 130) if mode == "done" else (52, 64, 92)
+    top = (24, 70, 56) if mode == "done" else (20, 26, 42)
+    surface.blit(cockpit_surface(r.w, r.h, top, (10, 14, 24), edge, 18), r.topleft)
+    if mode == "done":
+        cx, cy = r.x + 30, r.centery
+        pygame.draw.lines(surface, (255, 255, 255), False, [(cx - 9, cy), (cx - 2, cy + 7), (cx + 10, cy - 7)], 4)
+        draw_text(surface, text, 22, (230, 255, 240), (r.centerx + 12, r.centery), max_w=r.w - 56)
+    else:
+        lx, ly = r.x + 28, r.centery + 2                  # small padlock
+        pygame.draw.rect(surface, (100, 115, 150), (lx - 8, ly - 2, 16, 12), border_radius=3)
+        pygame.draw.arc(surface, (100, 115, 150), (lx - 6, ly - 12, 12, 14), 0, math.pi, 2)
+        draw_text(surface, text, 21, (140, 152, 180), (r.centerx + 12, r.centery), bold=False, max_w=r.w - 56)
+
+
 class _ClaimMixin:
     """Claim buttons (daily / weekly missions, event tiers) and the running event's reward card - shared by the
     missions screen and the achievements screen. Needs self.save_mgr, self.audio, self.claim_buttons, self._claim_btns."""
@@ -1441,8 +1570,9 @@ class _ClaimMixin:
         btn = self._claim_btns.get((kind, key))
         if btn is None:
             btn = self._claim_btns[(kind, key)] = Button((br.x, br.y, br.w, br.h), t("daily_claim"), 24,
-                                                         bg_color=(0, 200, 235), hover_color=(60, 230, 255),
-                                                         text_color=(255, 255, 255), callback=self._claim(kind, key))
+                                                         bg_color=(0, 150, 190), hover_color=(40, 200, 235),
+                                                         text_color=(255, 255, 255), border_color=(120, 240, 255),
+                                                         callback=self._claim(kind, key))
         btn.rect.topleft = br.topleft
         btn.text = label or t("daily_claim")
         btn.draw(surface)
@@ -1455,42 +1585,43 @@ class _ClaimMixin:
             return 0
         col = ev["color"]
         r = pygame.Rect(40, y, VW - 80, 300)
-        pygame.draw.rect(surface, (26, 20, 14), r, border_radius=28)
-        pygame.draw.rect(surface, col, r, 3, border_radius=28)
-        draw_text(surface, events.name(ev, get_language()).upper(), 34, col, (r.x + 30, r.y + 40), anchor="midleft",
-                  max_w=r.w - 260)
+        surface.blit(neon_halo(r.w, r.h, col, 28), (r.x - 12, r.y - 12))
+        surface.blit(cockpit_surface(r.w, r.h, (40, 28, 22), (14, 10, 12), col, 28), r.topleft)
+        orbit_badge(surface, r.x + 54, r.y + 52, 30, col, "star")
+        draw_text(surface, events.name(ev, get_language()).upper(), 34, col, (r.x + 98, r.y + 40), anchor="midleft",
+                  max_w=r.w - 330)
         draw_text(surface, t("event_banner", n=ev["days_left"]), 22, (255, 225, 190), (r.right - 30, r.y + 40),
                   anchor="midright", bold=False)
-        draw_text(surface, t("event_how"), 21, TEXT_MUTED, (r.x + 30, r.y + 80), anchor="midleft", bold=False,
-                  max_w=r.w - 60)
+        draw_text(surface, t("event_how"), 21, (200, 185, 175), (r.x + 98, r.y + 76), anchor="midleft", bold=False,
+                  max_w=r.w - 130)
         tiers = ev["tiers"]
         top = tiers[-1][0]
-        bar = pygame.Rect(r.x + 30, r.y + 112, r.w - 60, 18)
-        pygame.draw.rect(surface, (40, 30, 22), bar, border_radius=9)
-        frac = min(1.0, st["points"] / float(top))
-        if frac > 0:
-            pygame.draw.rect(surface, col, (bar.x, bar.y, max(12, int(bar.w * frac)), bar.h), border_radius=9)
-        draw_vector_star(surface, bar.x + 12, bar.bottom + 26, radius=12, filled=True)
-        draw_text(surface, t("event_points", n=fmt_int(st["points"])), 22, (255, 225, 120), (bar.x + 32, bar.bottom + 26),
+        bar = pygame.Rect(r.x + 30, r.y + 112, r.w - 60, 16)
+        neon_bar(surface, bar, st["points"] / float(top), col)
+        draw_vector_star(surface, bar.x + 12, bar.bottom + 24, radius=12, filled=True)
+        draw_text(surface, t("event_points", n=fmt_int(st["points"])), 22, (255, 225, 120), (bar.x + 32, bar.bottom + 24),
                   anchor="midleft")
         tw = (r.w - 60 - 3 * 14) // 4
         for i, (pts, gems, stars) in enumerate(tiers):
-            tr_ = pygame.Rect(r.x + 30 + i * (tw + 14), r.y + 172, tw, 112)
+            tr_ = pygame.Rect(r.x + 30 + i * (tw + 14), r.y + 168, tw, 116)
             got = i in st["claimed"]
             ready = st["points"] >= pts and not got
-            pygame.draw.rect(surface, (40, 34, 24) if not got else (24, 46, 36), tr_, border_radius=18)
-            pygame.draw.rect(surface, col if ready else ((60, 180, 120) if got else (80, 66, 50)), tr_,
-                             3 if ready else 2, border_radius=18)
-            draw_text(surface, f"{fmt_int(pts)}", 20, TEXT_MUTED, (tr_.centerx, tr_.y + 18), bold=False)
-            draw_diamond_icon(surface, tr_.centerx - 30, tr_.y + 44, 11, (0, 230, 255))
-            draw_text(surface, f"+{gems}", 22, (130, 235, 255), (tr_.centerx - 16, tr_.y + 44), anchor="midleft")
-            if stars and not ready and not got:
-                draw_vector_star(surface, tr_.centerx - 30, tr_.y + 76, radius=10, filled=True)
-                draw_text(surface, f"+{stars}", 20, (255, 225, 120), (tr_.centerx - 16, tr_.y + 76), anchor="midleft")
+            edge = col if ready else ((60, 200, 130) if got else (84, 70, 58))
             if ready:
-                self._button(surface, pygame.Rect(tr_.x + 10, tr_.y + 68, tr_.w - 20, 38), "event", i)
+                surface.blit(neon_halo(tr_.w, tr_.h, col, 18), (tr_.x - 12, tr_.y - 12))
+            surface.blit(cockpit_surface(tr_.w, tr_.h, (34, 30, 26) if not got else (20, 46, 38), (12, 10, 12), edge, 18),
+                         tr_.topleft)
+            draw_text(surface, f"{fmt_int(pts)}", 20, (190, 175, 160), (tr_.centerx, tr_.y + 18), bold=False)
+            draw_diamond_icon(surface, tr_.centerx - 30, tr_.y + 46, 11, (0, 230, 255))
+            draw_text(surface, f"+{gems}", 22, (130, 235, 255), (tr_.centerx - 16, tr_.y + 46), anchor="midleft")
+            if stars and not ready and not got:
+                draw_vector_star(surface, tr_.centerx - 30, tr_.y + 80, radius=10, filled=True)
+                draw_text(surface, f"+{stars}", 20, (255, 225, 120), (tr_.centerx - 16, tr_.y + 80), anchor="midleft")
+            if ready:
+                self._button(surface, pygame.Rect(tr_.x + 10, tr_.y + 70, tr_.w - 20, 38), "event", i)
             elif got:
-                draw_text(surface, t("owned"), 20, (120, 230, 160), (tr_.centerx, tr_.y + 86))
+                cx, cy = tr_.centerx, tr_.y + 88
+                pygame.draw.lines(surface, (120, 240, 170), False, [(cx - 10, cy), (cx - 3, cy + 7), (cx + 11, cy - 8)], 4)
         return r.h
 
 
@@ -1562,25 +1693,21 @@ class AchievementsScreen(_ClaimMixin):
         for a in items:
             done = a[0] in got
             cur, tot = ach_mod.progress(sm, a)
-            r = pygame.Rect(40, y, VW - 80, self.ROW_H - 14)
-            shadow_under(surface, r, 30, 70, 6, 30)
-            pygame.draw.rect(surface, (16, 34, 64) if done else (12, 20, 40), r, border_radius=30)
-            pygame.draw.rect(surface, (0, 220, 255) if done else (40, 66, 108), r, 3 if done else 2, border_radius=30)
-            cx, cy = r.x + 74, r.centery
-            pygame.draw.circle(surface, (0, 170, 210) if done else (20, 32, 60), (cx, cy), 42)
-            pygame.draw.circle(surface, (150, 245, 255) if done else (52, 78, 120), (cx, cy), 42, 4)
+            r = pygame.Rect(40, y, VW - 80, self.ROW_H - 18)
+            theme_card(surface, r, ACCENT_CYAN, "done" if done else "idle")
+            orbit_badge(surface, r.x + 70, r.centery, 42, ACCENT_GOLD if done else ACCENT_CYAN,
+                        "star", lit=done or cur > 0)
+            tx = r.x + 136
+            draw_text(surface, ach_mod.title(a), 32, TEXT_WHITE if done else (205, 210, 232), (tx, r.y + 38),
+                      anchor="midleft", max_w=r.w - 180)
+            draw_text(surface, ach_mod.desc(a), 23, (170, 180, 215), (tx, r.y + 74), anchor="midleft", bold=False,
+                      max_w=r.w - 180)
+            bar = pygame.Rect(tx, r.y + 100, r.w - 136 - 120, 14)
+            neon_bar(surface, bar, 1.0 if done else cur / float(max(1, tot)), ACCENT_CYAN, done=done)
             if done:
-                pygame.draw.lines(surface, (255, 255, 255), False, [(cx - 18, cy + 2), (cx - 5, cy + 16), (cx + 20, cy - 14)], 7)
+                draw_vector_star(surface, bar.right + 46, bar.centery, radius=13, filled=True)
             else:
-                draw_vector_star(surface, cx, cy, 22, filled=False)
-            draw_text(surface, ach_mod.title(a), 34, TEXT_WHITE if done else (200, 200, 225), (r.x + 140, r.y + 42), anchor="midleft", max_w=r.w - 190)
-            draw_text(surface, ach_mod.desc(a), 24, (190, 185, 225), (r.x + 140, r.y + 80), anchor="midleft", bold=False, max_w=r.w - 190)
-            bar = pygame.Rect(r.x + 140, r.y + 104, r.w - 200, 14)
-            pygame.draw.rect(surface, (20, 20, 40), bar, border_radius=7)
-            frac = 1.0 if done else cur / float(max(1, tot))
-            if frac > 0:
-                pygame.draw.rect(surface, (0, 220, 255) if done else (90, 130, 230), (bar.x, bar.y, max(10, int(bar.w * frac)), bar.h), border_radius=7)
-            draw_text(surface, f"{cur}/{tot}" if not done else "OK", 20, (225, 220, 250), (bar.right + 30, bar.centery), bold=False)
+                draw_text(surface, f"{cur}/{tot}", 20, (205, 215, 240), (bar.right + 52, bar.centery), bold=False)
             y += self.ROW_H
         if self.page > 0:
             self.btn_prev.draw(surface)
@@ -1625,53 +1752,45 @@ class DailyMissionsScreen(_ClaimMixin):
     def _row(self, surface, y, kind, m, cur, got, accent):
         tot = m["target"]
         done_full = cur >= tot
-        r = pygame.Rect(40, y, VW - 80, self.ROW_H - 16)
-        pygame.draw.rect(surface, (16, 34, 64) if got else (12, 20, 40), r, border_radius=26)
-        pygame.draw.rect(surface, (35, 220, 140) if got else (accent if done_full else (40, 66, 108)),
-                         r, 3 if (got or done_full) else 2, border_radius=26)
-        draw_diamond_icon(surface, r.x + 54, r.y + 44, 18, (0, 230, 255))
-        draw_text(surface, t(m["label_key"], n=fmt_int(tot)), 28, TEXT_WHITE, (r.x + 100, r.y + 36), anchor="midleft",
-                  max_w=r.w - 360)
-        draw_text(surface, t("daily_reward", n=m["reward"]), 21, (255, 215, 120), (r.x + 100, r.y + 68), anchor="midleft",
-                  bold=False)
-        bar = pygame.Rect(r.x + 100, r.y + 92, r.w - 450, 14)
-        pygame.draw.rect(surface, (20, 20, 40), bar, border_radius=7)
-        frac = min(1.0, cur / float(max(1, tot)))
-        if frac > 0:
-            pygame.draw.rect(surface, (35, 220, 140) if done_full else (90, 130, 230),
-                             (bar.x, bar.y, max(10, int(bar.w * frac)), bar.h), border_radius=7)
-        draw_text(surface, f"{fmt_int(min(cur, tot))}/{fmt_int(tot)}", 20, (225, 220, 250), (bar.right + 14, bar.centery),
-                  anchor="midleft", bold=False)
-        br = pygame.Rect(r.right - 200, r.centery - 36, 180, 72)
+        r = pygame.Rect(40, y, VW - 80, self.ROW_H - 18)
+        mode = "done" if got else ("ready" if done_full else "idle")
+        theme_card(surface, r, accent, mode)
+        orbit_badge(surface, r.x + 66, r.centery, 40, (60, 210, 130) if got else accent, "check" if got else "gem",
+                    lit=got or done_full or cur > 0)
+        tx = r.x + 128
+        draw_text(surface, t(m["label_key"], n=fmt_int(tot)), 28, TEXT_WHITE, (tx, r.y + 34), anchor="midleft",
+                  max_w=r.w - 350)
+        draw_diamond_icon(surface, tx + 10, r.y + 68, 10, (0, 230, 255))
+        draw_text(surface, t("daily_reward", n=m["reward"]), 21, (255, 215, 120), (tx + 26, r.y + 68), anchor="midleft",
+                  bold=False, max_w=r.w - 380)
+        bar = pygame.Rect(tx, r.y + 94, r.w - 128 - 230, 14)
+        neon_bar(surface, bar, cur / float(max(1, tot)), accent, done=done_full)
+        draw_text(surface, f"{fmt_int(min(cur, tot))}/{fmt_int(tot)}", 20, (205, 215, 240), (bar.right, bar.y - 12),
+                  anchor="bottomright", bold=False)
+        br = pygame.Rect(r.right - 210, r.centery - 34, 186, 68)
         if got:
-            pygame.draw.rect(surface, (35, 160, 110), br, border_radius=18)
-            draw_text(surface, t("owned"), 24, (255, 255, 255), br.center)
+            state_pill(surface, br, t("owned"), "done")
         elif done_full:
             self._button(surface, br, kind, m["id"])
         else:
-            pygame.draw.rect(surface, (30, 36, 52), br, border_radius=18)
-            pygame.draw.rect(surface, (60, 72, 100), br, 2, border_radius=18)
-            draw_text(surface, t("locked"), 22, (140, 150, 175), br.center, bold=False)
+            state_pill(surface, br, t("locked"), "locked")
 
     def draw(self, surface):
         sm = self.save_mgr
         header(surface, t("goals_title"), self.btn_back, None)
         self.claim_buttons = []
         missions, progress, claimed, streak = sm.daily_missions()
-        y = 160
-        draw_text(surface, t("daily_section"), 26, ACCENT_CYAN, (44, y), anchor="midleft")
-        if streak > 0:
-            draw_text(surface, t("daily_streak", n=streak), 22, (255, 200, 90), (VW - 44, y), anchor="midright", bold=False)
-        y += 26
+        y = 166
+        section_title(surface, y, t("daily_section"), ACCENT_CYAN, t("daily_streak", n=streak) if streak > 0 else None)
+        y += 30
         for m in missions:
             self._row(surface, y, "daily", m, progress.get(m["metric"], 0), m["id"] in claimed, (0, 220, 255))
             y += self.ROW_H
         import weekly_missions as wm
         wmissions, wprogress, wclaimed = sm.weekly_missions()
-        y += 10
-        draw_text(surface, t("weekly_section"), 26, ACCENT_GOLD, (44, y), anchor="midleft")
-        draw_text(surface, t("weekly_left", n=wm.days_left()), 22, TEXT_MUTED, (VW - 44, y), anchor="midright", bold=False)
-        y += 26
+        y += 18
+        section_title(surface, y, t("weekly_section"), ACCENT_GOLD, t("weekly_left", n=wm.days_left()))
+        y += 30
         for m in wmissions:
             self._row(surface, y, "weekly", m, wprogress.get(m["metric"], 0), m["id"] in wclaimed, ACCENT_GOLD)
             y += self.ROW_H
@@ -2096,7 +2215,14 @@ class SkinScreen:
             return self._prev
         if self.btn_next.handle_event(event):
             return self._next
-        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            self._swipe_from = event.pos
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            start, self._swipe_from = getattr(self, "_swipe_from", None), None
+            if start is not None and start[1] > self.ROWS_Y - 80:
+                dx, dy = event.pos[0] - start[0], event.pos[1] - start[1]
+                if abs(dx) > 110 and abs(dx) > 1.6 * abs(dy):          # a sideways swipe flips the catalogue
+                    return self._next if dx < 0 else self._prev
             for slot, sid in enumerate(self._members()):
                 if self._rect(slot).collidepoint(event.pos):
                     self.selected_skin = sid
@@ -2152,8 +2278,8 @@ class SkinScreen:
         tier = catalog.tier(sid)
         tcol = catalog.TIERS[tier]["color"]
         panel_r = pygame.Rect(40, 170, VW - 80, 372)
-        pygame.draw.rect(surface, (16, 20, 32), panel_r, border_radius=24)
-        pygame.draw.rect(surface, tcol, panel_r, 3, border_radius=24)
+        surface.blit(neon_halo(panel_r.w, panel_r.h, tcol, 26), (panel_r.x - 12, panel_r.y - 12))
+        surface.blit(cockpit_surface(panel_r.w, panel_r.h, (22, 28, 50), (6, 8, 20), tcol, 26), panel_r.topleft)
         cx = VW // 2
         if not getattr(self, "_static", False):
             self.draw_dynamic(surface)
@@ -2201,20 +2327,29 @@ class SkinScreen:
             un = sm.is_skin_unlocked(m)
             sel = m == sid
             tc = catalog.TIERS[catalog.tier(m)]["color"]
-            pygame.draw.rect(surface, (30, 42, 66) if sel else ((20, 26, 42) if un else (14, 16, 24)), r, border_radius=20)
-            pygame.draw.rect(surface, tc if sel else tuple(int(c * 0.45) for c in tc), r, 3 if sel else 2, border_radius=20)
-            pygame.draw.rect(surface, tc, (r.x + 12, r.y + 16, 7, r.h - 32), border_radius=4)
-            draw_text(surface, catalog.tier_name(catalog.tier(m), lang), 18, tc, (r.x + 40, r.y + 26), anchor="midleft", bold=True)
-            draw_text(surface, s["name"], 28, TEXT_WHITE if un else (170, 178, 196), (r.x + 40, r.y + 62), anchor="midleft", max_w=330)
-            mx, my = r.x + 470, r.centery - 4
-            thumb = skin_thumbnail(m, radius=15)
+            edge = tc if sel else tuple(int(c * 0.5) for c in tc)
+            if sel:
+                surface.blit(neon_halo(r.w, r.h, tc, 20), (r.x - 12, r.y - 12))
+            surface.blit(cockpit_surface(r.w, r.h, (30, 40, 66) if sel else ((22, 28, 48) if un else (14, 16, 26)),
+                                         (8, 10, 22), edge, 20), r.topleft)
+            pygame.draw.rect(surface, tc, (r.x + 14, r.y + 18, 6, r.h - 36), border_radius=3)
+            draw_text(surface, catalog.tier_name(catalog.tier(m), lang), 18, tc, (r.x + 40, r.y + 28), anchor="midleft", bold=True)
+            draw_text(surface, s["name"], 28, TEXT_WHITE if un else (170, 178, 196), (r.x + 40, r.y + 64), anchor="midleft", max_w=300)
+            mx, my = r.x + 450, r.centery - 2
+            thumb = skin_thumbnail(m, width=150, height=80, radius=18)
             surface.blit(thumb, thumb.get_rect(center=(mx, my)))
             self._source_pill(surface, r, m, un)
         self.btn_prev.text = "<  " + catalog.theme_name((self.cat - 1) % self.max_pages, lang)
         self.btn_next.text = catalog.theme_name((self.cat + 1) % self.max_pages, lang) + "  >"
         self.btn_prev.draw(surface)
         self.btn_next.draw(surface)
-        draw_text(surface, f"{self.cat + 1} / {self.max_pages}", 30, TEXT_WHITE, (VW // 2, VH - 58), bold=True)
+        n = self.max_pages
+        gap = min(18, 300 // max(1, n))
+        x0 = VW // 2 - (n - 1) * gap // 2
+        for i in range(n):
+            on = i == self.cat
+            pygame.draw.circle(surface, ACCENT_CYAN if on else (60, 78, 112), (x0 + i * gap, VH - 74), 6 if on else 4)
+        draw_text(surface, f"{self.cat + 1} / {n}", 22, TEXT_MUTED, (VW // 2, VH - 44), bold=False)
 
 
 # ================================================================================================ shop
@@ -2243,8 +2378,8 @@ class ShopScreen:
     """Diamonds are the shop currency. One scrolling page (1.0.6): the selected skin's preview and buy buttons stay at
     the top, below them every shop skin, the diamond packs and the shield scroll in one list. The list is rendered
     into one surface and only re-rendered when what it shows changes - scrolling just copies a window of it."""
-    COLS, CARD_W, CARD_H, GAP_X, GAP_Y = 4, 196, 132, 14, 12      # one catalogue per row (Değerli Madenler wraps)
-    HEAD_H = 58
+    COLS, CARD_W, CARD_H, GAP_X, GAP_Y = 3, 262, 172, 17, 16      # one catalogue per row, full width
+    HEAD_H = 60
     VIEW_Y = 640
     PACK_W, PACK_H, PACK_GAP = 194, 82, 16
 
@@ -2460,39 +2595,37 @@ class ShopScreen:
             name = catalog.theme_name(ti, lang).upper()
             members = catalog.THEMES[ti][2]
             owned = sum(1 for m in members if sm.is_skin_unlocked(m))
-            draw_text(img, name, 26, ACCENT_CYAN, (40, hy + 28), anchor="midleft", bg=bg)
-            draw_text(img, f"{owned}/5", 20, TEXT_MUTED, (VW - 40, hy + 28), anchor="midright", bold=False, bg=bg)
-            pygame.draw.line(img, (36, 54, 86), (40, hy + self.HEAD_H - 6), (VW - 40, hy + self.HEAD_H - 6), 1)
+            section_title(img, hy + 30, name, ACCENT_CYAN, f"{owned}/5", x0=34)
         for i, sid in enumerate(self.skins):
             s = SKINS[sid]
             r = self._card_rect(i)
             sel = sid == self.selected
             got = sm.is_skin_unlocked(sid)
             prem = self.shop.is_premium(sid)
-            pygame.draw.rect(img, (16, 34, 64) if sel else (14, 22, 42), r, border_radius=22)
-            edge = (0, 230, 255) if sel else ((150, 120, 50) if prem else (44, 72, 116))
-            pygame.draw.rect(img, edge, r, 4 if sel else 2, border_radius=22)
-            thumb = skin_thumbnail(sid, radius=15)
-            img.blit(thumb, thumb.get_rect(center=(r.centerx, r.y + 38)))
             tc = catalog.TIERS[catalog.tier(sid)]["color"]
-            pygame.draw.rect(img, tc, (r.x + 14, r.y + r.h - 8, r.w - 28, 3), border_radius=2)   # rarity stripe
+            edge = (0, 230, 255) if sel else ((170, 130, 50) if prem else (46, 68, 108))
+            if sel:
+                img.blit(neon_halo(r.w, r.h, (0, 230, 255), 22), (r.x - 12, r.y - 12))
+            img.blit(cockpit_surface(r.w, r.h, (26, 38, 66) if sel else (20, 28, 50), (8, 12, 26), edge, 22), r.topleft)
+            thumb = skin_thumbnail(sid, width=170, height=88, radius=18)
+            img.blit(thumb, thumb.get_rect(center=(r.centerx, r.y + 58)))
+            pygame.draw.rect(img, tc, (r.x + 22, r.y + r.h - 9, r.w - 44, 3), border_radius=2)   # rarity stripe
             if prem:
-                draw_vector_star(img, r.right - 22, r.y + 22, radius=11, filled=True, color=(255, 200, 70))
+                draw_vector_star(img, r.right - 24, r.y + 24, radius=12, filled=True, color=(255, 200, 70))
             if sid == self._featured:
-                rib = pygame.Rect(r.x, r.y, 86, 24)
-                pygame.draw.rect(img, (35, 200, 140), rib, border_radius=10)
-                draw_text(img, t("shop_featured_tag").replace("✨ ", ""), 14, (255, 255, 255), rib.center, max_w=80)
-            draw_text(img, s["name"], 21, TEXT_WHITE, (r.centerx, r.y + 78), max_w=r.w - 16)
-            pill = pygame.Rect(0, 0, 120, 30)
-            pill.center = (r.centerx, r.y + 106)
+                rib = pygame.Rect(r.x + 10, r.y + 10, 96, 26)
+                pygame.draw.rect(img, (35, 200, 140), rib, border_radius=12)
+                draw_text(img, t("shop_featured_tag").replace("✨ ", ""), 15, (255, 255, 255), rib.center, max_w=90)
+            draw_text(img, s["name"], 24, TEXT_WHITE, (r.centerx, r.y + 116), max_w=r.w - 24)
+            pill = pygame.Rect(0, 0, 150, 34)
+            pill.center = (r.centerx, r.y + 146)
             if got:
-                pygame.draw.rect(img, (60, 150, 110), pill, border_radius=16)
-                draw_text(img, t("owned"), 20, (255, 255, 255), pill.center)
+                img.blit(cockpit_surface(pill.w, pill.h, (30, 90, 70), (16, 50, 40), (80, 220, 150), 17), pill.topleft)
+                draw_text(img, t("owned"), 20, (235, 255, 245), pill.center)
             else:
-                pygame.draw.rect(img, (30, 60, 95), pill, border_radius=16)
-                pygame.draw.rect(img, (0, 220, 255), pill, 2, border_radius=16)
-                draw_diamond_icon(img, pill.centerx - 28, pill.centery, 9, (0, 230, 255))
-                draw_text(img, f"{self.shop.diamond_cost(sid)}", 22, (220, 245, 255), (pill.centerx + 8, pill.centery))
+                img.blit(cockpit_surface(pill.w, pill.h, (24, 60, 96), (12, 30, 54), (0, 220, 255), 17), pill.topleft)
+                draw_diamond_icon(img, pill.centerx - 34, pill.centery, 10, (0, 230, 255))
+                draw_text(img, f"{self.shop.diamond_cost(sid)}", 23, (230, 248, 255), (pill.centerx + 10, pill.centery))
         gy = self._grid_h()
         draw_diamond_icon(img, VW // 2 - 150, gy + 36, 14, (0, 230, 255))
         draw_text(img, t("diamond_packs_title"), 28, (0, 230, 255), (VW // 2, gy + 36))
@@ -2522,9 +2655,9 @@ class ShopScreen:
         sk = SKINS[self.selected]
         premium = self.shop.is_premium(self.selected)
         panel_r = pygame.Rect(40, 160, VW - 80, 320)
-        shadow_under(surface, panel_r, 34, 80, 8, 30)
-        pygame.draw.rect(surface, (10, 18, 38), panel_r, border_radius=30)
-        pygame.draw.rect(surface, (255, 200, 90) if premium else (0, 200, 240), panel_r, 3, border_radius=30)
+        pc = (255, 200, 90) if premium else (0, 200, 240)
+        surface.blit(neon_halo(panel_r.w, panel_r.h, pc, 30), (panel_r.x - 12, panel_r.y - 12))
+        surface.blit(cockpit_surface(panel_r.w, panel_r.h, (20, 30, 58), (6, 10, 24), pc, 30), panel_r.topleft)
         cx = VW // 2
         if not getattr(self, "_static", False):
             self.draw_dynamic(surface)
@@ -3567,33 +3700,38 @@ class LoginRewardModal:
         done = day < today or (day == today and taken)
         is_today = day == today
         big = day == 7
-        fill = (40, 34, 14) if big else ((22, 46, 40) if done else ((24, 34, 58) if is_today else (16, 20, 32)))
-        edge = ACCENT_GOLD if (is_today or big) else ((60, 180, 120) if done else (50, 62, 92))
-        pygame.draw.rect(surface, fill, r, border_radius=22)
-        pygame.draw.rect(surface, edge, r, 5 if is_today else 2, border_radius=22)
-        lab = t("login_day", n=day)
-        draw_text(surface, lab, 22, ACCENT_GOLD if is_today else TEXT_MUTED, (r.centerx, r.y + 28), bg=fill)
+        gold = ACCENT_GOLD
+        if is_today and not taken:
+            surface.blit(neon_halo(r.w, r.h, gold, 22), (r.x - 12, r.y - 12))
+        edge = gold if (is_today or big) else ((60, 200, 130) if done else (46, 68, 108))
+        top = (58, 46, 18) if big else ((18, 44, 40) if done else ((30, 42, 70) if is_today else (20, 28, 48)))
+        surface.blit(cockpit_surface(r.w, r.h, top, (10, 12, 24), edge, 22), r.topleft)
+        draw_text(surface, t("login_day", n=day), 22, gold if (is_today or big) else (150, 165, 195), (r.centerx, r.y + 28))
         if big:
-            draw_vector_gem(surface, r.centerx - 70, r.centery + 4, 22)
-            draw_text(surface, f"+{gems}", 40, (130, 235, 255), (r.centerx - 38, r.centery + 4), anchor="midleft", bg=fill)
-            draw_vector_star(surface, r.centerx + 92, r.centery + 4, radius=20, filled=True)
-            draw_text(surface, f"+{self.lr.WEEKLY_STARS}", 34, (255, 225, 120), (r.centerx + 118, r.centery + 4),
-                      anchor="midleft", bg=fill)
-            draw_text(surface, t("login_weekly"), 20, ACCENT_GOLD, (r.centerx, r.bottom - 26), bg=fill)
+            draw_vector_gem(surface, r.centerx - 100, r.centery + 4, 24)
+            draw_text(surface, f"+{gems}", 40, (130, 235, 255), (r.centerx - 68, r.centery + 4), anchor="midleft")
+            draw_vector_star(surface, r.centerx + 52, r.centery + 4, radius=20, filled=True)
+            draw_text(surface, f"+{self.lr.WEEKLY_STARS}", 34, (255, 225, 120), (r.centerx + 78, r.centery + 4),
+                      anchor="midleft")
+            draw_text(surface, t("login_weekly"), 20, gold, (r.centerx, r.bottom - 26))
         else:
-            draw_vector_gem(surface, r.centerx, r.centery - 6, 22)
-            draw_text(surface, f"+{gems}", 32, (130, 235, 255), (r.centerx, r.bottom - 38), bg=fill)
+            orbit_badge(surface, r.centerx, r.centery + 2, 30, gold if is_today else ACCENT_CYAN, "gem",
+                        lit=is_today or done)
+            draw_text(surface, f"+{gems}", 30, (130, 235, 255) if (is_today or done) else (150, 170, 200),
+                      (r.centerx, r.bottom - 30))
         if done:
-            cc = (r.right - 26, r.y + 26)
-            pygame.draw.circle(surface, (40, 190, 110), cc, 16)
-            pygame.draw.lines(surface, (255, 255, 255), False, [(cc[0] - 8, cc[1]), (cc[0] - 2, cc[1] + 6), (cc[0] + 8, cc[1] - 6)], 4)
+            cc = (r.right - 24, r.y + 24)
+            pygame.draw.circle(surface, (30, 150, 90), cc, 15)
+            pygame.draw.circle(surface, (120, 240, 170), cc, 15, 2)
+            pygame.draw.lines(surface, (255, 255, 255), False, [(cc[0] - 7, cc[1]), (cc[0] - 2, cc[1] + 5), (cc[0] + 7, cc[1] - 5)], 3)
 
     def draw(self, surface):
         dim(surface, 215, (5, 8, 16))
         today, taken = self._today()
         card = pygame.Rect(40, self.top, VW - 80, 960)
-        bg = (14, 20, 34)
-        panel(surface, card, bg, ACCENT_GOLD, 30, 3)
+        bg = None
+        surface.blit(neon_halo(card.w, card.h, ACCENT_GOLD, 30), (card.x - 12, card.y - 12))
+        surface.blit(cockpit_surface(card.w, card.h, (24, 30, 52), (8, 10, 22), ACCENT_GOLD, 30), card.topleft)
         draw_text(surface, t("login_title"), 46, ACCENT_GOLD, (VW // 2, self.top + 64), bg=bg, max_w=card.w - 60)
         draw_text(surface, t("login_sub"), 24, TEXT_MUTED, (VW // 2, self.top + 112), bold=False, bg=bg, max_w=card.w - 60)
         tw, th, gap = 176, 200, 16

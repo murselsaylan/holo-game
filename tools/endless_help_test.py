@@ -40,6 +40,8 @@ g = holo.HoloGame(headless=True)
 sm = g.save_mgr
 sm.data.update(is_profile_set=True, player_name="HELPER", player_country="TR", diamonds=500)
 sm.wallet = None                                   # local wallet: spends resolve at once
+import achievements as _ach                         # noqa: E402
+sm.data["achievements"] = [a[0] for a in _ach.ACHIEVEMENTS]   # no achievement payouts muddle the diamond counts
 g.online.register()
 for lv in range(1, 11):
     sm.stats[str(lv)] = {"stars": 3, "best_score": 1000}

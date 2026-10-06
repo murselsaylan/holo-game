@@ -204,12 +204,22 @@ class HoloGame:
 
     def _make_backdrops(self):
         """Space backdrop for the menu screens and edge-vignette strips for the end-of-level tension."""
-        self.menu_bg = space_art.make_menu_backdrop(VW, self.vh).convert()
-        dark = self.menu_bg.copy()
-        veil = pygame.Surface((VW, self.vh), pygame.SRCALPHA)
+        st, sb = self.safe_top, self.safe_bottom
+        # the backdrop is painted for the whole screen, camera cut-out / gesture-bar strips included: the frame shows
+        # the middle part, the strips above and below it get the rest (full-bleed, no black bands on phones)
+        full = space_art.make_menu_backdrop(VW, self.vh + st + sb).convert()
+        veil = pygame.Surface(full.get_size(), pygame.SRCALPHA)
         veil.fill((4, 6, 12, 150))
-        dark.blit(veil, (0, 0))
-        self.menu_bg_dark = dark.convert()
+        full_dark = full.copy()
+        full_dark.blit(veil, (0, 0))
+        self.menu_bg = full.subsurface((0, st, VW, self.vh)).copy()
+        self.menu_bg_dark = full_dark.subsurface((0, st, VW, self.vh)).copy()
+        self._edge_art = {}
+        for name, src in (("bright", full), ("dark", full_dark)):
+            top = src.subsurface((0, 0, VW, st)).copy() if st else None
+            bottom = src.subsurface((0, st + self.vh, VW, sb)).copy() if sb else None
+            self._edge_art[name] = (top, bottom)
+        self._edge_key = None
         # Keep the full menu scenery on every device.  Performance work belongs
         # in the update/draw path; reducing the stars and rocks makes the Android
         # version look like a different game.
@@ -1826,8 +1836,41 @@ class HoloGame:
                       attempts=self.attempts, title=lvl.level_title)
         self.hud.draw_footer(f, HUD_H + self.view_h + FOOT_H // 2, score, s.t, s.swaps, s.combo_mult, s.near_count)
 
+    _EDGE_SOLID_STATES = ("playing", "dying", "paused", "victory", "failed", "howto", "intro")
+
+    def _paint_edges(self):
+        """Phones: fill the strips beside the camera cut-out and the gesture bar so the picture reaches the screen
+        edges. Menus continue their space backdrop there; play screens continue the colour of the frame's own top /
+        bottom row (the HUD bar, the footer). Only repainted when what belongs there changes."""
+        if not self.frame_direct or not (self.safe_top or self.safe_bottom):
+            return
+        st = self.state
+        if st in self._EDGE_SOLID_STATES or (st == "settings" and self.prev_state == "paused"):
+            f = self.frame
+            top = tuple(pygame.transform.average_color(f, (0, 0, VW, 2))[:3])
+            bottom = tuple(pygame.transform.average_color(f, (0, self.vh - 2, VW, 2))[:3])
+            key = ("solid", top, bottom)
+        else:
+            key = ("art", "bright" if st == "menu" else "dark")
+        if key == self._edge_key:
+            return
+        self._edge_key = key
+        w, top_y, bot_y = self.window, 0, self.safe_top + self.vh
+        if key[0] == "solid":
+            if self.safe_top:
+                w.fill(key[1], (0, top_y, VW, self.safe_top))
+            if self.safe_bottom:
+                w.fill(key[2], (0, bot_y, VW, self.safe_bottom))
+        else:
+            top, bottom = self._edge_art[key[1]]
+            if top is not None:
+                w.blit(top, (0, top_y))
+            if bottom is not None:
+                w.blit(bottom, (0, bot_y))
+
     def _present(self):
         f = self.frame
+        self._paint_edges()
         if config.get("fps_overlay", False) or self.settings.get("show_fps", False):   # live frame rate, top-left
             ui.draw_text(f, f"{self.clock.get_fps():.0f} FPS", 26, (120, 255, 160), (8, 6), anchor="topleft", bg=(0, 0, 0))
         ox = oy = 0
