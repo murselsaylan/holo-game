@@ -2679,11 +2679,13 @@ class ProfileModal:
                 return True
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             self.input_active = self.input_rect.collidepoint(event.pos)
-            if self.input_active:
-                try:
+            try:
+                if self.input_active:
                     pygame.key.start_text_input()
-                except Exception:
-                    pass
+                else:
+                    pygame.key.stop_text_input()     # a tap anywhere else puts the on-screen keyboard away (iOS has
+            except Exception:                        # no back key to close it, and it covers the confirm button)
+                pass
             for code, _, r in self.cards:
                 if r.collidepoint(event.pos):
                     self.selected_country = code
@@ -2797,9 +2799,12 @@ class RecoveryModal:
         if self.btn_go.handle_event(event):
             self._go()
             return True
-        if event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.input_rect.collidepoint(event.pos):
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             try:
-                pygame.key.start_text_input()
+                if self.input_rect.collidepoint(event.pos):
+                    pygame.key.start_text_input()
+                else:
+                    pygame.key.stop_text_input()     # tap outside the field: keyboard away
             except Exception:
                 pass
         elif event.type == pygame.TEXTINPUT:
