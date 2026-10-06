@@ -48,6 +48,11 @@ class MemStore implements Store {
     p.levels = mine.reduce((a, [k]) => Math.max(a, Number(String(k).split("|").pop())), 0); p.score = mine.reduce((a, [, v]) => a + v.score, 0); p.stars = mine.reduce((a, [, v]) => a + v.stars, 0);
     return Promise.resolve({ improved, levels: p.levels, score: p.score, stars: p.stars });
   }
+  reports: unknown[] = [];
+  report(pid: string, kind: string, platform: string, version: string, text: string, now: number) {
+    this.reports.push({ pid, kind, platform, version, text, now });
+    return Promise.resolve();
+  }
   ghost(level: number) {
     const b = [...this.bests.entries()].filter(([k]) => k.endsWith("|" + level)).sort(([, x], [, y]) => y.score - x.score)[0];
     if (!b) return Promise.resolve(null);
@@ -127,6 +132,9 @@ const la = await get("/api/leaderboard", `scope=around&player_id=${pid2}&limit=5
   check("ghost = level 1's best run", g.status === 200 && (g.body.taps as number[]).join() === refTaps(1).join() && !!g.body.name, g.body);
   check("no ghost for an unplayed level", !("taps" in (await get("/api/ghost", "level=50")).body));
   check("bad ghost level (400)", (await get("/api/ghost", "level=x")).status === 400); }
+{ const rp = await post("/api/report", { player_id: pid, kind: "fault", platform: "ios", version: "1.0.6", text: "Fatal Python error" }, "7.7.7.7");
+  check("crash report stored", rp.status === 200 && store.reports.length === 1, rp.body);
+  check("bad report refused", (await post("/api/report", { player_id: "x", kind: "fault", text: "a" }, "7.7.7.7")).status === 400); }
 check("around board contains me", (la.body.rows as Row[]).some((r) => r.id === pid2));
 
 check("garbage taps -> replay fails (422)", (await post("/api/submit", await signed(3, [10, 20, 30]))).status === 422);

@@ -29,6 +29,18 @@ if __name__ == "__main__":
         except Exception:
             pass
     try:
+        # a native crash (segfault in a C library) leaves no Python traceback: faulthandler writes every thread's
+        # Python stack to fault.log at that moment; the next start sends it to the developer (online.report_fault)
+        import faulthandler
+        import paths
+        _now = os.path.join(paths.user_dir(), "fault_now.log")
+        if os.path.isfile(_now) and os.path.getsize(_now) > 0:              # the last run crashed: keep its stack
+            os.replace(_now, os.path.join(paths.user_dir(), "fault_last.log"))
+        _fault = open(_now, "w", encoding="utf-8")
+        faulthandler.enable(file=_fault, all_threads=True)
+    except Exception:
+        pass
+    try:
         from holo import HoloGame
         HoloGame().run()
     except SystemExit:

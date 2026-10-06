@@ -136,6 +136,11 @@ export class PgStore implements Store {
     return { id: String(g[0].player_id), name: String(g[0].name), score: Number(g[0].score), taps };
   }
 
+  async report(pid: string, kind: string, platform: string, version: string, text: string, now: number): Promise<void> {
+    await this.sql`INSERT INTO reports(player_id, kind, platform, version, body, created)
+                   VALUES(${pid}, ${kind}, ${platform}, ${version}, ${text}, ${now})`;
+  }
+
   async board(scope: string, country: string, offset: number, limit: number): Promise<{ rows: Row[]; total: number }> {
     const sql = this.sql;
     // rows and the total in one round trip (the total rides along as a window count)

@@ -46,6 +46,8 @@ export interface Store extends WalletStore {
   ranks(pid: string): Promise<Ranks | null>;
   /** The best clean (no paid help) verified run of a level - its taps are the ghost every player can race. */
   ghost(level: number): Promise<Ghost | null>;
+  /** A crash report from a player's device (kind "fault" = native crash stack, "crash" = Python traceback). */
+  report(pid: string, kind: string, platform: string, version: string, text: string, now: number): Promise<void>;
   board(scope: string, country: string, offset: number, limit: number): Promise<{ rows: Row[]; total: number }>;
   /** Endless best of the week (kept only when higher); `best` / `improved` are about the player's all-time best. */
   endlessRecord(pid: string, week: string, metres: number, steps: number, nonce: string, taps: number[], now: number):
@@ -202,6 +204,17 @@ export async function handle(store: Store, method: string, path: string, query: 
     try { d = JSON.parse(rawBody); } catch { return R(400, { error: "bad request" }); }
     if (typeof d !== "object" || d === null) return R(400, { error: "bad request" });
     if (route === "/api/register") return await register(store, d, ip, nowMs);
+    if (route === "/api/report") {
+      if (limited(`rp|${ip}`, 6, nowMs)) return R(429, { error: "slow down" });
+      const pid = String(d.player_id ?? "").slice(0, 64), kind = String(d.kind ?? "").slice(0, 16);
+      const text = String(d.text ?? "");
+      if (!/^[0-9a-f]{16,64}$/.test(pid) || !["fault", "crash"].includes(kind) || !text || text.length > 12000) {
+        return R(400, { error: "bad report" });
+      }
+      await store.report(pid, kind, String(d.platform ?? "").slice(0, 16), String(d.version ?? "").slice(0, 16), text,
+                         Math.floor(nowMs / 1000));
+      return R(200, { ok: true });
+    }
     if (route === "/api/cloud/save") return await cloudSave(store, d, ip, nowMs);
     if (route === "/api/cloud/code") return await cloudCode(store, d, ip, nowMs);
     if (route === "/api/bests") return await myBests(store, d, ip, nowMs);

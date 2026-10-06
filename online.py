@@ -584,6 +584,28 @@ class OnlineClient:
         if r.get("ok"):
             self._registered = True
             self._fetch_my_bests(conn)
+            self._send_reports(conn)
+
+    def _send_reports(self, conn):
+        """A crash on the last run (fault_last.log: native crash stack, crash.log: Python traceback) goes to the
+        developer once - players can't reach these files on a phone."""
+        import paths
+        import sys as _sys
+        from version import __version__
+        plat = "ios" if paths.is_ios() else ("android" if paths.is_android() else _sys.platform)
+        for name, kind in (("fault_last.log", "fault"), ("crash.log", "crash")):
+            path = os.path.join(paths.user_dir(), name)
+            try:
+                if not os.path.isfile(path) or os.path.getsize(path) == 0:
+                    continue
+                with open(path, encoding="utf-8", errors="replace") as f:
+                    text = f.read()[-12000:]
+                r = conn.request("POST", "/api/report", {"player_id": self.save.player_id, "kind": kind,
+                                                         "platform": plat, "version": __version__, "text": text})
+                if r.get("ok"):
+                    os.replace(path, path + ".sent")
+            except Exception as e:
+                print("report not sent:", e)
 
     def _fetch_my_bests(self, conn):
         """The server's verified best of every level: the game shows the same level scores as the ranking."""

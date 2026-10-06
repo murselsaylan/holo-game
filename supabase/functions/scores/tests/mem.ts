@@ -38,6 +38,10 @@ export class MemStore {
     return { improved, levels: p.levels, score: p.score, stars: 0 };
   }
   async playerBests() { return []; }
+  reports: any[] = [];
+  async report(pid: string, kind: string, platform: string, version: string, text: string, now: number) {
+    this.reports.push({ pid, kind, platform, version, text, now });
+  }
   async ghost(level: number) {
     const b = [...this.bests.values()].filter((v) => v.level === level && !(v.assists ?? []).length)
       .sort((x, y) => y.score - x.score)[0];

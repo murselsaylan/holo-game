@@ -69,3 +69,7 @@ CREATE INDEX IF NOT EXISTS idx_endless_week ON endless_bests (week, metres DESC,
 ALTER TABLE players ADD COLUMN IF NOT EXISTS google TEXT;
 ALTER TABLE players ADD COLUMN IF NOT EXISTS google_email TEXT NOT NULL DEFAULT '';
 CREATE UNIQUE INDEX IF NOT EXISTS idx_players_google ON players (google) WHERE google IS NOT NULL;
+-- Crash reports sent by the game after a crash (1.0.6+): native crash stacks (faulthandler) and Python tracebacks.
+CREATE TABLE IF NOT EXISTS reports(id BIGSERIAL PRIMARY KEY, player_id TEXT NOT NULL, kind TEXT NOT NULL,
+  platform TEXT NOT NULL, version TEXT NOT NULL, body TEXT NOT NULL, created BIGINT NOT NULL);
+ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
