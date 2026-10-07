@@ -19,7 +19,7 @@ Contact: murselsaylan5@gmail.com
 
 export const PRIVACY_TEXT = `HOLO - GİZLİLİK POLİTİKASI
 ===========================
-Son güncelleme: 28 Eylül 2026
+Son güncelleme: 8 Ekim 2026
 Geliştirici: Mürsel Saylan - İletişim: murselsaylan5@gmail.com
 
 HOLO, iki küreyi tek bir bağla döndürerek engellerden kaçtığın bir refleks oyunudur. Bu sayfa oyunun
@@ -34,13 +34,16 @@ sunucumuza hangi bilgileri gönderdiğini ve nelerin toplanmadığını açıkla
    - Google hesabı bağlama (isteğe bağlı): "Google'a bağla" dersen Google'ın doğruladığı hesap kimliğinin
      tek yönlü bir özeti (hash) ve e-posta adresinin kısaltılmış hali (ör. "mu***5@gmail.com") saklanır.
      Tam e-posta adresin ve Google şifren saklanmaz; şifreni oyun hiçbir zaman görmez.
+   - Çökme raporları: oyun beklenmedik şekilde kapanırsa bir sonraki açılışta hata kaydı, oyunun o anki
+     ekranı/bölümü, sürüm ve platform (Android/iOS) oyuncu kimliğinle birlikte gönderilir. Yalnızca hataları
+     düzeltmek için kullanılır.
 
 2. TOPLAMADIKLARIMIZ
    Ad soyad, tam e-posta adresi, telefon, konum, rehber, mikrofon/kamera, reklam kimliği,
    üçüncü taraf analiz veya reklam SDK'sı.
 
 3. SATIN ALMALAR
-   Uygulama içi satın almalar Google Play Faturalandırma ile işlenir. Kart veya ödeme bilgin bize
+   Uygulama içi satın almalar Google Play Faturalandırma (Android) ya da Apple App Store (iOS) ile işlenir. Kart veya ödeme bilgin bize
    hiçbir zaman ulaşmaz; yalnızca satın alma kaydı (ürün, sipariş kimliği) doğrulama için saklanır.
 
 4. KULLANIM, SAKLAMA, PAYLAŞIM
@@ -71,16 +74,17 @@ sunucumuza hangi bilgileri gönderdiğini ve nelerin toplanmadığını açıkla
 
 HOLO - PRIVACY POLICY (English)
 ===============================
-Last updated: 28 September 2026 - Developer: Mürsel Saylan - Contact: murselsaylan5@gmail.com
+Last updated: 8 October 2026 - Developer: Mürsel Saylan - Contact: murselsaylan5@gmail.com
 
 What we collect: a nickname and country flag you choose; a random player id made on the device; your level and
 endless-mode runs (tap times, score, stars, height), which the server replays to verify scores; a copy of your
 game progress for account recovery; and, only if you link a Google account, a one-way hash of the Google account
 id and a shortened form of its email address (e.g. "mu***5@gmail.com"). Your full email and your Google password
-are never stored - the game never sees your password.
+are never stored - the game never sees your password. If the game closes unexpectedly, the next start sends a crash
+report (error log, the screen / level at that moment, version, platform) with your player id - used only to fix bugs.
 What we do not collect: real name, full email, phone, location, contacts, microphone/camera, advertising id,
 third-party analytics or ad SDKs.
-Purchases are processed by Google Play Billing; payment details never reach us.
+Purchases are processed by Google Play Billing (Android) or the Apple App Store (iOS); payment details never reach us.
 Data is hosted on Supabase, is never sold or shared, and is not used for advertising.
 Account and data deletion (HOLO): email murselsaylan5@gmail.com with the subject "HOLO account deletion" and your
 player id (Profile screen) - or write from the Google account linked to it. Within 30 days your nickname, country,

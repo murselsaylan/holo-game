@@ -1,0 +1,28 @@
+name: HOLO App Store page
+
+# Fills the App Store product page through the App Store Connect API (tools/asc_store.py, store_assets/appstore.json):
+# texts in every language, screenshots, categories, age rating, price, the build. Same API key as the TestFlight build.
+#   git tag store-v1.0.7 && git push origin store-v1.0.7     -> page only
+#   git tag submit-v1.0.7 && git push origin submit-v1.0.7   -> page + send to App Review
+on:
+  workflow_dispatch:
+  push:
+    tags: ['store-v*', 'submit-v*']
+
+jobs:
+  store:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "pyjwt[crypto]" requests
+      - name: Product page
+        env:
+          ASC_KEY_ID: HU859PN88B
+          ASC_ISSUER_ID: d24b4319-f096-4bd2-8998-5e322d50bb39
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          if [[ "$GITHUB_REF_NAME" == submit-v* ]]; then python tools/asc_store.py --submit; else python tools/asc_store.py; fi
