@@ -32,3 +32,4 @@ deploy_log.txt
 crash.log
 *.zip.part*
 holo_apk_v*
+fault_*.log

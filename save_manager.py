@@ -18,6 +18,7 @@ SAVE_FILE = os.path.join(paths.user_dir(), "save_data.json")
 SAVE_VERSION = 2
 from sim import MAX_LEVELS, LevelData  # noqa: E402  (the level count lives in sim.py)
 from endless import UNLOCK_LEVEL as ENDLESS_UNLOCK  # noqa: E402
+from arena import UNLOCK_LEVEL as ARENA_UNLOCK  # noqa: E402
 
 COUNTRIES = [
     {"code": "TR", "flag": "🇹🇷", "name": "Türkiye", "color": (235, 45, 55)},
@@ -242,6 +243,30 @@ class SaveManager:
             q = self.data.setdefault("endless_runs", [])
             q[:] = [r for r in q if r.get("id") != rid]
         self.save()
+
+    # ------------------------------------------------------------------ arena (survival)
+    @property
+    def arena_unlocked(self):
+        return config.dev_unlock_all() or self.highest_cleared >= ARENA_UNLOCK
+
+    @property
+    def arena(self):
+        a = self.data.get("arena")
+        if not isinstance(a, dict):
+            a = self.data["arena"] = {"best": 0, "best_secs": 0, "runs": 0}
+        return a
+
+    def record_arena(self, points, secs, stars=0):
+        """A finished arena run. Its stars go to the star wallet. Returns True on a new best."""
+        with self._lock:
+            a = self.arena
+            new_best = points > int(a.get("best", 0))
+            a["best"] = max(int(a.get("best", 0)), int(points))
+            a["best_secs"] = max(int(a.get("best_secs", 0)), int(secs))
+            a["runs"] = int(a.get("runs", 0)) + 1
+        self.save()
+        self.add_star_coins(stars)
+        return new_best
 
     # ---- stars collected in the endless climb: spent on the Yıldız Avcısı skins (kept in the save / cloud copy)
     @property

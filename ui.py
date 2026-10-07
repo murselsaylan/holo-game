@@ -1093,14 +1093,14 @@ class MainMenu:
     goals bottom-left, daily / skins bottom-right. Between the progress line and PLAY: the current level's card."""
 
     def __init__(self, save_manager, on_continue, on_levels, on_leaderboard, on_skins, on_profile, on_settings,
-                 on_quit=None, rank_provider=None, on_shop=None, on_achievements=None, on_daily=None, on_endless=None):
+                 on_quit=None, rank_provider=None, on_shop=None, on_achievements=None, on_daily=None, on_endless=None, on_arena=None):
         self.time_val = 0.0
         self.save_mgr = save_manager
         self.rank_provider = rank_provider
         self.on_continue = on_continue
         self.callbacks = dict(levels=on_levels, lb=on_leaderboard, skins=on_skins, profile=on_profile,
                               settings=on_settings, quit=on_quit, shop=on_shop, ach=on_achievements, daily=on_daily,
-                              endless=on_endless)
+                              endless=on_endless, arena=on_arena)
         self.buttons = []
         self.icons = []
         self.btn_daily = None
@@ -1128,23 +1128,17 @@ class MainMenu:
         top = int((self.free_top + base) / 2 - 146 + 72)
         prim = Button((cx - w // 2, top, w, 150), t("continue_lvl", lvl=cl) if started else t("start_run"), 46,
                       bg_color=(0, 214, 255), hover_color=(90, 236, 255), text_color=white, callback=self.on_continue)
-        if self.callbacks["endless"]:
-            # LEVELS and ENDLESS share the second row
-            half = (w - 24) // 2
-            lvl = Button((cx - w // 2, top + 176, half, 96), t("icon_levels"), 32,
-                         bg_color=(45, 150, 240), hover_color=(100, 200, 255), text_color=white,
-                         callback=self.callbacks["levels"])
-            open_ = self.save_mgr.endless_unlocked
-            end = Button((cx + 12, top + 176, half, 96), t("endless_btn") if open_ else t("endless_locked_btn"),
-                         32 if open_ else 24, bg_color=(150, 70, 235) if open_ else (58, 52, 78),
-                         hover_color=(190, 120, 255) if open_ else (70, 64, 92), text_color=white if open_ else (170, 165, 190),
-                         callback=self.callbacks["endless"])
-            self.buttons = [prim, lvl, end]
-        else:
-            lvl = Button((cx - w // 2 + 50, top + 176, w - 100, 96), t("icon_levels"), 32,
-                         bg_color=(45, 150, 240), hover_color=(100, 200, 255), text_color=white,
-                         callback=self.callbacks["levels"])
-            self.buttons = [prim, lvl]
+        # the game modes share the second row (the levels page opens from the progress bar above)
+        modes = [m for m in ("endless", "arena") if self.callbacks[m]]
+        self.buttons = [prim]
+        if modes:
+            bw = (w - 24 * (len(modes) - 1)) // len(modes)
+            for i, mode in enumerate(modes):
+                label, size, bg, hov, tc, cb = self._mode_style(mode, getattr(self.save_mgr, f"{mode}_unlocked"))
+                self.buttons.append(Button((cx - w // 2 + i * (bw + 24), top + 176, bw, 96), label, size, bg_color=bg,
+                                           hover_color=hov, text_color=tc, callback=self.callbacks[cb]))
+        self.progress_rect = pygame.Rect(cx - 330, self._chip_y() + 34, 660, 80)
+        self._progress_down = False
         self.card_bottom = top - 14                    # the current-level card sits between progress and PLAY
 
         # round icons in the four corners
@@ -1177,6 +1171,15 @@ class MainMenu:
         self.chip = _Chip((0, 0, 1, 1), self.callbacks["profile"])
         self._apply_enter()
 
+    _MODE_COL = {"endless": ((150, 70, 235), (190, 120, 255)), "arena": ((235, 70, 120), (255, 120, 160))}
+
+    def _mode_style(self, mode, open_):
+        """(label, font size, colours, callback key) of a game-mode button; a locked one says where it opens."""
+        bg, hov = self._MODE_COL[mode]
+        if open_:
+            return t(f"{mode}_btn"), 32, bg, hov, (255, 255, 255), mode
+        return t(f"{mode}_locked_btn"), 22, (58, 52, 78), (70, 64, 92), (170, 165, 190), mode
+
     def _apply_enter(self):
         for i, b in enumerate(self.icons):
             kk = _ease_out((self.enter - 0.07 * (i % 4)) / 0.79) if self.enter < 1.0 else 1.0
@@ -1206,6 +1209,13 @@ class MainMenu:
                 return b.callback
         if self.chip.handle_event(event):
             return self.chip.callback
+        # the progress line + sector track opens the levels page
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            self._progress_down = self.progress_rect.collidepoint(event.pos)
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            was, self._progress_down = self._progress_down, False
+            if was and self.progress_rect.collidepoint(event.pos):
+                return self.callbacks["levels"]
         return None
 
     # ------------------------------------------------------------------ drawing
@@ -1386,6 +1396,8 @@ class MainMenu:
             if fraction:
                 pygame.draw.rect(surface, SECTOR_COL[index + 1],
                                  (track.x, track.y, max(2, int(track.w * fraction)), track.h), border_radius=3)
+        ax, ay = cx + track_w // 2 + 26, y + 33            # a chevron: the track opens the levels page
+        pygame.draw.lines(surface, ACCENT_CYAN, False, [(ax - 6, ay - 10), (ax + 4, ay), (ax - 6, ay + 10)], 4)
 
         if backdrop is not None:        # the big buttons sit straight on the static space backdrop
             draw_buttons_on_backdrop(surface, self.buttons, backdrop)
@@ -3798,8 +3810,12 @@ class EndlessReviveModal:
     """The climb just ended: continue from a safe point for diamonds (at most endless.MAX_REVIVES per climb) or
     finish it. Works with HoloGame.revive_run like the campaign's failure card (`waiting`, `revive_cost`)."""
 
-    def __init__(self, points, metres, stars, save_mgr, revive_cost, revives_left, on_revive, on_finish):
+    def __init__(self, points, metres, stars, save_mgr, revive_cost, revives_left, on_revive, on_finish, label=None,
+                 title_key="endless_paused_title", mode="endless"):
         self.points, self.metres, self.stars = points, metres, stars
+        self.label = f"{fmt_int(metres)} m" if label is None else label        # the arena shows its time here
+        self.title_key = title_key
+        self.mode = mode                                                       # "endless" / "arena": the wording
         self.save_mgr, self.revive_cost, self.revives_left = save_mgr, revive_cost, revives_left
         self.on_revive, self.on_finish = on_revive, on_finish
         self.waiting = False
@@ -3808,7 +3824,7 @@ class EndlessReviveModal:
         self.top = VH // 2 - 300
         self.btn_revive = Button((cx - 320, self.top + 330, 640, 104), "", 34, bg_color=(0, 190, 235),
                                  hover_color=(60, 225, 255), callback=on_revive)
-        self.btn_finish = Button((cx - 320, self.top + 460, 640, 90), t("endless_finish_btn"), 30, bg_color=(120, 150, 215),
+        self.btn_finish = Button((cx - 320, self.top + 460, 640, 90), t(f"{mode}_finish_btn"), 30, bg_color=(120, 150, 215),
                                  callback=on_finish)
 
     def _enough(self):
@@ -3818,7 +3834,7 @@ class EndlessReviveModal:
         return (self.save_mgr.diamonds, self.waiting)
 
     def refresh_texts(self):
-        self.btn_finish.text = t("endless_finish_btn")
+        self.btn_finish.text = t(f"{self.mode}_finish_btn")
 
     def update(self, mouse_pos, dt=1.0):
         self.anim += dt
@@ -3838,12 +3854,12 @@ class EndlessReviveModal:
         bg = (14, 20, 34)
         panel(surface, card, bg, ACCENT_CYAN, 26, 2)
         draw_diamond_badge(surface, card.right - 80, self.top + 50, self.save_mgr.diamonds)
-        draw_text(surface, t("endless_paused_title"), 40, ACCENT_CYAN, (VW // 2, self.top + 60), bg=bg, max_w=card.w - 200)
+        draw_text(surface, t(self.title_key), 40, ACCENT_CYAN, (VW // 2, self.top + 60), bg=bg, max_w=card.w - 200)
         draw_text(surface, fmt_int(self.points), 84, TEXT_WHITE, (VW // 2, self.top + 150), bg=bg)
-        draw_text(surface, f"{fmt_int(self.metres)} m", 30, (200, 210, 230), (VW // 2 - 40, self.top + 214), anchor="midright", bg=bg)
+        draw_text(surface, self.label, 30, (200, 210, 230), (VW // 2 - 40, self.top + 214), anchor="midright", bg=bg)
         draw_vector_star(surface, VW // 2 + 2, self.top + 214, radius=14, filled=True)
         draw_text(surface, f"{self.stars}", 30, (255, 225, 120), (VW // 2 + 24, self.top + 214), anchor="midleft", bg=bg)
-        draw_text(surface, t("endless_revives_left", n=self.revives_left), 24, TEXT_MUTED, (VW // 2, self.top + 280),
+        draw_text(surface, t(f"{self.mode}_revives_left", n=self.revives_left), 24, TEXT_MUTED, (VW // 2, self.top + 280),
                   bold=False, bg=bg)
         eb = self.btn_revive
         if self.waiting:
@@ -3944,6 +3960,126 @@ class EndlessResultModal:
             key = "submit_rejected" if info.get("rejected") else "submit_queued"
             draw_text(surface, t(key), 24, (255, 170, 90), (VW // 2, y), bold=False, max_w=card.w - 60)
         for b in (self.btn_skins, self.btn_retry, self.btn_board, self.btn_menu):
+            if b.visible:
+                b.draw(surface)
+
+
+def fmt_clock(secs):
+    secs = int(secs)
+    return f"{secs // 60}:{secs % 60:02d}"
+
+
+def draw_core_icon(surface, x, y, r, color=(90, 230, 255)):
+    """The arena's energy core (a turned square in a ring) - not the diamond currency."""
+    pygame.draw.circle(surface, color, (x, y), r + 4, 2)
+    pts = [(x, y - r), (x + r, y), (x, y + r), (x - r, y)]
+    pygame.draw.polygon(surface, (210, 250, 255), pts)
+    pygame.draw.polygon(surface, color, pts, 2)
+
+
+class ArenaHUD(HUD):
+    """Arena: pause, shield, the clock running down (big, with a bar that turns red when low), the core chain,
+    points, record and stars."""
+
+    def draw_arena(self, surface, time_left, max_time, points, best, stars, shields, chain, cores):
+        low = time_left < 6.0
+        col = (255, 90, 110) if low else (90, 230, 255)
+        key = (int(time_left * 10), points, best, stars, shields, chain, cores, self.shield_stock, self.shield_active,
+               get_language(), VW)
+        if getattr(self, "_akey", None) != key:
+            if getattr(self, "_aimg", None) is None or self._aimg.get_width() != VW:
+                self._aimg = gfx.cv(pygame.Surface((VW, HUD_H + 1)))
+            img = self._aimg
+            pygame.draw.rect(img, (12, 16, 26), (0, 0, VW, HUD_H + 1))
+            pygame.draw.line(img, (40, 55, 80), (0, HUD_H - 1), (VW, HUD_H - 1), 2)
+            pr = self.pause_rect
+            panel(img, pr, (24, 30, 46), (70, 88, 122), 20)
+            for dx in (-13, 13):
+                pygame.draw.rect(img, TEXT_WHITE, (pr.centerx + dx - 6, pr.centery - 22, 12, 44), border_radius=4)
+            self._draw_shield_btn(img)
+            draw_text(img, f"{t('arena_title')}  •  {fmt_int(points)}", 22, (255, 110, 150), (VW // 2 + 40, 28), max_w=400)
+            draw_text(img, f"{time_left:0.1f}", 64, col, (VW // 2 + 40, 80), max_w=300)
+            if chain > 1:
+                draw_text(img, f"x{chain}", 34, ACCENT_GOLD, (VW // 2 + 170, 82), anchor="midleft")
+            draw_text(img, t("arena_record_short"), 20, TEXT_MUTED, (VW - 30, 28), anchor="midright", bold=False)
+            draw_text(img, fmt_int(best), 30, ACCENT_GOLD, (VW - 30, 60), anchor="midright")
+            draw_vector_star(img, VW - 120, 106, radius=13, filled=True)
+            draw_text(img, f"{stars}", 28, (255, 225, 120), (VW - 100, 106), anchor="midleft")
+            draw_core_icon(img, VW - 212, 106, 9)
+            draw_text(img, f"{cores}", 28, (150, 235, 255), (VW - 192, 106), anchor="midleft")
+            if shields > 0:
+                pygame.draw.circle(img, (80, 220, 255), (VW // 2 - 90, 126), 10, 3)
+                draw_text(img, f"x{shields}", 22, (120, 235, 255), (VW // 2 - 74, 126), anchor="midleft")
+            self._akey = key
+        surface.blit(self._aimg, (0, 0))
+        bar = pygame.Rect(0, HUD_H - 10, VW, 10)                 # the clock as a bar along the HUD's foot
+        pygame.draw.rect(surface, (20, 26, 40), bar)
+        frac = max(0.0, min(1.0, time_left / max_time))
+        if frac > 0:
+            pygame.draw.rect(surface, col, (0, HUD_H - 10, int(VW * frac), 10))
+
+
+class ArenaResultModal:
+    """End of an arena run: points, time survived, stars, the record."""
+
+    def __init__(self, points, secs, stars, best, new_best, wallet, on_retry, on_menu, on_skins=None, cores=0,
+                 timed_out=False):
+        self.points, self.secs, self.stars, self.best, self.new_best = points, secs, stars, best, new_best
+        self.cores, self.timed_out = cores, timed_out
+        self.wallet = wallet
+        self.on_retry, self.on_menu, self.on_skins = on_retry, on_menu, on_skins
+        self.anim = 0.0
+        cx = VW // 2
+        self.top = VH // 2 - 380
+        by = self.top + 520
+        self.btn_retry = Button((cx - 320, by, 640, 104), t("arena_again"), 40, bg_color=(235, 70, 120),
+                                hover_color=(255, 120, 160), callback=on_retry)
+        self.btn_menu = Button((cx - 320, by + 120, 640, 88), t("menu"), 30, bg_color=(120, 150, 215), callback=on_menu)
+        self.btn_skins = Button((cx - 320, by - 96, 640, 76), t("endless_star_skins"), 26, bg_color=(120, 90, 20),
+                                hover_color=(170, 130, 40), border_color=ACCENT_GOLD, callback=on_skins)
+        self.btn_skins.visible = on_skins is not None
+
+    def dyn_key(self):
+        return (self.wallet,)
+
+    def refresh_texts(self):
+        self.btn_retry.text = t("arena_again")
+        self.btn_menu.text = t("menu")
+        self.btn_skins.text = t("endless_star_skins")
+
+    def update(self, mouse_pos, dt=1.0):
+        self.anim += dt
+        for b in (self.btn_retry, self.btn_menu, self.btn_skins):
+            b.update(mouse_pos, dt)
+
+    def handle_event(self, event):
+        for b, cb in ((self.btn_retry, self.on_retry), (self.btn_menu, self.on_menu), (self.btn_skins, self.on_skins)):
+            if b.visible and b.handle_event(event):
+                return cb
+        return None
+
+    def draw(self, surface):
+        dim(surface, 205, (5, 8, 16))
+        col = (255, 110, 150)
+        card = pygame.Rect(80, self.top, VW - 160, 760)
+        bg = (14, 20, 34)
+        panel(surface, card, bg, col, 26, 2)
+        draw_text(surface, t("arena_timeout" if self.timed_out else "arena_over"), 44, col, (VW // 2, self.top + 64),
+                  max_w=card.w - 40)
+        draw_text(surface, fmt_int(self.points), 100, TEXT_WHITE, (VW // 2, self.top + 164), bg=bg)
+        y = self.top + 236                                    # time survived • cores • stars
+        draw_text(surface, fmt_clock(self.secs), 32, (200, 210, 230), (VW // 2 - 100, y), anchor="midright", bg=bg)
+        draw_core_icon(surface, VW // 2 - 66, y, 10)
+        draw_text(surface, f"{self.cores}", 30, (150, 235, 255), (VW // 2 - 48, y), anchor="midleft", bg=bg)
+        draw_vector_star(surface, VW // 2 + 62, y, radius=14, filled=True)
+        draw_text(surface, f"{self.stars}", 30, (255, 225, 120), (VW // 2 + 84, y), anchor="midleft", bg=bg)
+        if self.new_best:
+            draw_text(surface, t("arena_new_best"), 36, ACCENT_GOLD, (VW // 2, self.top + 300), bg=bg)
+        else:
+            draw_text(surface, t("arena_best", p=fmt_int(self.best)), 28, ACCENT_GOLD, (VW // 2, self.top + 300), bg=bg)
+        draw_text(surface, t("endless_star_wallet", n=self.stars, total=fmt_int(self.wallet)), 24, (255, 215, 120),
+                  (VW // 2, self.top + 350), bold=False, bg=bg, max_w=card.w - 60)
+        for b in (self.btn_skins, self.btn_retry, self.btn_menu):
             if b.visible:
                 b.draw(surface)
 

@@ -27,6 +27,8 @@ from skins import get_skin, draw_tether, draw_orb, PREMIUM_SKINS, SKINS, trail_k
 from level_manager import Level
 import endless as E
 from endless_view import EndlessLevel, sector_for_stage
+import arena as A
+from arena_view import ArenaLevel
 from sim import Sim, SIM_DT, compute_result, MAX_LEVELS, SHIELD_INVULN, MIN_TAP_GAP
 from sim import ARENA_W
 from locales import t
@@ -59,6 +61,7 @@ class HoloGame:
         self._render_quality = 1.0
         self.hud = ui.HUD()
         self.endless_hud = ui.EndlessHUD()
+        self.arena_hud = ui.ArenaHUD()
         self.online = OnlineClient(self.save_mgr)
         self.save_mgr.wallet = self.online           # diamonds live on the server from 1.0.3 on
         self._wallet_next = 180.0
@@ -71,6 +74,7 @@ class HoloGame:
         self.level_id = self.save_mgr.campaign_level
         self.sim = None
         self.endless_run = None         # the endless climb being played (self.sim is its Sim), else None
+        self.arena_run = None           # the arena run being played (self.sim is its Sim), else None
         self.endless_week = ""
         self.taps = []
         self.accum = 0.0
@@ -278,7 +282,7 @@ class HoloGame:
             on_leaderboard=self.open_leaderboard, on_skins=self.open_skins, on_shop=lambda: self.open_shop(top=True), on_achievements=self.open_achievements,
             on_profile=lambda: self.open_profile("menu"), on_settings=lambda: self.open_settings("menu"),
             on_quit=None if self.android else self.quit_game, rank_provider=lambda: self.online.rank_info,
-            on_daily=self.open_daily, on_endless=self.open_endless)
+            on_daily=self.open_daily, on_endless=self.open_endless, on_arena=self.open_arena)
         self.level_select_ui = ui.LevelSelectScreen(self.save_mgr, self.on_select_level, self.open_menu)
         self.leaderboard_ui = ui.LeaderboardScreen(self.save_mgr, self.open_menu,
                                                    on_edit_profile=lambda: self.open_profile("leaderboard"), online=self.online)
@@ -419,6 +423,74 @@ class HoloGame:
         _settle_gc()
         return True
 
+    # ------------------------------------------------------------------ arena (survival)
+    def open_arena(self):
+        if not self.save_mgr.arena_unlocked:
+            self.toasts.append([t("arena_locked_toast"), "", 2.6])
+            self._click()
+            return False
+        self._show_loading(t("arena_loading"))
+        self._leave_endless()
+        self.arena_seed = int.from_bytes(os.urandom(4), "little")
+        run = A.ArenaRun(self.arena_seed, record_events=True)
+        self.arena_run = run
+        self.arena_fx = {"wave": 0, "record": False}
+        self.endless_banner = None
+        self.level = ArenaLevel(run)
+        self.sim = run.sim
+        self.attempts = 1
+        self._reset_attempt()
+        self.state = "playing"
+        self.audio.play_sfx("sfx_warp")
+        _settle_gc()
+        return True
+
+    def _arena_progress(self):
+        """Banners in the arena: each new wave, the player's record."""
+        run, fx = self.arena_run, self.arena_fx
+        best = int(self.save_mgr.arena.get("best", 0))
+        if not fx["record"] and best > 0 and run.points > best:
+            fx["record"] = True
+            self._endless_banner(t("endless_banner_record"), t("endless_banner_record_sub"), (255, 215, 60), 2.2)
+            self.audio.play_sfx("sfx_win")
+            haptics.buzz(40)
+        elif run.wave + 1 > fx["wave"]:
+            fx["wave"] = run.wave + 1
+            if run.wave > 0:
+                cl = run.closing()
+                sub = t("arena_storm_up" if cl[2] else "arena_storm_down") if cl else t("arena_wave_sub")
+                self._endless_banner(t("arena_wave", n=run.wave + 1), sub, (255, 110, 150), 1.4)
+                self.audio.play_sfx("sfx_warp")
+
+    def _arena_died(self):
+        run = self.arena_run
+        used = sum(1 for a in self.assists if a[1] != "S")
+        if used >= A.MAX_REVIVES:
+            self._arena_over()
+            return
+        self.state = "failed"
+        self.failure_modal = ui.EndlessReviveModal(run.points, 0, run.stars, self.save_mgr, REVIVE_COST,
+                                                   A.MAX_REVIVES - used, on_revive=self.revive_run,
+                                                   on_finish=self._arena_over, label=ui.fmt_clock(run.seconds),
+                                                   title_key="arena_timeout" if run.timed_out else "arena_paused_title",
+                                                   mode="arena")
+
+    def _arena_over(self):
+        run = self.arena_run
+        new_best = self.save_mgr.record_arena(run.points, run.seconds, run.stars)
+        self.state = "failed"
+        self.failure_modal = ui.ArenaResultModal(
+            run.points, run.seconds, run.stars, int(self.save_mgr.arena.get("best", 0)), new_best,
+            self.save_mgr.star_coins, on_retry=self.retry_after_fail, on_menu=self.open_menu,
+            on_skins=self._open_star_skins, cores=run.cores, timed_out=run.timed_out)
+
+    def _run_over(self):
+        """Leaving a revive offer: the run is finished (endless climb or arena)."""
+        if self.arena_run is not None:
+            self._arena_over()
+        else:
+            self._endless_over()
+
     def _show_loading(self, text):
         """One frame with a small card while something heavy is prepared (so the tap visibly did something)."""
         if self.headless:
@@ -498,8 +570,10 @@ class HoloGame:
         self.skin_ui.selected_skin = skin_catalog.THEMES[skin_catalog.STAR_THEME][2][0]
 
     def _leave_endless(self):
-        if self.endless_run is not None:
+        """Leave the endless climb or the arena (both are "runs" with their own level)."""
+        if self.endless_run is not None or self.arena_run is not None:
             self.endless_run = None
+            self.arena_run = None
             self.level = None
             self.sim = None
 
@@ -674,6 +748,9 @@ class HoloGame:
         if self.endless_run is not None:
             self.open_endless()
             return
+        if self.arena_run is not None:
+            self.open_arena()
+            return
         if not self.level:
             return
         # a shield armed before the very first swap was never actually used - carry it into the fresh attempt
@@ -720,9 +797,9 @@ class HoloGame:
 
     def retry_after_fail(self):
         if isinstance(self.failure_modal, ui.EndlessReviveModal):
-            self._endless_over()                  # a climb waiting on its revive offer is finished (and sent) first
+            self._run_over()                      # a run waiting on its revive offer is finished (and sent) first
         self.attempts += 1
-        if self.endless_run is None:
+        if self.endless_run is None and self.arena_run is None:
             self.save_mgr.set_level_attempts(self.level_id, self.attempts)
         self.restart_level()
 
@@ -753,7 +830,10 @@ class HoloGame:
         self.assisted = True
         self.assists.append([s.n, "R2"])
         ach_mod.bump(self.save_mgr, "revive")
-        s.revive(guarded=True)                 # same rule the server's replay applies (sim.py Sim.revive, "R2"):
+        if self.arena_run is not None and s is self.arena_run.sim:
+            self.arena_run.revive(guarded=True)  # the arena also drops its pending radar locks
+        else:
+            s.revive(guarded=True)             # same rule the server's replay applies (sim.py Sim.revive, "R2"):
         #                                        slow spin-up, shielded until the next tap
         self.particles.clear()
         self.rewind_cam_start = self.cam_y     # the camera glides back to the rewound pair ("rewinding" overlay)
@@ -806,6 +886,10 @@ class HoloGame:
         self.cam_y = self._camera_target()
 
     def _camera_target(self):
+        if self.arena_run is not None:                 # the arena: the pair in the middle, clamped to the map
+            p, r = self.sim.pivot, self.sim.rotating
+            top = (p.y + r.y) / 2.0 - self.view_h * 0.5
+            return max(0.0, min(A.H - self.view_h, top))
         run = self.endless_run
         if run is not None:
             p, r = self.sim.pivot, self.sim.rotating
@@ -899,7 +983,9 @@ class HoloGame:
             elif kind == "star":
                 self.audio.play_sfx("sfx_star")
                 self.particles.emit_star_collect(ev[1], ev[2])
-                if self.endless_run is not None:          # the climb: +100 each, quick pickups make a streak
+                if self.arena_run is not None:
+                    self.particles.emit_floating_text(ev[1], ev[2] - 24, f"+{A.POINTS_PER_STAR}", (255, 220, 40))
+                elif self.endless_run is not None:        # the climb: +100 each, quick pickups make a streak
                     fx = self.endless_fx
                     fx["streak"] = fx["streak"] + 1 if s.t - fx["last_star"] < 2.5 else 1
                     fx["last_star"] = s.t
@@ -912,6 +998,14 @@ class HoloGame:
                         haptics.buzz(15)
                 else:
                     self.particles.emit_floating_text(ev[1], ev[2] - 24, f"+{ev[3]}", (255, 220, 40))
+            elif kind == "core":                     # an energy core: clock + chain
+                haptics.buzz(20)
+                self.audio.play_sfx("sfx_coin")
+                self.particles.emit_star_collect(ev[1], ev[2])
+                self.particles.emit_swap_pulse(ev[1], ev[2], (90, 230, 255))
+                self.particles.emit_floating_text(ev[1], ev[2] - 30, f"+{ev[4]:.0f} s", (120, 235, 255))
+                if ev[3] > 1:
+                    self.particles.emit_floating_text(ev[1], ev[2] - 74, f"x{ev[3]}", (255, 215, 60))
             elif kind == "graze":
                 self.audio.play_sfx("sfx_near_miss")
                 self.particles.emit_floating_text(ev[1], ev[2] - 24, t("graze_popup"), (0, 230, 255))
@@ -983,7 +1077,7 @@ class HoloGame:
         s = self.sim
         run = self.endless_run
         b = getattr(self, "endless_banner", None)
-        if run is not None and b:                      # the milestone banner's clock
+        if b:                                          # the milestone banner's clock
             b[3] -= dt
             if b[3] <= 0.0:
                 self.endless_banner = None
@@ -999,6 +1093,9 @@ class HoloGame:
                 if run.w0 != w0:
                     self.level.rev_hits = {}           # bumper indices shifted with the window
                 self._endless_progress()
+            elif self.arena_run is not None:
+                self.arena_run.step()                  # the arena: waves, radar locks and stars come with the steps
+                self._arena_progress()
             else:
                 s.step()
             self.accum -= SIM_DT
@@ -1016,8 +1113,9 @@ class HoloGame:
             self.level.prepare(run.w0 + E.WINDOW - 1)
             self.level.pump(0.0015)
         if self.state == "playing":
-            self._update_tension(dt)
-            self._update_hints(dt)
+            if self.arena_run is None:                 # the campaign's end pulse and power-up tips (they talk
+                self._update_tension(dt)               # about chasing walls and narrow throats) stay out of the arena
+                self._update_hints(dt)
         self.particles.update(dt * 60.0)
 
     # ---- performance test hook (config.json "perf_autoplay": [level ids]); never on in a release build
@@ -1090,7 +1188,8 @@ class HoloGame:
     def _install_ghost(self):
         """The ghost raced in this attempt: the world's best clean run of the level (named), else my own best."""
         self.ghost, self.ghost_name = None, None
-        if not self.settings.get("ghost_race", False) or not self.level or self.endless_run is not None:
+        if (not self.settings.get("ghost_race", False) or not self.level or self.endless_run is not None
+                or self.arena_run is not None):
             return
         world = (getattr(self.online, "ghosts", None) or {}).get(self.level_id) or {}
         taps = None
@@ -1282,6 +1381,8 @@ class HoloGame:
             self.death_timer -= dt
             if self.death_timer <= 0 and self.endless_run is not None:
                 self._endless_died()
+            elif self.death_timer <= 0 and self.arena_run is not None:
+                self._arena_died()
             elif self.death_timer <= 0:
                 self.state = "failed"
                 s = self.sim
@@ -1333,7 +1434,7 @@ class HoloGame:
         if getattr(self.online, "ghost_new", False):
             self.online.ghost_new = False
             if (self.level and self.state in ("playing", "paused", "howto") and self.endless_run is None
-                    and self.sim is not None and self.sim.n < 400 and not self.ghost_name):
+                    and self.arena_run is None and self.sim is not None and self.sim.n < 400 and not self.ghost_name):
                 self._install_ghost()                # the world #1 replaces my own best early in the attempt
 
     def _update_camera(self, dt):
@@ -1381,7 +1482,7 @@ class HoloGame:
                 elif st in ("achievements", "daily"):
                     self.open_menu()
                 elif st == "failed" and isinstance(self.failure_modal, ui.EndlessReviveModal):
-                    self._endless_over()          # back on the revive offer = finish the climb (it is still sent)
+                    self._run_over()              # back on the revive offer = finish the run (it is still sent)
                 elif st in ("leaderboard", "skins", "levels", "failed", "victory"):
                     self.open_menu()
                 elif st == "settings":
@@ -1428,7 +1529,8 @@ class HoloGame:
 
         if st == "playing":
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                hud = self.endless_hud if self.endless_run is not None else self.hud
+                hud = (self.endless_hud if self.endless_run is not None else
+                       self.arena_hud if self.arena_run is not None else self.hud)
                 if hud.hit_pause(event.pos):
                     self.state = "paused"
                     self._click()
@@ -1793,8 +1895,16 @@ class HoloGame:
             self.intro_band.draw(view, (0, y0 - 52), int(170 * max(0.0, k)) / 255.0)
             ui.draw_text(view, t("endless_title"), 66, fade((255, 255, 255)), (VW // 2, y0 + 62), max_w=820, bg="key")
             ui.draw_text(view, t("endless_card_sub"), 28, fade((200, 210, 235)), (VW // 2, y0 + 124), max_w=820, bold=False, bg="key")
+        arun = self.arena_run
+        if arun is not None and self.state == "playing" and s.swaps == 0 and s.t < 3.2:
+            k = min(1.0, s.t / 0.35, (3.2 - s.t) / 0.7)
+            fade = lambda c: tuple(int(v * max(0.0, k)) for v in c)
+            y0 = int(self.view_h * 0.24)
+            self.intro_band.draw(view, (0, y0 - 52), int(170 * max(0.0, k)) / 255.0)
+            ui.draw_text(view, t("arena_title"), 66, fade((255, 255, 255)), (VW // 2, y0 + 62), max_w=820, bg="key")
+            ui.draw_text(view, t("arena_card_sub"), 28, fade((200, 210, 235)), (VW // 2, y0 + 124), max_w=820, bold=False, bg="key")
         # level intro card (first attempt): sector, title, boss tag
-        if run is None and self.state == "playing" and self.attempts == 1 and s.swaps == 0 and s.t < 3.2:
+        if run is None and arun is None and self.state == "playing" and self.attempts == 1 and s.swaps == 0 and s.t < 3.2:
             k = min(1.0, s.t / 0.35, (3.2 - s.t) / 0.7)
             col = ui.SECTOR_COL.get(lvl.sector, ui.ACCENT_CYAN)
             fade = lambda c: tuple(int(v * max(0.0, k)) for v in c)
@@ -1808,7 +1918,7 @@ class HoloGame:
         # arrow towards the portal when it is off-screen (tall levels)
         gx, gy = lvl.data.end
         gy -= oy
-        if run is None and (gy < 30 or gy > self.view_h - 30):
+        if run is None and arun is None and (gy < 30 or gy > self.view_h - 30):
             up = gy < 30
             ax = max(70, min(VW - 70, gx))
             ay = 46 if up else self.view_h - 46
@@ -1850,7 +1960,7 @@ class HoloGame:
                              max_w=840, bg="key")
 
         # first-time tap hint
-        if run is None and self.state == "playing" and s.swaps == 0 and self.level_id <= 3 and self.attempts <= 2:
+        if run is None and arun is None and self.state == "playing" and s.swaps == 0 and self.level_id <= 3 and self.attempts <= 2:
             pulse = 0.65 + 0.35 * math.sin(s.t * 6)
             col = tuple(int(c * pulse) for c in (255, 255, 255))
             ui.draw_text(view, t("tap_hint"), 52, col, (VW // 2, self.view_h - 190), bg="key")
@@ -1866,6 +1976,14 @@ class HoloGame:
                                           points=run.points, stars=run.stars)
             self._draw_endless_banner(view)
             self.hud.draw_footer(f, HUD_H + self.view_h + FOOT_H // 2, run.metres, s.t, s.swaps, s.combo_mult, s.near_count)
+        elif arun is not None:
+            best = int(self.save_mgr.arena.get("best", 0))
+            self.arena_hud.shield_stock = self.save_mgr.shield_stock
+            self.arena_hud.shield_active = s.shields
+            self.arena_hud.draw_arena(f, arun.time_left, A.MAX_TIME, arun.points, max(best, arun.points), arun.stars,
+                                      s.shields, arun.chain, arun.cores)
+            self._draw_endless_banner(view)
+            self.hud.draw_footer(f, HUD_H + self.view_h + FOOT_H // 2, arun.points, s.t, s.swaps, s.combo_mult, s.near_count)
         else:
             self._draw_campaign_hud(f, s, lvl)
         if self.state == "playing" and self.resume_timer > 0.0:

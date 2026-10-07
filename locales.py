@@ -1171,3 +1171,34 @@ for _bundle in STRINGS.values():
     for _k, _v in list(_bundle.items()):
         if isinstance(_v, str) and _EMOJI.search(_v):
             _bundle[_k] = _re.sub(r"\s{2,}", " ", _EMOJI.sub("", _v)).strip()
+
+# arena (survival) mode
+_ARENA = {
+    "tr": {"arena_btn": "ARENA", "arena_timeout": "SÜRE BİTTİ!", "arena_storm_up": "Fırtına geliyor • YUKARI kaç", "arena_storm_down": "Fırtına geliyor • AŞAĞI kaç", "arena_revives_left": "Bu turda {n} canlanma hakkın kaldı", "arena_finish_btn": "TURU BİTİR", "arena_locked_btn": "ARENA • 5. BÖLÜM", "arena_title": "ARENA",
+           "arena_locked_toast": "Arena 5. bölümü geçince açılır", "arena_loading": "Arena hazırlanıyor…",
+           "arena_card_sub": "Çekirdekleri topla, süren dolsun • radardan kaç",
+           "arena_wave": "DALGA {n}", "arena_wave_sub": "Yeni tehlikeler geliyor", "arena_over": "ARENA BİTTİ",
+           "arena_new_best": "YENİ REKOR!", "arena_best": "Rekor: {p}", "arena_again": "TEKRAR",
+           "arena_record_short": "REKOR", "arena_paused_title": "DÜŞTÜN!"},
+    "en": {"arena_btn": "ARENA", "arena_timeout": "OUT OF TIME!", "arena_storm_up": "A storm is coming • go UP", "arena_storm_down": "A storm is coming • go DOWN", "arena_revives_left": "{n} revives left in this run", "arena_finish_btn": "FINISH THE RUN", "arena_locked_btn": "ARENA • LEVEL 5", "arena_title": "ARENA",
+           "arena_locked_toast": "The arena opens after level 5", "arena_loading": "Preparing the arena…",
+           "arena_card_sub": "Grab the cores to refill your clock • dodge the radar",
+           "arena_wave": "WAVE {n}", "arena_wave_sub": "New hazards incoming", "arena_over": "ARENA OVER",
+           "arena_new_best": "NEW RECORD!", "arena_best": "Record: {p}", "arena_again": "AGAIN",
+           "arena_record_short": "RECORD", "arena_paused_title": "YOU FELL!"},
+    "de": {"arena_btn": "ARENA", "arena_timeout": "ZEIT ABGELAUFEN!", "arena_storm_up": "Ein Sturm zieht auf • nach OBEN", "arena_storm_down": "Ein Sturm zieht auf • nach UNTEN", "arena_revives_left": "Noch {n} Wiederbelebungen in diesem Lauf", "arena_finish_btn": "LAUF BEENDEN", "arena_locked_btn": "ARENA • LEVEL 5", "arena_title": "ARENA",
+           "arena_locked_toast": "Die Arena öffnet nach Level 5", "arena_loading": "Arena wird vorbereitet…",
+           "arena_card_sub": "Sammle Kerne für mehr Zeit • weich dem Radar aus",
+           "arena_wave": "WELLE {n}", "arena_wave_sub": "Neue Gefahren kommen", "arena_over": "ARENA VORBEI",
+           "arena_new_best": "NEUER REKORD!", "arena_best": "Rekord: {p}", "arena_again": "NOCHMAL",
+           "arena_record_short": "REKORD", "arena_paused_title": "ERWISCHT!"},
+    "es": {"arena_btn": "ARENA", "arena_timeout": "¡SIN TIEMPO!", "arena_storm_up": "Llega una tormenta • sube ARRIBA", "arena_storm_down": "Llega una tormenta • baja ABAJO", "arena_revives_left": "Te quedan {n} revividas en esta partida", "arena_finish_btn": "TERMINAR PARTIDA", "arena_locked_btn": "ARENA • NIVEL 5", "arena_title": "ARENA",
+           "arena_locked_toast": "La arena se abre tras el nivel 5", "arena_loading": "Preparando la arena…",
+           "arena_card_sub": "Recoge núcleos para recargar el tiempo • esquiva el radar",
+           "arena_wave": "OLEADA {n}", "arena_wave_sub": "Llegan nuevos peligros", "arena_over": "FIN DE LA ARENA",
+           "arena_new_best": "¡NUEVO RÉCORD!", "arena_best": "Récord: {p}", "arena_again": "OTRA VEZ",
+           "arena_record_short": "RÉCORD", "arena_paused_title": "¡CAÍSTE!"},
+}
+for _lang, _d in _ARENA.items():
+    if _lang in STRINGS:
+        STRINGS[_lang].update(_d)

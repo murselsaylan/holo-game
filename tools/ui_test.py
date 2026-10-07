@@ -112,8 +112,15 @@ d_before = sm.diamonds
 check("finished mission is claimable and pays its diamond reward", sm.claim_daily(m0["id"]) and sm.diamonds == d_before + m0["reward"])
 check("a claimed mission cannot be claimed twice", not sm.claim_daily(m0["id"]))
 check("main menu shows a daily-missions button", g.menu_ui.btn_daily is not None)
-check("main menu has a level-select entry to replay cleared levels",
-      any(b.callback == g.open_level_select for b in g.menu_ui.buttons))
+def _tap_progress():
+    r = g.menu_ui.progress_rect
+    for typ in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP):
+        cb = g.menu_ui.handle_event(pygame.event.Event(typ, pos=r.center, button=1))
+    return cb
+
+
+check("main menu: tapping the progress bar opens the level select (replay cleared levels)",
+      _tap_progress() == g.open_level_select)
 check("level select never reveals levels ahead of real progress",
       sm.unlocked_level == sm.highest_cleared + 1 and sm.unlocked_level < holo.MAX_LEVELS)
 
