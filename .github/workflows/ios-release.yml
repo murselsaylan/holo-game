@@ -1,11 +1,14 @@
 name: HOLO iOS -> TestFlight
 
-# Signed App Store build, uploaded to App Store Connect (TestFlight). Run by hand: Actions -> this workflow -> Run.
+# Signed App Store build, uploaded to App Store Connect (TestFlight). Run by hand (Actions -> this workflow -> Run)
+# or by pushing a release tag:  git tag ios-v1.0.7 && git push origin ios-v1.0.7
 # Repository secrets (Settings -> Secrets and variables -> Actions):
 #   ASC_KEY_P8             the text of the AuthKey_XXXX.p8 file, pasted as is (role: Admin - Xcode creates the certificates)
 # The app record com.hologame.holo must exist in App Store Connect before the first upload.
 on:
   workflow_dispatch:
+  push:
+    tags: ['ios-v*']
 
 defaults:
   run:
