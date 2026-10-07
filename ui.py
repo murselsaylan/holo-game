@@ -3215,7 +3215,7 @@ class SettingsModal:
             Toggle((x, y + 190, w, 70), t("set_shake"), s.get("screen_shake", True), lambda v: self._set("screen_shake", v)),
             Toggle((x, y + 280, w, 70), t("set_particles"), s.get("particles", True), lambda v: self._set("particles", v)),
             Toggle((x, y + 370, w, 70), t("set_online"), s.get("online", True), lambda v: self._set("online", v)),
-            Toggle((x, y + 460, w, 70), t("set_ghost"), s.get("ghost_race", False), lambda v: self._set("ghost_race", v)),
+            Toggle((x, y + 460, w, 70), t("set_ghost"), s.get("ghost_race", True), lambda v: self._set("ghost_race", v)),
             Toggle((x, y + 550, w, 70), t("set_haptics"), s.get("haptics", True), lambda v: self._set("haptics", v)),
             Toggle((x, y + 640, w, 70), t("set_show_fps"), s.get("show_fps", False), lambda v: self._set("show_fps", v)),
         ]

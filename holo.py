@@ -774,7 +774,7 @@ class HoloGame:
         self.level_id = level_id
         self.level = lvl
         self.tut_shown = 0
-        if hasattr(self.online, "fetch_ghost") and self.settings.get("ghost_race", False):
+        if hasattr(self.online, "fetch_ghost") and self.settings.get("ghost_race", True):
             self.online.fetch_ghost(level_id)
         self.restart_level(count_attempt=False)
         if level_id == 1 and not self.save_mgr.data.get("howto_seen"):
@@ -1232,7 +1232,7 @@ class HoloGame:
     def _install_ghost(self):
         """The ghost raced in this attempt: the world's best clean run of the level (named), else my own best."""
         self.ghost, self.ghost_name = None, None
-        if (not self.settings.get("ghost_race", False) or not self.level or self.endless_run is not None
+        if (not self.settings.get("ghost_race", True) or not self.level or self.endless_run is not None
                 or self.arena_run is not None):
             return
         world = (getattr(self.online, "ghosts", None) or {}).get(self.level_id) or {}

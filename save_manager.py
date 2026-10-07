@@ -47,9 +47,20 @@ DEFAULT_SETTINGS = {
     "fullscreen": False,
     "language": "en",
     "online": True,
-    "ghost_race": False,                 # race a ghost (the world #1 of the level, else my best) - opt-in
+    "ghost_race": True,                  # race a ghost (the world #1 of the level, else my best) - on (1.0.7)
     "haptics": True,
 }
+
+
+def _merge_settings(saved):
+    """Saved settings over the defaults. 1.0.7 turns the ghost race on once for everybody (it was opt-in before,
+    so most saves carry ghost_race False only because that was the default); later choices are kept."""
+    merged = dict(DEFAULT_SETTINGS)
+    merged.update(saved if isinstance(saved, dict) else {})
+    if not merged.get("ghost_on_107"):
+        merged["ghost_race"] = True
+        merged["ghost_on_107"] = True
+    return merged
 
 
 def _default_save():
@@ -106,9 +117,7 @@ class SaveManager:
                     result[k] = loaded[k]
         else:
             result.update(loaded)
-        merged = dict(DEFAULT_SETTINGS)
-        merged.update(loaded.get("settings", {}))
-        result["settings"] = merged
+        result["settings"] = _merge_settings(loaded.get("settings", {}))
         result["save_version"] = SAVE_VERSION
         return result
 
@@ -435,9 +444,7 @@ class SaveManager:
             loaded = None
         if isinstance(loaded, dict):
             result.update(loaded)
-            merged = dict(DEFAULT_SETTINGS)
-            merged.update(loaded.get("settings", {}))
-            result["settings"] = merged
+            result["settings"] = _merge_settings(loaded.get("settings", {}))
         else:
             stats = {}
             for b in payload.get("bests", []):
