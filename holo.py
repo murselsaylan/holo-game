@@ -1545,7 +1545,7 @@ class HoloGame:
                 elif st == "paused":
                     self.resume_game()
                 elif st == "shop":
-                    self.open_featured()
+                    self.open_menu()
                 elif st == "featured":
                     self.open_menu()
                 elif st in ("achievements", "daily"):

@@ -2477,14 +2477,14 @@ class ShopScreen:
         gy = self._grid_h()
         self.pack_buttons = []
         px0 = (VW - (4 * self.PACK_W + 3 * self.PACK_GAP)) // 2
-        for i, pack in enumerate(shop_mod.DIAMOND_PACKS):
+        for i, pack in enumerate(shop_mod.DIAMOND_PACKS if self.shop.sells_money else ()):
             pid, amt, def_price, lbl = pack
             b = Button((px0 + i * (self.PACK_W + self.PACK_GAP), gy + 70, self.PACK_W, self.PACK_H), "", 24,
                        bg_color=(18, 38, 68), hover_color=(30, 75, 135), border_color=(0, 214, 255),
                        callback=(lambda p=pid: self._buy_pack(p)))
             b.pack = pack
             self.pack_buttons.append(b)
-        self.btn_shield.rect.y = gy + 180
+        self.btn_shield.rect.y = gy + (180 if self.shop.sells_money else 30)
         self._content_key = None
 
     def _click(self):
@@ -2536,9 +2536,9 @@ class ShopScreen:
         self.shop.buy_skin(self.selected, on_done=self._coin())
 
     def _split_buy(self):
-        """Premium skin not owned yet: two buttons (diamonds | money) instead of one."""
+        """Premium skin not owned yet: two buttons (diamonds | money) instead of one (only where money is sold)."""
         sid = self.selected
-        return self.shop.is_premium(sid) and not self.save_mgr.is_skin_unlocked(sid)
+        return self.shop.sells_money and self.shop.is_premium(sid) and not self.save_mgr.is_skin_unlocked(sid)
 
     def _buy_pack(self, pid):
         self._click()
@@ -2591,7 +2591,7 @@ class ShopScreen:
                 return self._buy_selected_money
         elif self.buy_button.handle_event(event):
             return self._buy_selected
-        if self.btn_restore.handle_event(event):
+        if self.shop.sells_money and self.btn_restore.handle_event(event):
             return self._restore
         if event.type == pygame.MOUSEWHEEL:
             self._scroll.wheel(event.y)
@@ -2673,9 +2673,10 @@ class ShopScreen:
                 draw_diamond_icon(img, pill.centerx - 34, pill.centery, 10, (0, 230, 255))
                 draw_text(img, f"{self.shop.diamond_cost(sid)}", 23, (230, 248, 255), (pill.centerx + 10, pill.centery))
         gy = self._grid_h()
-        draw_diamond_icon(img, VW // 2 - 150, gy + 36, 14, (0, 230, 255))
-        draw_text(img, t("diamond_packs_title"), 28, (0, 230, 255), (VW // 2, gy + 36))
-        draw_diamond_icon(img, VW // 2 + 150, gy + 36, 14, (0, 230, 255))
+        if self.pack_buttons:
+            draw_diamond_icon(img, VW // 2 - 150, gy + 36, 14, (0, 230, 255))
+            draw_text(img, t("diamond_packs_title"), 28, (0, 230, 255), (VW // 2, gy + 36))
+            draw_diamond_icon(img, VW // 2 + 150, gy + 36, 14, (0, 230, 255))
         for b in self.pack_buttons:
             b.draw(img)
             pid, amt, def_price, lbl = b.pack
@@ -2723,7 +2724,7 @@ class ShopScreen:
             eb.text, eb.bg_color, eb.hover_color = t("equipped"), (35, 200, 120), (80, 230, 160)
         elif owned:
             eb.text, eb.bg_color, eb.hover_color = t("equip"), (96, 140, 255), (140, 176, 255)
-        elif premium:
+        elif premium and self.shop.sells_money:
             eb = None
             gb, mb = self.btn_gems, self.btn_money
             enough = sm.diamonds >= cost
@@ -2744,14 +2745,15 @@ class ShopScreen:
         msg = self.shop.current_message()
         if msg:
             draw_text(surface, t(msg), 26, (255, 232, 160), (VW // 2, 616), max_w=820)
-        elif not self.shop.open_for_business:
+        elif not self.shop.open_for_business and self.shop.sells_money:
             draw_text(surface, t("shop_soon"), 22, (255, 200, 170), (VW // 2, 616), bold=False, max_w=820)
         elif self.shop.billing.name == "dev":
             draw_text(surface, t("shop_test_mode"), 22, (255, 170, 190), (VW // 2, 616), bold=False, max_w=820)
 
         if not getattr(self, "_static", False):
             self._draw_list(surface)                 # (cached screens get it from draw_dynamic every frame)
-        self.btn_restore.draw(surface)
+        if self.shop.sells_money:
+            self.btn_restore.draw(surface)
 
     def _draw_list(self, surface):
         """The scrolling list: a window of the pre-rendered list (scrolling never redraws the rest of the screen -
@@ -3448,7 +3450,7 @@ class FailureModal:
                                  text_color=(255, 255, 255), callback=self._revive)
         self.pack_buttons = []
         pw, ph, pgap = 310, 78, 20
-        for i, pack in enumerate(shop_mod.DIAMOND_PACKS[:2]):
+        for i, pack in enumerate(shop_mod.DIAMOND_PACKS[:2] if (shop is None or shop.sells_money) else ()):
             b = Button((cx - pw - pgap // 2 + i * (pw + pgap), top + 530, pw, ph), "", 22, bg_color=(18, 38, 68),
                       hover_color=(30, 75, 135), border_color=(0, 214, 255), callback=(lambda p=pack[0]: self._buy_pack(p)))
             b.pack = pack

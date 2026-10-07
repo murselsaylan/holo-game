@@ -238,6 +238,12 @@ class Shop:
     def open_for_business(self):
         return self.billing.available()
 
+    @property
+    def sells_money(self):
+        """Real-money items (diamond packs, premium skins' price, restore) are shown at all. Not on iOS until StoreKit
+        is in: App Review rejects buttons that cannot be bought - there the shop is diamonds only."""
+        return not paths.is_ios()
+
     # -- actions ---------------------------------------------------------------------
     def _say(self, key, seconds=3.5):
         self.message = key
