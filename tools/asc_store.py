@@ -211,13 +211,26 @@ def set_build(v):
     print("    build", b["attributes"]["version"], "attached")
 
 
+@step("App Review details: no sign-in needed")
+def set_review(v):
+    d = call("GET", f"/v1/appStoreVersions/{v['id']}/appStoreReviewDetail")["data"]
+    call("PATCH", f"/v1/appStoreReviewDetails/{d['id']}", {"data": {"type": "appStoreReviewDetails", "id": d["id"],
+         "attributes": {"demoAccountRequired": False}}})
+    a = d["attributes"]
+    print("    contact:", a.get("contactFirstName"), a.get("contactLastName"), "| email set:", bool(a.get("contactEmail")),
+          "| phone set:", bool(a.get("contactPhone")))
+
+
 @step("submit for review")
 def submit(v):
-    sub = call("POST", "/v1/reviewSubmissions", {"data": {"type": "reviewSubmissions", "attributes": {"platform": "IOS"},
-               "relationships": {"app": {"data": {"type": "apps", "id": APP}}}}})["data"]
-    call("POST", "/v1/reviewSubmissionItems", {"data": {"type": "reviewSubmissionItems", "relationships": {
-        "reviewSubmission": {"data": {"type": "reviewSubmissions", "id": sub["id"]}},
-        "appStoreVersion": {"data": {"type": "appStoreVersions", "id": v["id"]}}}}})
+    open_ = call("GET", f"/v1/reviewSubmissions?filter[app]={APP}&filter[platform]=IOS&filter[state]=READY_FOR_REVIEW")["data"]
+    sub = open_[0] if open_ else call("POST", "/v1/reviewSubmissions", {"data": {"type": "reviewSubmissions",
+          "attributes": {"platform": "IOS"}, "relationships": {"app": {"data": {"type": "apps", "id": APP}}}}})["data"]
+    items = call("GET", f"/v1/reviewSubmissions/{sub['id']}/items")["data"]
+    if not items:
+        call("POST", "/v1/reviewSubmissionItems", {"data": {"type": "reviewSubmissionItems", "relationships": {
+            "reviewSubmission": {"data": {"type": "reviewSubmissions", "id": sub["id"]}},
+            "appStoreVersion": {"data": {"type": "appStoreVersions", "id": v["id"]}}}}})
     call("PATCH", f"/v1/reviewSubmissions/{sub['id']}", {"data": {"type": "reviewSubmissions", "id": sub["id"],
          "attributes": {"submitted": True}}})
     print("    sent to App Review")
@@ -236,6 +249,7 @@ if __name__ == "__main__":
     set_price()
     set_shots(locs)
     set_build(v)
+    set_review(v)
     if "--submit" in sys.argv:
         if FAILED:
             print("\nnot submitting, failed steps:", FAILED)
