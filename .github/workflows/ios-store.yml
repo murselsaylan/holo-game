@@ -9,6 +9,9 @@ on:
   push:
     tags: ['store-v*', 'submit-v*']
 
+permissions:
+  contents: write                     # the run's output is pushed to the ci-logs branch (readable without the web UI)
+
 jobs:
   store:
     runs-on: ubuntu-latest
@@ -25,4 +28,17 @@ jobs:
           ASC_ISSUER_ID: d24b4319-f096-4bd2-8998-5e322d50bb39
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
-          if [[ "$GITHUB_REF_NAME" == submit-v* ]]; then python tools/asc_store.py --submit; else python tools/asc_store.py; fi
+          set -o pipefail
+          if [[ "$GITHUB_REF_NAME" == submit-v* ]]; then A=--submit; else A=; fi
+          python tools/asc_store.py $A 2>&1 | tee "$RUNNER_TEMP/store.log"
+      - name: Keep the output (branch ci-logs)
+        if: always()
+        run: |
+          cp "$RUNNER_TEMP/store.log" /tmp/store.log 2>/dev/null || echo "no log" > /tmp/store.log
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git fetch origin ci-logs 2>/dev/null && git checkout -B ci-logs FETCH_HEAD || git checkout --orphan ci-logs
+          git rm -rq --cached . 2>/dev/null || true
+          cp /tmp/store.log "store-$GITHUB_REF_NAME.log"
+          git add "store-$GITHUB_REF_NAME.log"
+          git commit -qm "store log $GITHUB_REF_NAME $GITHUB_RUN_NUMBER [skip ci]"
+          git push -q origin HEAD:ci-logs
