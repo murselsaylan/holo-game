@@ -119,12 +119,12 @@ def set_info_texts(info):
 
 @step("categories")
 def set_categories(info):
-    p, s1, s2 = CFG["categories"]
-    call("PATCH", f"/v1/appInfos/{info['id']}", {"data": {"type": "appInfos", "id": info["id"], "relationships": {
-        "primaryCategory": {"data": {"type": "appCategories", "id": p}},
-        "primarySubcategoryOne": {"data": {"type": "appCategories", "id": s1}},
-        "primarySubcategoryTwo": {"data": {"type": "appCategories", "id": s2}}}}})
-    print("   ", p, s1, s2)
+    cats = CFG["categories"]
+    rel = {"primaryCategory": {"data": {"type": "appCategories", "id": cats[0]}}}
+    for key, cid in zip(("primarySubcategoryOne", "primarySubcategoryTwo"), cats[1:]):
+        rel[key] = {"data": {"type": "appCategories", "id": cid}}
+    call("PATCH", f"/v1/appInfos/{info['id']}", {"data": {"type": "appInfos", "id": info["id"], "relationships": rel}})
+    print("   ", cats)
 
 
 @step("age rating (no objectionable content -> 4+)")
@@ -132,12 +132,16 @@ def set_age(info):
     d = call("GET", f"/v1/appInfos/{info['id']}/ageRatingDeclaration")["data"]
     attrs = {}
     for k, val in d["attributes"].items():
-        if isinstance(val, bool) or k in ("gambling", "unrestrictedWebAccess", "lootBox", "messagingAndChat",
-                                          "parentalControls", "ageAssurance", "userGeneratedContent", "advertising",
-                                          "healthOrWellnessTopics", "seventeenPlus", "contests"):
-            attrs[k] = False if k != "contests" else "NONE"
-        elif k in ("ageRatingOverride", "ageRatingOverrideV2", "koreaAgeRatingOverride", "kidsAgeBand", "developerAgeRatingInfoUrl"):
+        if k in ("ageRatingOverride", "ageRatingOverrideV2", "koreaAgeRatingOverride", "kidsAgeBand",
+                 "developerAgeRatingInfoUrl", "gracRatingClassificationNumber"):
             continue
+        if k == "contests":
+            attrs[k] = "NONE"
+        elif isinstance(val, bool) or k in ("gambling", "unrestrictedWebAccess", "lootBox", "messagingAndChat",
+                                            "parentalControls", "ageAssurance", "userGeneratedContent", "advertising",
+                                            "healthOrWellnessTopics", "seventeenPlus", "socialMedia",
+                                            "socialMediaAgeRestricted"):
+            attrs[k] = False
         else:
             attrs[k] = "NONE"
     print("    fields:", sorted(attrs))
