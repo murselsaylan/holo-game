@@ -36,6 +36,7 @@ from online import OnlineClient
 from theme import BG_DARK
 
 VW = 900
+ARENA_ENABLED = False      # the arena mode is kept (arena.py, arena_view.py) for a later event, hidden from the menu
 HUD_H = ui.HUD_H
 FOOT_H = 72
 REVIVE_COST = 20             # diamonds: continue in place after dying (failure screen)
@@ -49,10 +50,15 @@ class HoloGame:
         self.android = paths.is_mobile()         # phone layout / full screen (Android or iOS)
         self.headless = headless
         self._init_display()
+        self._boot = None
+        self._boot_tick()                    # phones: the splash picture right away, its dots pulse while we load
 
         self.clock = pygame.time.Clock()
         self.running = True
+        self._bg = False                 # in the background (phones): no update, no drawing until it comes back
+        self._crumb_t = 0.0
         self.audio = AudioManager()
+        self._boot_tick()
         self.save_mgr = SaveManager()
         self.settings = self.save_mgr.settings
         self.audio.set_music_volume(self.settings.get("music_volume", 0.6))
@@ -111,11 +117,14 @@ class HoloGame:
         self.rewind_fx_t = 0.0
         self.rewind_cam_start = 0.0
         self._ach_synced = False
+        self._boot_tick()
         self._make_backdrops()
+        self._boot_tick()
 
         haptics.set_enabled(self.settings.get("haptics", True))
         haptics.start()
         self._build_ui()
+        self._boot_tick()
         self._music_track = None
         self._sync_music()
         if not self.save_mgr.is_profile_set:
@@ -193,6 +202,39 @@ class HoloGame:
             self.frame = pygame.Surface((VW, self.vh))
         self._present_buffer = None
         self.is_fullscreen = False
+
+    def _boot_tick(self):
+        """Phones, while the game starts: the loading picture (assets/presplash.png - the same picture the system shows
+        before the game runs: iOS launch screen, Android presplash) with its three dots pulsing, so the start never
+        looks frozen. Called between the heavy start-up steps; the intro then continues from this exact picture."""
+        if self.headless or not self.android:
+            return
+        try:
+            win = self.window
+            if self._boot is None:
+                W_, H_ = win.get_size()
+                img = pygame.image.load(paths.asset("presplash.png"))
+                k = W_ / float(img.get_width())                     # fitted to the width, centred: like the system
+                sh = int(img.get_height() * k)
+                img = gfx.cv(pygame.transform.smoothscale(img, (W_, sh)))
+                dx, dy, dr = W_ // 2, int(1088.5 * k), int(48 * k) + int(17 * k)      # the picture's own dots go:
+                img.fill(img.get_at((2, dy)), (dx - dr, dy - int(17 * k), 2 * dr, int(34 * k)))   # drawn live below
+                y0 = (H_ - sh) // 2
+                self._boot = (img, y0, k, time.time())
+            img, y0, k, t0 = self._boot
+            win.fill((10, 12, 18))
+            win.blit(img, (0, y0))
+            t = time.time() - t0
+            cx, cy, gap, r = win.get_width() // 2, y0 + int(1088.5 * k), int(48 * k), max(4, int(11 * k))
+            for i in range(3):
+                lit = 0.5 + 0.5 * math.cos((t * 4.0 - i * 1.2))      # a wave running along the dots
+                col = (int(10 + 0 * lit), int(80 + 150 * lit), int(110 + 145 * lit))
+                pygame.draw.circle(win, col, (cx + (i - 1) * gap, cy), r)
+            pygame.event.pump()
+            self._flip()
+        except Exception as e:                                      # the loader must never stop the start
+            print("boot frame skipped:", e)
+            self._boot = None
 
     def _open_ios_window(self, win_vh):
         """iPhone: a high-DPI (Retina) window and a GPU renderer that scales the frame to the panel's real pixels.
@@ -282,7 +324,8 @@ class HoloGame:
             on_leaderboard=self.open_leaderboard, on_skins=self.open_skins, on_shop=lambda: self.open_shop(top=True), on_achievements=self.open_achievements,
             on_profile=lambda: self.open_profile("menu"), on_settings=lambda: self.open_settings("menu"),
             on_quit=None if self.android else self.quit_game, rank_provider=lambda: self.online.rank_info,
-            on_daily=self.open_daily, on_endless=self.open_endless, on_arena=self.open_arena)
+            on_daily=self.open_daily, on_endless=self.open_endless,
+            on_arena=self.open_arena if ARENA_ENABLED else None)
         self.level_select_ui = ui.LevelSelectScreen(self.save_mgr, self.on_select_level, self.open_menu)
         self.leaderboard_ui = ui.LeaderboardScreen(self.save_mgr, self.open_menu,
                                                    on_edit_profile=lambda: self.open_profile("leaderboard"), online=self.online)
@@ -330,6 +373,8 @@ class HoloGame:
                 self._draw_scene(f, st, False)
             except Exception as e:                   # warming up must never stop the game from starting
                 print("warm-up skipped", st, e)
+            self._boot_tick()
+        self._boot = None                            # the start-up intro takes over from here
 
     def open_menu(self):
         self._leave_endless()
@@ -935,7 +980,8 @@ class HoloGame:
                 self.particles.emit_swap_pulse(ev[1], ev[2], skin["glow1"])
             elif kind == "combo":
                 self.audio.play_sfx("sfx_combo")
-                self.particles.emit_floating_text(ev[1], ev[2] - 30, t("combo_popup", val=ev[3]), (255, 215, 30))
+                if self.arena_run is None:            # the arena has its own chain (x2..x5 on the clock)
+                    self.particles.emit_floating_text(ev[1], ev[2] - 30, t("combo_popup", val=ev[3]), (255, 215, 30))
             elif kind == "reverse":
                 haptics.buzz(22)
                 self.audio.play_sfx("sfx_bounce")
@@ -1001,11 +1047,9 @@ class HoloGame:
             elif kind == "core":                     # an energy core: clock + chain
                 haptics.buzz(20)
                 self.audio.play_sfx("sfx_coin")
-                self.particles.emit_star_collect(ev[1], ev[2])
                 self.particles.emit_swap_pulse(ev[1], ev[2], (90, 230, 255))
-                self.particles.emit_floating_text(ev[1], ev[2] - 30, f"+{ev[4]:.0f} s", (120, 235, 255))
-                if ev[3] > 1:
-                    self.particles.emit_floating_text(ev[1], ev[2] - 74, f"x{ev[3]}", (255, 215, 60))
+                label = f"+{ev[4]:.0f} s" + (f"   x{ev[3]}" if ev[3] > 1 else "")
+                self.particles.emit_floating_text(ev[1], ev[2] - 30, label, (150, 235, 255))
             elif kind == "graze":
                 self.audio.play_sfx("sfx_near_miss")
                 self.particles.emit_floating_text(ev[1], ev[2] - 24, t("graze_popup"), (0, 230, 255))
@@ -1452,10 +1496,35 @@ class HoloGame:
         if event.type == pygame.VIDEORESIZE and not self.scaled:
             self.win_w, self.win_h = event.w, event.h
             return
-        if event.type in (pygame.WINDOWFOCUSLOST, getattr(pygame, "APP_WILLENTERBACKGROUND", -1)):
+        if event.type in (getattr(pygame, "APP_WILLENTERBACKGROUND", -1), getattr(pygame, "APP_DIDENTERBACKGROUND", -1)):
+            # iOS ends an app that still draws (uses the GPU) in the background, Android may pull the surface away:
+            # stop updating and drawing at once, until the app is in front again (the run loop waits meanwhile)
             if st == "playing":
                 self.state = "paused"
-            self._sync_cloud(now=True)                  # the app may be closed from the background
+            if not self._bg:
+                self._bg = True
+                self._write_crumb(bg=True)
+                self.save_mgr.save()
+                self._sync_cloud(now=True)              # the app may be closed from the background
+            return
+        if event.type in (getattr(pygame, "APP_WILLENTERFOREGROUND", -1), getattr(pygame, "APP_DIDENTERFOREGROUND", -1)):
+            self._bg = False
+            self.accum = 0.0
+            return
+        if event.type == getattr(pygame, "APP_LOWMEMORY", -1):
+            from render_cache import SurfaceCache
+            SurfaceCache.clear_all()                    # glows, texts, orb effects: all made again on demand
+            gc.collect()
+            print("low memory warning: caches emptied")
+            return
+        if event.type == getattr(pygame, "APP_TERMINATING", -1):
+            self.save_mgr.save()
+            self._write_crumb(bg=True)
+            return
+        if event.type == pygame.WINDOWFOCUSLOST:
+            if st == "playing":
+                self.state = "paused"
+            self._sync_cloud(now=True)
             return
         if st == "intro":                               # any tap / key plays the rest of the intro fast
             if event.type in (pygame.MOUSEBUTTONDOWN, pygame.KEYDOWN):
@@ -1983,7 +2052,7 @@ class HoloGame:
             self.arena_hud.draw_arena(f, arun.time_left, A.MAX_TIME, arun.points, max(best, arun.points), arun.stars,
                                       s.shields, arun.chain, arun.cores)
             self._draw_endless_banner(view)
-            self.hud.draw_footer(f, HUD_H + self.view_h + FOOT_H // 2, arun.points, s.t, s.swaps, s.combo_mult, s.near_count)
+            self.hud.draw_footer(f, HUD_H + self.view_h + FOOT_H // 2, arun.points, s.t, s.swaps, 1, s.near_count)
         else:
             self._draw_campaign_hud(f, s, lvl)
         if self.state == "playing" and self.resume_timer > 0.0:
@@ -2107,9 +2176,21 @@ class HoloGame:
                 self.particles.quality = self._render_quality
             if probe:
                 probe.begin()
+            if self._bg:                                    # in the background: only wait for the way back
+                for event in pygame.event.get():
+                    self.handle_event(event)
+                if self._bg:
+                    pygame.time.wait(100)
+                    continue
             v_mouse = self.to_virtual(pygame.mouse.get_pos())
             for event in pygame.event.get():
                 self.handle_event(event)
+            if self._bg:
+                continue
+            self._crumb_t -= dt
+            if self._crumb_t <= 0.0:
+                self._crumb_t = 3.0
+                self._write_crumb()
             self.update(dt, v_mouse)
             if probe:
                 probe.mid()
@@ -2117,8 +2198,31 @@ class HoloGame:
             if probe:
                 probe.end()
         self.save_mgr.save()
+        self._write_crumb(bg=True, quit=True)
         pygame.quit()
         sys.exit(0)
+
+    def _write_crumb(self, bg=False, quit=False):
+        """session.json: where the game is right now (every 3 s). If the app is closed by the system while in front
+        (a native crash, the system ending it) it cannot say why - the next start finds this still marked as running
+        and sends it with the end of the log (main.py, online._send_reports)."""
+        if self.headless:
+            return
+        try:
+            import json
+            lvl = self.level
+            d = {"t": int(time.time()), "state": self.state, "level": getattr(self, "level_id", 0),
+                 "mode": "endless" if self.endless_run is not None else ("arena" if self.arena_run is not None else "campaign"),
+                 "sim_n": self.sim.n if self.sim is not None else -1, "fps": round(self.clock.get_fps(), 1),
+                 "modal": type(self.failure_modal or self.victory_modal).__name__ if (self.failure_modal or self.victory_modal) else "",
+                 "level_h": int(lvl.data.height) if lvl is not None and getattr(lvl, "data", None) is not None else 0,
+                 "running": not (bg or quit), "bg": bool(bg), "quit": bool(quit)}
+            path = os.path.join(paths.user_dir(), "session.json")
+            with open(path + ".tmp", "w", encoding="utf-8") as f:
+                json.dump(d, f)
+            os.replace(path + ".tmp", path)
+        except Exception as e:
+            print("crumb not written:", e)
 
 
 def _smooth(k):

@@ -44,15 +44,9 @@ class ArenaLevel(lm.Level):
             top = int(A.zone_top(z))
             cy = top + int(A.ZONE_H / 2)
             # a floor emblem in the open middle: two rings and four ticks (the two-orb motif)
-            for r_, col in ((150, faint), (96, faint)):
-                pygame.draw.circle(fg, col, (450, cy), r_, 2)
-            for k in range(4):
-                a = k * math.pi / 2 + math.pi / 4
-                p0 = (450 + math.cos(a) * 160, cy + math.sin(a) * 160)
-                p1 = (450 + math.cos(a) * 190, cy + math.sin(a) * 190)
-                pygame.draw.line(fg, soft, p0, p1, 3)
-            for i in range(z + 1):                       # zone number as pips under the emblem
-                pygame.draw.circle(fg, soft, (450 - 14 * z + 28 * i, cy + 120), 5)
+            pygame.draw.circle(fg, faint, (450, cy), 110, 1)
+            for i in range(z + 1):                       # zone number as pips under the ring
+                pygame.draw.circle(fg, faint, (450 - 14 * z + 28 * i, cy + 128), 4)
             if z > 0:                                    # the gate between two zones: dashes and wall-side chevrons
                 y = int(A.zone_top(z - 1))
                 for x in range(x0 + 70, x1 - 70, 36):
@@ -95,8 +89,8 @@ class ArenaLevel(lm.Level):
         for i, (x, y) in enumerate(self.lights):
             yy = y - oy
             if -10 < yy < vh + 10:
-                k = 0.5 + 0.5 * math.sin(t * 2.2 + i * 0.9)
-                pygame.draw.circle(arena, tuple(int(c * (0.35 + 0.65 * k)) for c in acc), (x, yy), 4)
+                k = 0.5 + 0.5 * math.sin(t * 1.2 + i * 0.9)
+                pygame.draw.circle(arena, tuple(int(c * (0.25 + 0.35 * k)) for c in acc), (x, yy), 3)
 
     CORE_COL = (90, 230, 255)
 
@@ -114,16 +108,15 @@ class ArenaLevel(lm.Level):
             age = t - born
             if age < 0.5:
                 pygame.draw.circle(arena, col, (cx, cy), int(20 + 160 * age), 3)
-            lm.add_glow(arena, x, cy, 70, col, 0.9)
-            r = A.CORE_R
-            for k, rr in ((0, r + 8), (1, r + 20)):
-                box = pygame.Rect(0, 0, 2 * rr, 2 * rr)
-                box.center = (cx, cy)
-                a0 = t * (2.4 if k == 0 else -1.7)
-                for j in range(3):
-                    pygame.draw.arc(arena, col, box, a0 + j * 2.094, a0 + j * 2.094 + 1.3, 3 - k)
-            s_ = 18 + 3 * math.sin(t * 6.0)
-            a = t * 1.8
+            lm.add_glow(arena, x, cy, 56, col, 0.6)
+            rr = int(A.CORE_R + 10)
+            box = pygame.Rect(0, 0, 2 * rr, 2 * rr)
+            box.center = (cx, cy)
+            a0 = t * 1.2
+            for j in range(2):
+                pygame.draw.arc(arena, col, box, a0 + j * math.pi, a0 + j * math.pi + 2.0, 2)
+            s_ = 17 + 2 * math.sin(t * 3.0)
+            a = t * 0.9
             pts = [(cx + math.cos(a + i * math.pi / 2) * s_, cy + math.sin(a + i * math.pi / 2) * s_) for i in range(4)]
             pygame.draw.polygon(arena, (210, 250, 255), pts)
             pygame.draw.polygon(arena, col, pts, 3)
@@ -169,9 +162,9 @@ class ArenaLevel(lm.Level):
             if left < 2.0 and int(t * 8) % 2:
                 continue
             k = max(0.0, min(1.0, left / (gone - born)))
-            box = pygame.Rect(0, 0, 92, 92)
+            box = pygame.Rect(0, 0, 84, 84)
             box.center = (int(x), cy)
-            pygame.draw.arc(arena, col, box, math.pi / 2, math.pi / 2 + 2 * math.pi * k, 3)
+            pygame.draw.arc(arena, tuple(int(c_ * 0.6) for c_ in col), box, math.pi / 2, math.pi / 2 + 2 * math.pi * k, 2)
 
     def _hatch_layer(self):
         """Red diagonal stripes as big as a zone (colour keyed, drawn once)."""
@@ -234,22 +227,17 @@ class ArenaLevel(lm.Level):
                 continue
             cx = int(x)
             k = max(0.0, min(1.0, k))
-            blink = 0.6 + 0.4 * math.sin(t * (10.0 + 18.0 * k))
-            col = (255, int(200 - 150 * k), int(70 - 40 * k))
+            blink = 0.75 + 0.25 * math.sin(t * (6.0 + 10.0 * k))
+            col = (255, int(190 - 120 * k), int(90 - 50 * k))
             col = tuple(int(c * blink) for c in col)
-            r = int(150 - 95 * k)                          # the ring closes in on the spot
-            pygame.draw.circle(arena, col, (cx, cy), r, 3)
-            pygame.draw.circle(arena, col, (cx, cy), 6)
-            for i in range(4):                              # corner ticks turning with the lock
-                a = t * 2.0 + i * math.pi / 2
-                p0 = (cx + math.cos(a) * (r + 8), cy + math.sin(a) * (r + 8))
-                p1 = (cx + math.cos(a) * (r + 26), cy + math.sin(a) * (r + 26))
-                pygame.draw.line(arena, col, p0, p1, 4)
+            r = int(130 - 85 * k)                          # the ring closes in on the spot
+            pygame.draw.circle(arena, col, (cx, cy), r, 2)
+            pygame.draw.circle(arena, col, (cx, cy), 4)
             arm = int(A.STRIKE_ARM)                         # where the cross will burn: thin dashes
-            dim = tuple(int(c * 0.55) for c in col)
-            for d in range(-arm, arm, 22):
-                pygame.draw.line(arena, dim, (cx + d, cy), (cx + min(arm, d + 11), cy), 2)
-                pygame.draw.line(arena, dim, (cx, cy + d), (cx, cy + min(arm, d + 11)), 2)
+            dim = tuple(int(c * 0.4) for c in col)
+            for d in range(-arm, arm, 26):
+                pygame.draw.line(arena, dim, (cx + d, cy), (cx + min(arm, d + 10), cy), 1)
+                pygame.draw.line(arena, dim, (cx, cy + d), (cx, cy + min(arm, d + 10)), 1)
 
     def _draw_goal(self, arena, t, oy=0):
         pass                                                # no portal: the arena is about staying alive

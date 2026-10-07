@@ -149,7 +149,54 @@ def configure():
     for name in os.listdir(splash_dir):
         if name.endswith(".png"):
             pygame.image.save(splash, os.path.join(splash_dir, name))
+    # the launch screen: the template's (white, a small framed picture) -> the game's loading picture over the whole
+    # screen on its own dark colour, exactly what the game draws first (HoloGame._boot_tick) - no visible switch
+    with open(os.path.join(APP_DIR, "Launch Screen.storyboard"), "w", encoding="utf-8") as f:
+        f.write(LAUNCH_STORYBOARD)
     print("configured", APP_NAME, BUNDLE_ID, version.__version__)
+
+
+LAUNCH_STORYBOARD = """<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="32700.99.1234" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+    <device id="retina6_1" orientation="portrait" appearance="dark"/>
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="22684"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <scene sceneID="EHf-IW-A2E">
+            <objects>
+                <viewController id="01J-lp-oVM" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
+                        <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="Splash" translatesAutoresizingMaskIntoConstraints="NO" id="993-d8-iHn">
+                                <rect key="frame" x="0.0" y="0.0" width="414" height="896"/>
+                            </imageView>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
+                        <color key="backgroundColor" red="0.0392" green="0.0471" blue="0.0706" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="993-d8-iHn" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="FUL-JQ-Kxu"/>
+                            <constraint firstItem="993-d8-iHn" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="dFF-ek-zRv"/>
+                            <constraint firstItem="993-d8-iHn" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" id="f3h-U5-02m"/>
+                            <constraint firstItem="993-d8-iHn" firstAttribute="bottom" secondItem="Ze5-6b-2t3" secondAttribute="bottom" id="kxX-UK-khH"/>
+                        </constraints>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="52" y="375"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="Splash" width="360" height="640"/>
+    </resources>
+</document>
+"""
 
 
 def _write_scheme(pbx):

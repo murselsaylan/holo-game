@@ -19,7 +19,7 @@ import os
 
 from sim import ARENA_W, LevelData, Sim, LEVELS_DIR, MAX_LEVELS, SPAWN_GRACE, SIM_DT
 
-ENDLESS_VERSION = 2
+ENDLESS_VERSION = 3            # v3 (1.0.7): the climb starts faster (speed floor 1.10); the server also takes v2
 Y_BASE = 10_000_000.0          # bottom of stage 0 (the climb goes towards y = 0)
 GAP = 640.0                    # connector chamber between two stages (roomy: the pair crosses it sideways)
 TUNNEL = 340.0                 # width of the tunnels cut into a stage's start / exit rooms
@@ -54,9 +54,12 @@ def tier_of(k):
     return 7 if k >= 20 else min(6, k // 2)
 
 
+SPEED_FLOOR = 1.10             # v3: the first stages no longer crawl (v2 started at 0.95); same curve from stage 7 on
+
+
 def stage_speed(k):
-    """The climb's speed does not depend on the map: it starts gently and tops out at the campaign's final speed."""
-    return min(1.50, 0.95 + 0.022 * k)
+    """The climb's speed does not depend on the map: it starts briskly and tops out at the campaign's final speed."""
+    return min(1.50, max(SPEED_FLOOR, 0.95 + 0.022 * k))
 
 
 def tier_max_speed(t):

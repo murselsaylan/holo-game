@@ -2,7 +2,7 @@
 import { LevelData, replay, SIM_VERSION, MAX_LEVELS } from "./sim.ts";
 import type { Assist, Result } from "./sim.ts";
 import { LEVELS, DIGESTS } from "./levels_data.ts";
-import { DIAMOND_EVERY_M, DIAMONDS_PER_DAY, ENDLESS_VERSION, MAX_STEPS as ENDLESS_MAX_STEPS, poolDigest, replayEndless, seedOf, weekOf, weekStart, assistDigest, MAX_REVIVES as ENDLESS_MAX_REVIVES } from "./endless.ts";
+import { DIAMOND_EVERY_M, DIAMONDS_PER_DAY, ENDLESS_VERSIONS, MAX_STEPS as ENDLESS_MAX_STEPS, poolDigest, replayEndless, seedOf, weekOf, weekStart, assistDigest, MAX_REVIVES as ENDLESS_MAX_REVIVES } from "./endless.ts";
 import { accountTag, earnClaim, IMPORT_CAP, productValue, spendPrice } from "./wallet.ts";
 import { devPurchases, googleVerifier } from "./play.ts";
 import { googleConfigured, maskEmail, verifyGoogleIdToken } from "./google_id.ts";
@@ -380,7 +380,8 @@ async function endlessSubmit(store: Store, d: Record<string, unknown>, ip: strin
   const ts_ = taps as number[];
   for (let k = 1; k < ts_.length; k++) if (ts_[k] - ts_[k - 1] < MIN_TAP_GAP) return R(422, { error: "implausible input" });
   if (ts_.length && (ts_[0] < 0 || ts_[ts_.length - 1] > end)) return R(422, { error: "implausible input" });
-  if (Number(d.v) !== ENDLESS_VERSION || String(d.pool ?? "") !== poolDigest()) return R(409, { error: "update the game" });
+  const ev = Number(d.v);                     // v2 (1.0.6) and v3 (1.0.7+, faster start) are both replayed
+  if (!ENDLESS_VERSIONS.includes(ev) || String(d.pool ?? "") !== poolDigest()) return R(409, { error: "update the game" });
   const now = Math.floor(nowMs / 1000);
   const current = weekOf(now), previous = weekOf(now - 7 * 86_400);
   if (week !== current && !(week === previous && now - weekStart(now) < 12 * 3600)) return R(410, { error: "week closed" });
@@ -402,7 +403,7 @@ async function endlessSubmit(store: Store, d: Record<string, unknown>, ip: strin
   if (assists.length && !(await store.useAssists(pl.id, revives, shields, `${week}:${nonce}`, now))) {
     return R(402, { error: "help not paid" });
   }
-  const run = replayEndless(seedOf(week, nonce), ts_, end, ENDLESS_MAX_STEPS, assists);
+  const run = replayEndless(seedOf(week, nonce, ev), ts_, end, ENDLESS_MAX_STEPS, assists, ev);
   const metres = run.metres, stars = run.stars, points = run.points;
   // the ranking sorts by points (height + stars; stored in endless_bests.metres since endless v2), diamonds follow height
   const rec = await store.endlessRecord(pl.id, week, points, run.n, nonce, ts_, now);

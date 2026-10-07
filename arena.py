@@ -277,15 +277,36 @@ class ArenaRun:
         lv.shrink = [(pk[1], pk[2], 30.0) for pk in self.pickups if pk[0] == "shrink"]
         lv.boost = [(pk[1], pk[2], 28.0) for pk in self.pickups if pk[0] == "boost"]
 
+    def _blocked(self, x, y, pad):
+        """True when (x, y) lies within `pad` of a wall or anywhere this wave's hazards sweep (a spinner's whole
+        circle, a squeeze wall's whole stroke, a laser bar's line) or a radar cross still to come."""
+        if self.sim._wall_hit(x, y, pad):
+            return True
+        haz = self.wave_hazards
+        for s_ in haz["spinners"]:
+            if math.hypot(x - s_[0], y - s_[1]) < s_[2] + pad:
+                return True
+        for m in haz["moving_walls"]:
+            ax, ay = abs(m[4]), abs(m[5])
+            if m[0] - ax - pad < x < m[0] + m[2] + ax + pad and m[1] - ay - pad < y < m[1] + m[3] + ay + pad:
+                return True
+        for l in haz["lasers"]:
+            if min(l[0], l[2]) - pad < x < max(l[0], l[2]) + pad and min(l[1], l[3]) - pad < y < max(l[1], l[3]) + pad:
+                return True
+        for hit, sx, sy in self.strikes:
+            if (abs(x - sx) < STRIKE_ARM + pad and abs(y - sy) < pad) or (abs(y - sy) < STRIKE_ARM + pad and abs(x - sx) < pad):
+                return True
+        return False
+
     def _spawn_core(self, t):
         r = self.rng
         p = self.sim.pivot
-        for i in range(16):
-            d = r.uniform(*CORE_DIST) * (1.0 if i < 10 else 0.6)
+        for i in range(24):
+            d = r.uniform(*CORE_DIST) * (1.0 if i < 14 else 0.6)
             a = r.uniform(0.0, 6.283)
             x = min(W - WALL - 90.0, max(WALL + 90.0, p.x + math.cos(a) * d))
             y = min(H - WALL - 90.0, max(WALL + 90.0, p.y + math.sin(a) * d))
-            if math.hypot(x - p.x, y - p.y) > 250.0 and not self.sim._wall_hit(x, y, 60.0):
+            if math.hypot(x - p.x, y - p.y) > 250.0 and not self._blocked(x, y, CORE_R + 50.0):
                 self.core = [x, y, t]
                 return
         self.core = [W / 2.0, zone_top(zone_of(p.y)) + ZONE_H / 2.0, t]       # fallback: the zone's open middle
@@ -329,7 +350,8 @@ class ArenaRun:
             c = self.close
             if toward is None and c is not None and t < c[2] and zone_of(y) == c[0]:
                 continue
-            if self.sim._wall_hit(x, y, 50.0) or any(math.hypot(x - q[1], y - q[2]) < 120.0 for q in self.pickups):
+            if self._blocked(x, y, 60.0) or any(math.hypot(x - q[1], y - q[2]) < 120.0 for q in self.pickups) or \
+                    (self.core is not None and math.hypot(x - self.core[0], y - self.core[1]) < 130.0):
                 continue
             self.pickups.append([kind, x, y, t, t + PICKUP_LIFE])
             return
@@ -363,6 +385,12 @@ class ArenaRun:
             self._place(haz, r.pick(kinds), z, t, z == here)
         self.wave_hazards = haz
         self.zones_hot = zones
+        c = self.core
+        if c is not None and self._blocked(c[0], c[1], CORE_R + 30.0):
+            born = c[2]
+            self._spawn_core(t)
+            self.core[2] = born
+        self.pickups = [pk for pk in self.pickups if not self._blocked(pk[1], pk[2], 40.0)]
         if here in zones:
             self._pickup(t, "shrink", 180.0, 320.0)
 
@@ -383,13 +411,13 @@ class ArenaRun:
                 haz["spinners"].append((cx, cy, hlen, omega, r.uniform(0.0, 6.283), 10.0))
         elif kind == "squeeze":
             speed = 0.7 + 0.05 * min(k, 8)
-            reach = 170.0 + 15.0 * min(k, 8)
+            reach = 120.0 + 10.0 * min(k, 8)
             phase = -math.pi / 2.0 - t * speed                  # starts fully retracted
             for side in (0, 1):
-                ym = y0 + r.uniform(250.0, ZONE_H - 450.0)
-                x0 = WALL - 60.0 if side == 0 else W - WALL - 220.0 + 60.0
+                ym = y0 + r.uniform(220.0, ZONE_H - 340.0)
+                x0 = WALL - 40.0 if side == 0 else W - WALL - 160.0 + 40.0
                 rng_x = reach if side == 0 else -reach
-                haz["moving_walls"].append((x0 + rng_x / 2.0 * (1 if side == 0 else 1), ym, 220.0, 200.0,
+                haz["moving_walls"].append((x0 + rng_x / 2.0, ym, 160.0, 120.0,
                                             abs(rng_x) / 2.0 * (1 if side == 0 else -1), 0.0, speed, phase))
         else:                                                    # flashing laser bars across the zone
             period = 3.2 - 0.12 * min(k, 8)
@@ -413,7 +441,8 @@ class ArenaRun:
             c = self.close
             if c is not None and t < c[2] and zone_of(y) == c[0]:
                 continue                     # never into the zone the storm is sweeping
-            if math.hypot(x - p.x, y - p.y) > 170.0 and not self.sim._wall_hit(x, y, 40.0):
+            if math.hypot(x - p.x, y - p.y) > 170.0 and not self._blocked(x, y, 50.0) and \
+                    (self.core is None or math.hypot(x - self.core[0], y - self.core[1]) > 110.0):
                 self.data.stars.append((x, y))
                 self.sim.stars.append(False)
                 break

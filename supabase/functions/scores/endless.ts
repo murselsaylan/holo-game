@@ -4,7 +4,9 @@ import { ARENA_W, LevelData, Sim } from "./sim.ts";
 import { LEVELS } from "./levels_data.ts";
 import { ENDLESS_POOL } from "./endless_data.ts";
 
-export const ENDLESS_VERSION = 2;
+export const ENDLESS_VERSION = 3;
+/** Versions the server still replays: v2 clients (1.0.6) start at 0.95, v3 (1.0.7+) at the 1.10 floor. */
+export const ENDLESS_VERSIONS = [2, 3];
 export const Y_BASE = 10_000_000.0;
 export const GAP = 640.0;
 export const TUNNEL = 340.0;
@@ -28,7 +30,8 @@ const POINT_KEYS = ["circles", "growth_zones", "shrink_zones", "boost_pads", "sh
 const PI = 3.141592653589793;
 
 export const tierOf = (k: number) => (k >= 20 ? 7 : Math.min(6, Math.floor(k / 2)));
-export const stageSpeed = (k: number) => Math.min(1.50, 0.95 + 0.022 * k);
+export const stageSpeed = (k: number, v = ENDLESS_VERSION) =>
+  Math.min(1.50, v >= 3 ? Math.max(1.10, 0.95 + 0.022 * k) : 0.95 + 0.022 * k);
 
 const enc = new TextEncoder();
 export function fnv1a(text: string): number {
@@ -58,8 +61,8 @@ export function weekStart(unixS: number): number {
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - (dow - 1)) / 1000;
 }
 
-export function seedOf(week: string, nonce = ""): string {
-  const base = `HOLO-ENDLESS|${week}|v${ENDLESS_VERSION}`;
+export function seedOf(week: string, nonce = "", v = ENDLESS_VERSION): string {
+  const base = `HOLO-ENDLESS|${week}|v${v}`;
   return nonce ? `${base}|${nonce}` : base;
 }
 
@@ -211,7 +214,7 @@ class Stage {
   d: any;
   counts: { breakables: number; chasers: number; shields: number; stars: number };
 
-  constructor(k: number, levelId: number, bottom: number) {
+  constructor(k: number, levelId: number, bottom: number, v = ENDLESS_VERSION) {
     this.k = k;
     this.level = levelId;
     this.tier = tierOf(k);
@@ -219,7 +222,7 @@ class Stage {
     this.height = Number(local.height);
     this.bottom = bottom;
     this.top = bottom - this.height;
-    this.speed = stageSpeed(k);
+    this.speed = stageSpeed(k, v);
     const oy = this.top;
     // deno-lint-ignore no-explicit-any
     const d: any = { start: [local.start[0], local.start[1] + oy], end: [local.end[0], local.end[1] + oy] };
@@ -244,7 +247,9 @@ class World {
   stages = new Map<number, Stage>();
   private bottoms: number[] = [Y_BASE];
 
-  constructor(seed: string) { this.seed = seed; }
+  v: number;
+
+  constructor(seed: string, v = ENDLESS_VERSION) { this.seed = seed; this.v = v; }
 
   stage(k: number): Stage {
     const s = this.stages.get(k);
@@ -254,12 +259,12 @@ class World {
       const j = this.bottoms.length - 1;
       let sj = this.stages.get(j);
       if (!sj) {
-        sj = new Stage(j, this.ids[j], this.bottoms[j]);
+        sj = new Stage(j, this.ids[j], this.bottoms[j], this.v);
         this.stages.set(j, sj);
       }
       this.bottoms.push(sj.top - GAP);
     }
-    const ns = new Stage(k, this.ids[k], this.bottoms[k]);
+    const ns = new Stage(k, this.ids[k], this.bottoms[k], this.v);
     this.stages.set(k, ns);
     return ns;
   }
@@ -296,8 +301,8 @@ export class EndlessRun {
   bestY: number;
   starsBanked = 0;          // stars collected in stages that already left the window
 
-  constructor(seed: string) {
-    this.world = new World(seed);
+  constructor(seed: string, v = ENDLESS_VERSION) {
+    this.world = new World(seed, v);
     this.sim = new Sim(this.world.windowData(0));
     this.startY = this.pivotY();
     this.bestY = this.startY;
@@ -361,8 +366,8 @@ export function assistDigest(taps: number[], assists: [number, string][] = []): 
 }
 
 export function replayEndless(seed: string, tapsIn: number[], endStep: number | null = null, maxSteps = MAX_STEPS,
-                              assists: [number, string][] = []): EndlessRun {
-  const run = new EndlessRun(seed);
+                              assists: [number, string][] = [], v = ENDLESS_VERSION): EndlessRun {
+  const run = new EndlessRun(seed, v);
   const taps = tapsIn.slice().sort((a, b) => a - b);
   const helps = assists.map((a) => [Number(a[0]), String(a[1])] as [number, string]).sort((a, b) => a[0] - b[0]);
   const limit = endStep === null ? maxSteps : Math.min(maxSteps, Math.trunc(endStep));

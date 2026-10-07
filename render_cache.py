@@ -3,10 +3,22 @@ from collections import OrderedDict
 
 
 class SurfaceCache:
+    ALL = []                                   # every cache, so a low-memory warning can empty them all
+
     def __init__(self, max_bytes):
         self.max_bytes = max_bytes
         self.bytes_used = 0
         self.items = OrderedDict()
+        SurfaceCache.ALL.append(self)
+
+    def clear(self):
+        self.items.clear()
+        self.bytes_used = 0
+
+    @classmethod
+    def clear_all(cls):
+        for c in cls.ALL:
+            c.clear()
 
     def get(self, key):
         surface = self.items.get(key)
