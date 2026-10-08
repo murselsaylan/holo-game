@@ -593,7 +593,8 @@ class OnlineClient:
         import sys as _sys
         from version import __version__
         plat = "ios" if paths.is_ios() else ("android" if paths.is_android() else _sys.platform)
-        for name, kind in (("fault_last.log", "fault"), ("crash.log", "crash"), ("exit_last.log", "crash")):
+        for name, kind in (("fault_last.log", "fault"), ("crash.log", "crash"), ("exit_last.log", "crash"),
+                           ("exit_trace.log", "crash")):
             path = os.path.join(paths.user_dir(), name)
             try:
                 if not os.path.isfile(path) or os.path.getsize(path) == 0:

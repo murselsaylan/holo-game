@@ -16,6 +16,44 @@ def _log_crash(exc):
         pass
 
 
+_exit_cb = None
+
+
+def _install_exit_traps():
+    """iOS 'black box': if anything ends the process with exit() (native code - iOS keeps no crash report for that)
+    or a termination signal, every thread's Python stack is written to exit_trace.log first; the next start sends it.
+    The game itself leaves with os._exit, which skips these C atexit hooks, so only unexpected exits are recorded."""
+    import ctypes
+    import os
+    import signal
+    import threading
+    import paths
+    path = os.path.join(paths.user_dir(), "exit_trace.log")
+
+    def dump(why):
+        try:
+            frames = sys._current_frames()
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(f"{why}  ({time.strftime('%Y-%m-%d %H:%M:%S')})\n")
+                for th in threading.enumerate():
+                    f.write(f"--- thread {th.name}\n")
+                    fr = frames.get(th.ident)
+                    if fr is not None:
+                        f.write("".join(traceback.format_stack(fr)))
+        except Exception:
+            pass
+
+    global _exit_cb
+    _exit_cb = ctypes.CFUNCTYPE(None)(lambda: dump("exit() called while the game was running"))
+    ctypes.CDLL(None).atexit(_exit_cb)
+    for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT, signal.SIGQUIT):
+        try:
+            signal.signal(sig, lambda s, f: (dump(f"signal {s}"), os._exit(0)))
+        except Exception:
+            pass
+    print("exit traps on")
+
+
 def _last_exit_check():
     """The last run ended while the game was in front (session.json still says running) - the system closed it
     (a native crash, out of memory, a watchdog) without a Python traceback. Write exit_last.log with where the game
@@ -70,8 +108,14 @@ if __name__ == "__main__":
             os.replace(_now, os.path.join(paths.user_dir(), "fault_last.log"))
         _fault = open(_now, "w", encoding="utf-8")
         faulthandler.enable(file=_fault, all_threads=True)
-    except Exception:
-        pass
+        print("faulthandler on")
+    except Exception as e:
+        print("faulthandler unavailable:", e)
+    if sys.platform == "ios":
+        try:
+            _install_exit_traps()
+        except Exception as e:
+            print("exit traps unavailable:", e)
     try:
         from holo import HoloGame
         HoloGame().run()
@@ -79,4 +123,7 @@ if __name__ == "__main__":
         raise
     except BaseException as e:               # write the reason next to the save file so it can be sent to the developer
         _log_crash(e)
+        if sys.platform == "ios":                # leave without the exit trap (the reason is in crash.log)
+            sys.stdout.flush()
+            os._exit(1)
         raise

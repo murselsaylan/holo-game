@@ -1695,6 +1695,8 @@ class HoloGame:
                     self.howto_ui._advance()
                 return
 
+        if event.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP) and paths.is_mobile():
+            print(f"[tap] {'down' if event.type == pygame.MOUSEBUTTONDOWN else 'up'} {st} {event.pos}")
         if hasattr(event, "pos") and (not self.scaled or self.safe_top):
             vx, vy = self.to_virtual(event.pos)
             d = dict(event.__dict__)
@@ -2303,13 +2305,22 @@ class HoloGame:
                 self._logged_state = self.state
             if probe:
                 probe.mid()
+            first = self.state != getattr(self, "_drawn_state", None)
+            if first:
+                print(f"[draw] first frame of {self.state} ...")
             self.draw()
+            if first:
+                print(f"[draw] {self.state} ok")
+                self._drawn_state = self.state
             if probe:
                 probe.end()
         self.save_mgr.save()
         print("[quit] game loop ended:", getattr(self, "_quit_reason", "?"))
         self._write_crumb(bg=True, quit=True)
         pygame.quit()
+        if paths.is_ios():
+            sys.stdout.flush()
+            os._exit(0)
         sys.exit(0)
 
     def _write_crumb(self, bg=False, quit=False):
