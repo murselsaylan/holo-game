@@ -15,7 +15,7 @@ permissions:
 jobs:
   store:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -33,7 +33,8 @@ jobs:
             python tools/asc_feedback.py 2>&1 | tee "$RUNNER_TEMP/store.log"
           else
             if [[ "$GITHUB_REF_NAME" == submit-v* ]]; then A=--submit; elif [[ "$GITHUB_REF_NAME" == resubmit-v* ]]; then A=--resubmit; else A=; fi
-            python tools/asc_store.py $A 2>&1 | tee "$RUNNER_TEMP/store.log"
+            W=$(echo "$GITHUB_REF_NAME" | sed -n 's/.*-b\([0-9][0-9]*\)$/--wait-build=/p')   # ...-b13: wait for build 13
+            python tools/asc_store.py $A $W 2>&1 | tee "$RUNNER_TEMP/store.log"
           fi
       - name: Keep the output (branch ci-logs)
         if: always()

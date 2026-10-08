@@ -200,6 +200,22 @@ def set_shots(locs):
 
 
 @step("build")
+def wait_for_build(number, minutes=45):
+    """Waits until build `number` of this version is processed by Apple (VALID)."""
+    print(f"\n== wait for build {number}")
+    for i in range(minutes * 2):
+        r = call("GET", f"/v1/builds?filter[app]={APP}&filter[preReleaseVersion.version]={CFG['version']}"
+                        f"&filter[version]={number}&limit=1")
+        st = r["data"][0]["attributes"].get("processingState") if r["data"] else "not uploaded yet"
+        if st == "VALID":
+            print(f"    build {number} ready after ~{i // 2} min")
+            return
+        if i % 6 == 0:
+            print(f"    build {number}: {st}", flush=True)
+        time.sleep(30)
+    raise RuntimeError(f"build {number} still not processed")
+
+
 def set_build(v):
     r = call("GET", f"/v1/builds?filter[app]={APP}&filter[preReleaseVersion.version]={CFG['version']}"
                     f"&sort=-uploadedDate&limit=5")
@@ -259,6 +275,9 @@ def cancel_review():
 
 
 if __name__ == "__main__":
+    wait = [a for a in sys.argv if a.startswith("--wait-build=")]
+    if wait:
+        wait_for_build(int(wait[0].split("=")[1]))
     if "--resubmit" in sys.argv:
         cancel_review()
     v = version()
