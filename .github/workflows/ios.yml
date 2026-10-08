@@ -11,6 +11,9 @@ on:
     branches: [main]
     paths: ['**.py', 'assets/**', 'levels/**', 'config.json', '.github/workflows/ios.yml']
 
+permissions:
+  contents: write                     # the tour's logs / crash reports go to the ci-logs branch
+
 defaults:
   run:
     shell: bash -eo pipefail {0}     # a failing xcodebuild fails the step even when piped to tail
@@ -87,6 +90,43 @@ jobs:
           cp "$DATA/Library/Application Support/holo/holo.log" "$GITHUB_WORKSPACE/screens/holo.log" 2>/dev/null || true
           cat "$DATA/Library/Application Support/holo/crash.log" > "$GITHUB_WORKSPACE/screens/crash.log" 2>/dev/null || true
           tail -60 "$GITHUB_WORKSPACE/screens/app.log" || true
+          # 4th start: a fresh install (no pilot, never registered) tours every screen with the LIVE ranking
+          xcrun simctl terminate "$DEV" com.hologame.holo || true
+          xcrun simctl uninstall "$DEV" com.hologame.holo
+          xcrun simctl install "$DEV" out/Debug-iphonesimulator/pygame-ios.app
+          APP=$(xcrun simctl get_app_container "$DEV" com.hologame.holo app)
+          DATA=$(xcrun simctl get_app_container "$DEV" com.hologame.holo data)
+          CFG="$APP/app/pygame-ios/config.json"
+          python3 - "$CFG" <<'PY'
+          import json, sys
+          c = json.load(open(sys.argv[1])); c.update(release_mode=False, perf_autoplay="tour", intro=False)
+          json.dump(c, open(sys.argv[1], "w"))
+          PY
+          rm -f ~/Library/Logs/DiagnosticReports/*pygame* 2>/dev/null || true
+          xcrun simctl launch --console-pty "$DEV" com.hologame.holo > "$GITHUB_WORKSPACE/screens/tour.log" 2>&1 &
+          for s in 15 30 45 60 75 90; do
+            sleep 15
+            xcrun simctl io "$DEV" screenshot "$GITHUB_WORKSPACE/screens/4_tour_${s}s.png" || true
+          done
+          mkdir -p "$GITHUB_WORKSPACE/tourlogs"
+          cp "$DATA/Library/Application Support/holo/holo.log" "$GITHUB_WORKSPACE/tourlogs/holo.log" 2>/dev/null || echo "no holo.log" > "$GITHUB_WORKSPACE/tourlogs/holo.log"
+          cp "$GITHUB_WORKSPACE/screens/tour.log" "$GITHUB_WORKSPACE/tourlogs/console.log" || true
+          cp ~/Library/Logs/DiagnosticReports/*pygame* "$GITHUB_WORKSPACE/tourlogs/" 2>/dev/null || echo "no crash report" > "$GITHUB_WORKSPACE/tourlogs/no_crash_report.txt"
+          xcrun simctl spawn "$DEV" log show --last 3m --style compact --predicate 'process == "pygame-ios"' > "$GITHUB_WORKSPACE/tourlogs/system.log" 2>&1 || true
+          ls -la "$GITHUB_WORKSPACE/tourlogs"
+      - name: Keep the tour logs (branch ci-logs)
+        if: always()
+        run: |
+          [ -d "$GITHUB_WORKSPACE/tourlogs" ] || exit 0
+          cp -r "$GITHUB_WORKSPACE/tourlogs" /tmp/tourlogs
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git fetch origin ci-logs 2>/dev/null && git checkout -B ci-logs FETCH_HEAD || git checkout --orphan ci-logs
+          git rm -rq --cached . 2>/dev/null || true
+          rm -rf "tour-$GITHUB_RUN_NUMBER" && mkdir "tour-$GITHUB_RUN_NUMBER" && cp /tmp/tourlogs/* "tour-$GITHUB_RUN_NUMBER/"
+          tail -c 200000 "tour-$GITHUB_RUN_NUMBER/system.log" > /tmp/sys.tail && mv /tmp/sys.tail "tour-$GITHUB_RUN_NUMBER/system.log"
+          git add "tour-$GITHUB_RUN_NUMBER"
+          git commit -qm "ios tour logs $GITHUB_RUN_NUMBER [skip ci]"
+          git push -q origin HEAD:ci-logs
       - name: Package the simulator app
         working-directory: build_ios/HOLO/pygame-ios-template/out/Debug-iphonesimulator
         run: ditto -c -k --keepParent pygame-ios.app "$GITHUB_WORKSPACE/HOLO-ios-simulator.zip"

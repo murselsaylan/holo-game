@@ -1217,6 +1217,46 @@ class HoloGame:
     # ---- performance test hook (config.json "perf_autoplay": [level ids]); never on in a release build
     _autoplay = None
 
+    def _tour_step(self, dt):
+        """Test hook (config "perf_autoplay": "tour", never in a release build): visits every screen once, with the
+        live ranking, a level with pause / crash / retry - for the iOS simulator run, which keeps the system crash
+        report if anything on the way takes the app down. Each step is logged first."""
+        if not hasattr(self, "_tour"):
+            def tap():
+                if self.state == "playing":
+                    self.swap_pivot()
+
+            def crash():
+                if self.sim is not None and self.state == "playing":
+                    self.sim.dead = True
+                    self.state, self.death_timer = "dying", 0.01
+
+            self._tour = [
+                ("leaderboard global", lambda: self.open_leaderboard("global")),
+                ("leaderboard country", lambda: self.leaderboard_ui.set_scope("country")),
+                ("leaderboard around", lambda: self.leaderboard_ui.set_scope("around")),
+                ("leaderboard endless", lambda: self.leaderboard_ui.set_scope("endless")),
+                ("leaderboard global again", lambda: self.leaderboard_ui.set_scope("global")),
+                ("menu", self.open_menu), ("shop", lambda: self.open_shop(top=True)), ("skins", self.open_skins),
+                ("achievements", self.open_achievements), ("daily", self.open_daily),
+                ("settings", lambda: self.open_settings("menu")), ("close settings", self.close_settings),
+                ("levels", self.open_level_select), ("level 32", lambda: self.load_and_play_level(32)),
+                ("tap", tap), ("pause", lambda: setattr(self, "state", "paused")), ("resume", self.resume_game),
+                ("tap", tap), ("crash", crash), ("retry", self.retry_after_fail), ("tap", tap),
+                ("menu", self.open_menu), ("leaderboard", lambda: self.open_leaderboard("global")),
+                ("menu", self.open_menu), ("done", lambda: None)]
+            self._tour_t = 3.0
+        self._tour_t -= dt
+        if self._tour_t > 0 or not self._tour:
+            return
+        name, fn = self._tour.pop(0)
+        print(f"[tour] {name}  (state {self.state}, mem {memstat.footprint()} MB)", flush=True)
+        try:
+            fn()
+        except Exception as e:
+            print(f"[tour] {name} failed: {e!r}")
+        self._tour_t = 2.5
+
     def _start_autoplay(self):
         if config.get("release_mode", False):
             return
@@ -1433,7 +1473,9 @@ class HoloGame:
     def update(self, dt, v_mouse):
         self.ui_time += dt
         self.ads.poll()
-        if self.state == "menu" and not getattr(self, "_autoplay_started", False) and config.get("perf_autoplay"):
+        if config.get("perf_autoplay") == "tour" and not config.get("release_mode", False):
+            self._tour_step(dt)
+        elif self.state == "menu" and not getattr(self, "_autoplay_started", False) and config.get("perf_autoplay"):
             self._autoplay_started = True
             self._start_autoplay()
         if getattr(self, "_selftest", None) is not None and self.state in ("victory", "failed"):
