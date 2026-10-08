@@ -2,6 +2,7 @@
 
     python tools/asc_store.py            # texts, screenshots, categories, age rating, price, build
     python tools/asc_store.py --submit   # ... and send the version to App Review
+    python tools/asc_store.py --resubmit # take the version out of review first (e.g. to swap in a newer build)
 
 Reads store_assets/appstore.json. Needs ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8 (the .p8 text) in the environment.
 Every step prints what it did; a step that fails prints Apple's answer and the script goes on with the next one,
@@ -236,7 +237,30 @@ def submit(v):
     print("    sent to App Review")
 
 
+def cancel_review():
+    """Take the version waiting for (or in) App Review back, so its build can be swapped."""
+    print("\n== take the version out of review")
+    subs = call("GET", f"/v1/reviewSubmissions?filter[app]={APP}&filter[platform]=IOS")["data"]
+    open_ = [x for x in subs if x["attributes"].get("state") in ("WAITING_FOR_REVIEW", "IN_REVIEW", "UNRESOLVED_ISSUES",
+                                                                   "READY_FOR_REVIEW")]
+    for x in open_:
+        if x["attributes"].get("state") == "READY_FOR_REVIEW":
+            continue
+        call("PATCH", f"/v1/reviewSubmissions/{x['id']}", {"data": {"type": "reviewSubmissions", "id": x["id"],
+             "attributes": {"canceled": True}}})
+        print("    canceled submission", x["id"], x["attributes"].get("state"))
+    for _ in range(36):                               # the version becomes editable a little later
+        st = version()["attributes"]["appStoreState"]
+        if st not in ("WAITING_FOR_REVIEW", "IN_REVIEW"):
+            print("    version state now", st)
+            return
+        time.sleep(10)
+    raise RuntimeError("the version is still in review")
+
+
 if __name__ == "__main__":
+    if "--resubmit" in sys.argv:
+        cancel_review()
     v = version()
     print("version", v["attributes"]["versionString"], v["attributes"]["appStoreState"])
     info = app_info()
@@ -250,7 +274,7 @@ if __name__ == "__main__":
     set_shots(locs)
     set_build(v)
     set_review(v)
-    if "--submit" in sys.argv:
+    if "--submit" in sys.argv or "--resubmit" in sys.argv:
         if FAILED:
             print("\nnot submitting, failed steps:", FAILED)
         else:
