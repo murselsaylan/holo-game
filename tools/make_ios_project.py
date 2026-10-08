@@ -123,6 +123,10 @@ def configure():
     info["UIApplicationSupportsIndirectInputEvents"] = True     # iPad trackpad / mouse taps
     info["UIViewControllerBasedStatusBarAppearance"] = False
     info["ITSAppUsesNonExemptEncryption"] = False       # HTTPS only (exempt)
+    # SDL links CoreBluetooth for wireless game controllers: App Store Connect wants a purpose string (ITMS-90683),
+    # although HOLO never asks for Bluetooth
+    info["NSBluetoothAlwaysUsageDescription"] = "HOLO can be played with a Bluetooth game controller."
+    info["NSBluetoothPeripheralUsageDescription"] = "HOLO can be played with a Bluetooth game controller."
     with open(info_path, "wb") as f:
         plistlib.dump(info, f)
 
