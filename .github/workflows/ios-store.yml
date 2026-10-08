@@ -7,7 +7,7 @@ name: HOLO App Store page
 on:
   workflow_dispatch:
   push:
-    tags: ['store-v*', 'submit-v*']
+    tags: ['store-v*', 'submit-v*', 'feedback-*']
 
 permissions:
   contents: write                     # the run's output is pushed to the ci-logs branch (readable without the web UI)
@@ -29,8 +29,12 @@ jobs:
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: |
           set -o pipefail
-          if [[ "$GITHUB_REF_NAME" == submit-v* ]]; then A=--submit; else A=; fi
-          python tools/asc_store.py $A 2>&1 | tee "$RUNNER_TEMP/store.log"
+          if [[ "$GITHUB_REF_NAME" == feedback-* ]]; then
+            python tools/asc_feedback.py 2>&1 | tee "$RUNNER_TEMP/store.log"
+          else
+            if [[ "$GITHUB_REF_NAME" == submit-v* ]]; then A=--submit; else A=; fi
+            python tools/asc_store.py $A 2>&1 | tee "$RUNNER_TEMP/store.log"
+          fi
       - name: Keep the output (branch ci-logs)
         if: always()
         run: |
