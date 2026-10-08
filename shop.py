@@ -33,6 +33,11 @@ DIAMOND_PACKS = [
 ]
 
 SHIELD_COST = 10                     # diamonds for one shield (max 5 in stock)
+REMOVE_ADS = "remove_ads"            # one-time purchase: no interstitials between levels
+REMOVE_ADS_PRICE = "$2.99"
+AD_REWARD = 10                       # diamonds for one rewarded video (the server pays it: wallet kind "ad")
+AD_PER_DAY = 5
+AD_GAP_S = 30
 
 
 def skin_product(skin_id):
@@ -210,6 +215,9 @@ class Shop:
         self._owned_synced = False
 
     # -- catalog ---------------------------------------------------------------------
+    def price_label_product(self, product_id, default):
+        return self.billing.price(product_id, default)
+
     def price_label(self, skin_id):
         return self.billing.price(skin_product(skin_id), SKIN_PRICE.get(skin_id, "$0.99"))
 
@@ -287,6 +295,19 @@ class Shop:
         self.save_mgr.spend("skin:" + skin_id, cost, paid)
         return None                                    # the answer arrives through on_done
 
+    def buy_remove_ads(self, on_done=None):
+        if not self.save_mgr.no_ads:
+            self._checkout(REMOVE_ADS, on_done)
+
+    def ad_reward(self):
+        """A rewarded video was watched to the end: the server pays AD_REWARD (capped per day there too)."""
+        self.save_mgr.note_ad_diamonds()
+        self.save_mgr.earn("ad", secrets.token_hex(12), AD_REWARD)
+        self._say("ad_reward_msg")
+
+    def ad_diamonds_ready(self):
+        return self.save_mgr.ad_diamonds_left(AD_PER_DAY) > 0 and self.save_mgr.can_watch_ad(AD_GAP_S)
+
     def buy_diamonds(self, pack_id, on_done=None):
         if any(p[0] == pack_id for p in DIAMOND_PACKS):
             self._checkout(pack_id, on_done)
@@ -337,7 +358,9 @@ class Shop:
         if not self._owned_synced and self.billing.available():
             self._owned_synced = True
             for pid in self.billing.owned_products():  # skins bought and acknowledged by an older version
-                if pid.startswith("skin_"):
+                if pid == REMOVE_ADS:
+                    self.save_mgr.set_no_ads()
+                elif pid.startswith("skin_"):
                     self.save_mgr.grant_skin(pid[len("skin_"):])
             self.billing.refresh()                      # paid but never delivered (app closed, no internet ...)
         for ev in self.billing.poll():
@@ -370,7 +393,11 @@ class Shop:
             skin = (body or {}).get("skin")
             if skin:
                 self.save_mgr.grant_skin(skin)
-            self._say("shop_thanks_skin" if skin else "shop_thanks_diamonds")
+            if (body or {}).get("noads") or pid == REMOVE_ADS:
+                self.save_mgr.set_no_ads()
+                self._say("noads_thanks")
+            else:
+                self._say("shop_thanks_skin" if skin else "shop_thanks_diamonds")
             self._done(pid, True)
         elif status == "rejected":
             self._say("iap_failed", 5.0)
@@ -379,7 +406,9 @@ class Shop:
             self._say("iap_verifying", 8.0)
 
     def _deliver_local(self, pid):
-        if pid.startswith("skin_"):
+        if pid == REMOVE_ADS:
+            self.save_mgr.set_no_ads()
+        elif pid.startswith("skin_"):
             self.save_mgr.grant_skin(pid[len("skin_"):])
         else:
             pack = next((p for p in DIAMOND_PACKS if p[0] == pid), None)

@@ -31,15 +31,17 @@ def _last_exit_check():
         with open(sess, encoding="utf-8") as f:
             info = json.load(f)
         os.remove(sess)
-        if not info.get("running"):
+        ios_quit = sys.platform == "ios" and info.get("quit")
+        if not info.get("running") and not ios_quit:
             return
         tail = ""
         log = os.path.join(d, "holo.log")
         if os.path.isfile(log):
             with open(log, encoding="utf-8", errors="replace") as f:
-                tail = f.read()[-6000:]
+                tail = f.read()[-9000:]
         with open(os.path.join(d, "exit_last.log"), "w", encoding="utf-8") as f:
-            f.write("unexpected end of the last run (closed by the system while in front)\n")
+            f.write("the last run quit by itself (iOS)\n" if ios_quit else
+                    "unexpected end of the last run (closed by the system while in front)\n")
             f.write(json.dumps(info) + "\n--- end of holo.log ---\n" + tail)
     except Exception:
         pass

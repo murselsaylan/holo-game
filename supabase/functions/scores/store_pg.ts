@@ -303,7 +303,8 @@ export class PgStore implements Store {
 
   async walletSkins(pid: string): Promise<string[]> {
     const rows = await this.sql`SELECT substr(product, 6) AS s FROM purchases WHERE player_id = ${pid} AND starts_with(product, 'skin_')
-                                UNION SELECT substr(reason, 12) FROM wallet_log WHERE player_id = ${pid} AND starts_with(reason, 'spend:skin:')`;
+                                UNION SELECT substr(reason, 12) FROM wallet_log WHERE player_id = ${pid} AND starts_with(reason, 'spend:skin:')
+                                UNION SELECT 'noads' FROM purchases WHERE player_id = ${pid} AND product = 'remove_ads'`;
     return rows.map((r: Sql) => String(r.s));
   }
 }

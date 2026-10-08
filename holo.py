@@ -2,6 +2,7 @@ import gc
 import sys
 import math
 import time
+import secrets
 
 import pygame
 
@@ -26,6 +27,8 @@ from particles import ParticleSystem
 from skins import get_skin, draw_tether, draw_orb, PREMIUM_SKINS, SKINS, trail_kind
 from level_manager import Level
 import endless as E
+import ads as ads_mod
+import memstat
 from endless_view import EndlessLevel, sector_for_stage
 import arena as A
 from arena_view import ArenaLevel
@@ -56,6 +59,7 @@ class HoloGame:
         self.clock = pygame.time.Clock()
         self.running = True
         self._bg = False                 # in the background (phones): no update, no drawing until it comes back
+        self._logged_state = None
         self._crumb_t = 0.0
         self.audio = AudioManager()
         self._boot_tick()
@@ -335,6 +339,11 @@ class HoloGame:
         self.ach_ui = ui.AchievementsScreen(self.save_mgr, self.open_menu, audio_manager=self.audio)
         self.daily_ui = ui.DailyMissionsScreen(self.save_mgr, self.open_menu, audio_manager=self.audio)
         self.shop_ui = ui.ShopScreen(self.save_mgr, self.shop, self.open_menu, audio_manager=self.audio)
+        if not hasattr(self, "ads"):
+            self.ads = ads_mod.Ads()
+            self._ad_due = False            # an interstitial is owed at the next level change (ads.LEVELS_PER_AD)
+        self.shop_ui.ads = self.ads
+        self.shop_ui.on_watch_ad = self._watch_ad_diamonds
         self.featured_ui = ui.FeaturedScreen(self.save_mgr, self.shop, self.open_menu, self.open_shop, audio_manager=self.audio)
         lvl_cb = self.open_level_select
         self.pause_modal = ui.PauseModal(self.resume_game, self.restart_level, lambda: self.open_settings("paused"),
@@ -342,6 +351,7 @@ class HoloGame:
         self.howto_ui = ui.HowToModal(self._close_howto, save_mgr=self.save_mgr)
         self.settings_modal = ui.SettingsModal(self.save_mgr, self.audio, self.toggle_fullscreen, self.close_settings,
                                                self.on_language_change, on_reset=self.on_progress_reset, desktop=not self.android)
+        self.settings_modal.privacy = (lambda: self.ads.privacy_options_required(), lambda: self.ads.show_privacy_options())
 
     def on_language_change(self):
         self.menu_ui.refresh_texts()
@@ -519,6 +529,7 @@ class HoloGame:
                                                    on_finish=self._arena_over, label=ui.fmt_clock(run.seconds),
                                                    title_key="arena_timeout" if run.timed_out else "arena_paused_title",
                                                    mode="arena")
+        self._offer_ad_continue(self.failure_modal)
 
     def _arena_over(self):
         run = self.arena_run
@@ -535,6 +546,40 @@ class HoloGame:
             self._arena_over()
         else:
             self._endless_over()
+
+    # ------------------------------------------------------------------ ads (ads.py)
+    def _watch_ad_diamonds(self):
+        """Shop: a rewarded video -> AD_REWARD diamonds (paid by the server)."""
+        if self.shop.ad_diamonds_ready():
+            self._click()
+            self.ads.show("diamonds", on_reward=self.shop.ad_reward)
+
+    def _offer_ad_continue(self, modal):
+        """Crash screens: 'watch an ad, continue' - the ad pays the revive's price, then the normal revive runs."""
+        modal.ad_offer = (lambda: self._ad_continue(modal), lambda: self.ads.available("continue"))
+
+    def _ad_continue(self, modal):
+        s = self.sim
+
+        def rewarded():
+            if self.sim is s and self.state == "failed" and self.failure_modal is modal and s.dead:
+                self.save_mgr.earn("adrevive", secrets.token_hex(12), REVIVE_COST)
+                self.revive_run()
+
+        self._click()
+        self.ads.show("continue", on_reward=rewarded)
+
+    def _level_finished_for_ad(self):
+        if self.save_mgr.level_done_for_ad(ads_mod.LEVELS_PER_AD):
+            self._ad_due = True
+
+    def _after_ad(self, then):
+        """Run `then` (next level, retry ...) - first the interstitial if one is owed and loaded."""
+        if self._ad_due and not self.save_mgr.no_ads and self.ads.available("levels"):
+            self._ad_due = False
+            self.ads.show("levels", on_close=then)
+        else:
+            then()
 
     def _show_loading(self, text):
         """One frame with a small card while something heavy is prepared (so the tap visibly did something)."""
@@ -587,6 +632,7 @@ class HoloGame:
         self.failure_modal = ui.EndlessReviveModal(run.points, run.metres, run.stars, self.save_mgr, REVIVE_COST,
                                                    E.MAX_REVIVES - used, on_revive=self.revive_run,
                                                    on_finish=self._endless_over)
+        self._offer_ad_continue(self.failure_modal)
 
     def _endless_over(self):
         run = self.endless_run
@@ -596,6 +642,7 @@ class HoloGame:
         self.save_mgr.bump_weekly("endless_m", metres)
         self.save_mgr.bump_weekly("endless_stars", run.stars)
         events.add_points(self.save_mgr, run.stars)          # the running event counts the climb's stars
+        self._level_finished_for_ad()
         if self.taps or metres > 0:
             self.online.submit_endless(self.endless_week, self.endless_nonce, self.taps, run.n, self.assists)
         else:
@@ -603,7 +650,8 @@ class HoloGame:
         self.state = "failed"
         self.failure_modal = ui.EndlessResultModal(
             metres, run.stage, self.save_mgr.endless["best_all"], self.save_mgr.endless["best_all"],
-            new_best, sector_for_stage(run.stage), self.online, on_retry=self.retry_after_fail, on_menu=self.open_menu,
+            new_best, sector_for_stage(run.stage), self.online, on_retry=lambda: self._after_ad(self.retry_after_fail),
+            on_menu=self.open_menu,
             on_board=lambda: self.open_leaderboard("endless"), points=run.points, stars=run.stars,
             wallet=self.save_mgr.star_coins, on_skins=self._open_star_skins)
 
@@ -748,6 +796,7 @@ class HoloGame:
         self._click()
 
     def quit_game(self):
+        self._quit_reason = "quit button"
         self.running = False
 
     def continue_campaign(self):
@@ -774,6 +823,7 @@ class HoloGame:
         self.level_id = level_id
         self.level = lvl
         self.tut_shown = 0
+        print(f"[mem] level {level_id} loaded: {memstat.footprint()} MB")
         if hasattr(self.online, "fetch_ghost") and self.settings.get("ghost_race", True):
             self.online.fetch_ghost(level_id)
         self.restart_level(count_attempt=False)
@@ -1067,6 +1117,7 @@ class HoloGame:
         if self._autoplay is not None and getattr(self, "_selftest", None) is None:
             self._autoplay_next()
             return
+        self._level_finished_for_ad()
         s = self.sim
         haptics.buzz(25)
         self.audio.play_sfx("sfx_win")
@@ -1100,7 +1151,8 @@ class HoloGame:
         self.victory_modal = ui.VictoryModal(
             level_id=lid, result=res, total_score=self.save_mgr.total_score,
             pilot_name=self.save_mgr.player_name, pilot_country=self.save_mgr.player_country,
-            on_next=go_next, on_replay=lambda: (setattr(self, "attempts", 1), self.restart_level()),
+            on_next=lambda: self._after_ad(go_next),
+            on_replay=lambda: self._after_ad(lambda: (setattr(self, "attempts", 1), self.restart_level())),
             on_menu=self.open_menu, on_levels=self.open_level_select, new_best=improved, attempts=self.attempts,
             online=self.online, is_last=(nxt > MAX_LEVELS), assisted=False)   # paid help is ranked now
 
@@ -1380,6 +1432,7 @@ class HoloGame:
 
     def update(self, dt, v_mouse):
         self.ui_time += dt
+        self.ads.poll()
         if self.state == "menu" and not getattr(self, "_autoplay_started", False) and config.get("perf_autoplay"):
             self._autoplay_started = True
             self._start_autoplay()
@@ -1432,10 +1485,12 @@ class HoloGame:
                 s = self.sim
                 self.failure_modal = ui.FailureModal(
                     self.level_id, int(s.max_progress * 100), s.stars_collected, s.combo_mult, self.attempts,
-                    on_retry=self.retry_after_fail, on_menu=self.open_menu,
+                    on_retry=lambda: self._after_ad(self.retry_after_fail), on_menu=self.open_menu,
                     on_levels=self.open_level_select,
                     save_mgr=self.save_mgr, shop=self.shop, on_revive=self.revive_run, revive_cost=REVIVE_COST,
                     on_endless=self.open_endless if self.save_mgr.endless_unlocked else None)
+                self._offer_ad_continue(self.failure_modal)
+                self._level_finished_for_ad()
         else:
             self.particles.update(dt * 60.0)
             if st == "menu":
@@ -1491,6 +1546,12 @@ class HoloGame:
     def handle_event(self, event):
         st = self.state
         if event.type == pygame.QUIT:
+            if paths.is_ios():
+                print(f"[quit] QUIT event ignored on iOS (state {st})")
+                self.save_mgr.save()
+                self._write_crumb()
+                return
+            self._quit_reason = "QUIT event"
             self.running = False
             return
         if event.type == pygame.VIDEORESIZE and not self.scaled:
@@ -1515,7 +1576,8 @@ class HoloGame:
             from render_cache import SurfaceCache
             SurfaceCache.clear_all()                    # glows, texts, orb effects: all made again on demand
             gc.collect()
-            print("low memory warning: caches emptied")
+            print("low memory warning: caches emptied, now", memstat.footprint(), "MB")
+            self._write_crumb()
             return
         if event.type == getattr(pygame, "APP_TERMINATING", -1):
             self.save_mgr.save()
@@ -1563,7 +1625,8 @@ class HoloGame:
                     self.close_recovery()
                 elif st == "login":
                     self.close_login_reward()
-                elif st == "menu" and self.android:
+                elif st == "menu" and paths.is_android():
+                    self._quit_reason = "back key on the menu"
                     self.running = False          # Android back button on the main menu leaves the app
                 return
             elif k == pygame.K_p and st in ("playing", "paused"):
@@ -2192,12 +2255,17 @@ class HoloGame:
                 self._crumb_t = 3.0
                 self._write_crumb()
             self.update(dt, v_mouse)
+            if self.state != self._logged_state:
+                print(f"[state] {self._logged_state} -> {self.state}  lvl {getattr(self, 'level_id', 0)}  "
+                      f"mem {memstat.footprint()} MB  t {self.ui_time:.0f}s")
+                self._logged_state = self.state
             if probe:
                 probe.mid()
             self.draw()
             if probe:
                 probe.end()
         self.save_mgr.save()
+        print("[quit] game loop ended:", getattr(self, "_quit_reason", "?"))
         self._write_crumb(bg=True, quit=True)
         pygame.quit()
         sys.exit(0)
@@ -2211,12 +2279,17 @@ class HoloGame:
         try:
             import json
             lvl = self.level
+            mem = memstat.footprint()
+            if mem is not None:
+                self._mem_peak = max(getattr(self, "_mem_peak", 0.0), mem)
             d = {"t": int(time.time()), "state": self.state, "level": getattr(self, "level_id", 0),
+                 "mem_mb": mem, "mem_peak_mb": getattr(self, "_mem_peak", None),
                  "mode": "endless" if self.endless_run is not None else ("arena" if self.arena_run is not None else "campaign"),
                  "sim_n": self.sim.n if self.sim is not None else -1, "fps": round(self.clock.get_fps(), 1),
                  "modal": type(self.failure_modal or self.victory_modal).__name__ if (self.failure_modal or self.victory_modal) else "",
                  "level_h": int(lvl.data.height) if lvl is not None and getattr(lvl, "data", None) is not None else 0,
-                 "running": not (bg or quit), "bg": bool(bg), "quit": bool(quit)}
+                 "running": not (bg or quit), "bg": bool(bg), "quit": bool(quit),
+                 "quit_reason": getattr(self, "_quit_reason", "") if quit else ""}
             path = os.path.join(paths.user_dir(), "session.json")
             with open(path + ".tmp", "w", encoding="utf-8") as f:
                 json.dump(d, f)

@@ -42,11 +42,15 @@ r = await w("earn", { kind: "daily", ref: mid }); assert.equal(r.body.added, dai
 r = await w("earn", { kind: "daily", ref: mid }); assert.equal(r.body.added, 0);
 assert.equal((await w("earn", { kind: "daily", ref: "2026-09-10_0" })).status, 400);
 // ads: cooldown + daily cap
-r = await w("earn", { kind: "ad", ref: rnd() }); assert.equal(r.body.added, 3);
+r = await w("earn", { kind: "ad", ref: rnd() }); assert.equal(r.body.added, 10);
 assert.equal((await w("earn", { kind: "ad", ref: rnd() })).status, 429);          // 30 s cooldown
 for (let k = 0; k < 12; k++) { now += 31_000; await w("earn", { kind: "ad", ref: rnd() }); }
 now += 31_000;
-assert.equal((await w("earn", { kind: "ad", ref: rnd() })).status, 429);           // 10 per day
+assert.equal((await w("earn", { kind: "ad", ref: rnd() })).status, 429);           // 5 per day
+// "watch an ad to continue": pays exactly one revive, 10 per day
+r = await w("earn", { kind: "adrevive", ref: rnd() }); assert.equal(r.body.added, 20);
+for (let k = 0; k < 9; k++) await w("earn", { kind: "adrevive", ref: rnd() });
+assert.equal((await w("earn", { kind: "adrevive", ref: rnd() })).status, 429);
 // packs can't be claimed as an "earn" (only through the verified purchase op)
 assert.equal((await w("earn", { kind: "pack", ref: "pack_1000:tok" })).status, 400);
 // spend: server price, idempotent ref, insufficient

@@ -655,8 +655,12 @@ class SaveManager:
 
     def set_server_skins(self, skins, account_tag=""):
         self.rev += 1
-        """Skins the server knows this account owns (bought for diamonds or money): back after a reinstall."""
+        """Skins the server knows this account owns (bought for diamonds or money): back after a reinstall.
+        "noads" in the list is the remove-ads purchase."""
         for sid in skins or []:
+            if sid == "noads":
+                self.set_no_ads()
+                continue
             if not self.is_skin_unlocked(sid):
                 self.grant_skin(sid)
         if account_tag and self.data.get("account_tag") != account_tag:
@@ -695,6 +699,43 @@ class SaveManager:
             self.data["shield_stock"] = self.shield_stock - 1
         self.save()
         return True
+
+    # ---- ads (ads.py): the remove-ads purchase, the level counter of the interstitial, today's rewarded ads
+    @property
+    def no_ads(self):
+        return bool(self.data.get("no_ads"))
+
+    def set_no_ads(self):
+        if not self.no_ads:
+            with self._lock:
+                self.data["no_ads"] = True
+            self.rev += 1
+            self.save()
+
+    def level_done_for_ad(self, every):
+        """One more finished level / run. True when the interstitial is due (then the count starts again)."""
+        if self.no_ads:
+            return False
+        with self._lock:
+            n = int(self.data.get("ad_levels", 0)) + 1
+            due = n >= every
+            self.data["ad_levels"] = 0 if due else n
+        return due
+
+    def ad_diamonds_left(self, per_day):
+        import datetime
+        today = datetime.date.today().isoformat()
+        d = self.data.get("ad_watch", {})
+        return per_day - (int(d.get("n", 0)) if d.get("day") == today else 0)
+
+    def note_ad_diamonds(self):
+        import datetime
+        today = datetime.date.today().isoformat()
+        with self._lock:
+            d = self.data.get("ad_watch", {})
+            self.data["ad_watch"] = {"day": today, "n": (int(d.get("n", 0)) if d.get("day") == today else 0) + 1}
+            self.data["last_ad_watch"] = time.time()
+        self.save()
 
     def can_watch_ad(self, cooldown=30.0):
         last = float(self.data.get("last_ad_watch", 0.0))

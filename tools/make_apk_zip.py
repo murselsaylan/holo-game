@@ -13,7 +13,7 @@ RELEASE = "--release" in sys.argv
 OUT = os.path.join(ROOT, "holo_release_source.zip" if RELEASE else "holo_apk_source.zip")
 SKIP_DIRS = {".venv", "__pycache__", "screenshots", "store_assets", "levelgen", "server", "tools", "legacy", "bin", ".buildozer",
              "build", "dist", "supabase", "docs", ".git", ".github", ".claude", ".codex", ".agents", "node_modules",
-             "_upload_tmp", "social"}
+             "_upload_tmp", "social", "build_ios", "ios", "store_assets"}
 SKIP_EXT = (".zip", ".whl", ".db", ".md", ".ipynb", ".spec.bak", ".corrupt", ".jks", ".keystore", ".aab", ".apk")
 
 files = []
@@ -44,12 +44,14 @@ def _release_config():
     for k in ("test_tools", "dev_unlock_all", "dev_free_purchases"):
         cfg.pop(k, None)
     cfg["billing"] = "android"
+    cfg["ads_test"] = "--ads-test" in sys.argv          # Google's sample ads (for builds the developer plays himself)
     return json.dumps(cfg, indent=2).encode("utf-8")
 
 
 def _release_spec():
     spec = open(os.path.join(ROOT, "buildozer.spec"), encoding="utf-8").read()
     spec = spec.replace("# android.gradle_dependencies", "android.gradle_dependencies").replace("# android.add_src", "android.add_src")
+    spec = spec.replace("# android.meta_data = com.google.android.gms.ads", "android.meta_data = com.google.android.gms.ads")
     if "release_artifact" not in spec:
         spec = spec.replace("[app]\n", "[app]\nandroid.release_artifact = aab\n", 1)
     return spec.encode("utf-8")

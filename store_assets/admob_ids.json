@@ -1,0 +1,15 @@
+{
+  "_note": "AdMob ids (public, they ship inside the app). Account: the user's AdMob (ca-app-pub-2665053543428530).",
+  "android": {
+    "app_id": "ca-app-pub-2665053543428530~7934980621",
+    "rewarded_diamonds": "ca-app-pub-2665053543428530/5308817280",
+    "rewarded_interstitial_continue": "ca-app-pub-2665053543428530/9854477668",
+    "interstitial_levels": "ca-app-pub-2665053543428530/1351417096"
+  },
+  "ios": {
+    "app_id": "ca-app-pub-2665053543428530~8164237450",
+    "rewarded_diamonds": "ca-app-pub-2665053543428530/6910865530",
+    "rewarded_interstitial_continue": "ca-app-pub-2665053543428530/3075562308",
+    "interstitial_levels": "ca-app-pub-2665053543428530/1055903624"
+  }
+}

@@ -40,9 +40,12 @@ android.accept_sdk_license = True
 
 # --- Google Play store (paid skins / tips): enable ONLY after the Play Console setup in docs/MONETIZATION.md ---
 # (Play Billing + "Sign in with Google" through Credential Manager, for account recovery)
-# android.gradle_dependencies = com.android.billingclient:billing:8.3.0, androidx.credentials:credentials:1.3.0, androidx.credentials:credentials-play-services-auth:1.3.0, com.google.android.libraries.identity.googleid:googleid:1.1.1, androidx.work:work-runtime:2.10.0
+# android.gradle_dependencies = com.android.billingclient:billing:8.3.0, androidx.credentials:credentials:1.3.0, androidx.credentials:credentials-play-services-auth:1.3.0, com.google.android.libraries.identity.googleid:googleid:1.1.1, androidx.work:work-runtime:2.10.0, com.google.android.gms:play-services-ads:24.4.0, com.google.android.ump:user-messaging-platform:3.1.0
 android.enable_androidx = True
 # android.add_src = android_src
+# AdMob app id (ads.py / android_src/org/holo/ads): the ads SDK ends the app at start without it, so it is switched on
+# together with the gradle dependencies above (tools/make_apk_zip.py --release)
+# android.meta_data = com.google.android.gms.ads.APPLICATION_ID=ca-app-pub-2665053543428530~7934980621
 
 # python-for-android's SDL2 bootstrap runs main.py; SDL maps touches to mouse events, which the game uses.
 p4a.bootstrap = sdl2

@@ -2418,6 +2418,13 @@ class ShopScreen:
         # in the scrolling list (list coordinates; tapped through _list_tap)
         self.btn_shield = Button((VW // 2 - 250, 0, 500, 56), "", 25, bg_color=(0, 170, 230), hover_color=(90, 220, 255),
                                  border_color=(60, 220, 255), callback=self._buy_shield)
+        # ads (ads.py): a rewarded video for diamonds, and the one-time "remove ads" purchase (set by HoloGame)
+        self.ads = None
+        self.on_watch_ad = None
+        self.btn_ad = Button((VW // 2 - 250, 0, 500, 56), "", 25, bg_color=(150, 70, 235), hover_color=(190, 120, 255),
+                             border_color=(200, 150, 255), callback=lambda: self.on_watch_ad and self.on_watch_ad())
+        self.btn_noads = Button((VW // 2 - 250, 0, 500, 56), "", 24, bg_color=(255, 170, 40), hover_color=(255, 205, 100),
+                                border_color=(255, 220, 140), callback=self._buy_noads)
         self.pack_buttons = []
         self.refresh_texts()
 
@@ -2463,7 +2470,7 @@ class ShopScreen:
         return self._layout()[2]
 
     def _content_h(self):
-        return self._grid_h() + 300
+        return self._grid_h() + 440
 
     def _view_h(self):
         return VH - 96 - self.VIEW_Y
@@ -2485,6 +2492,8 @@ class ShopScreen:
             b.pack = pack
             self.pack_buttons.append(b)
         self.btn_shield.rect.y = gy + (180 if self.shop.sells_money else 30)
+        self.btn_ad.rect.y = self.btn_shield.rect.y + 72
+        self.btn_noads.rect.y = self.btn_ad.rect.y + 72
         self._content_key = None
 
     def _click(self):
@@ -2548,6 +2557,18 @@ class ShopScreen:
         self._click()
         self.shop.buy_shield(on_done=self._coin())
 
+    def _ad_ready(self):
+        return bool(self.ads and self.on_watch_ad and self.ads.available("diamonds") and self.shop.ad_diamonds_ready())
+
+    def _noads_offer(self):
+        """The remove-ads row: only where money is sold and while there are ads to remove."""
+        return self.shop.sells_money and self.ads is not None and self.ads.available_any()
+
+    def _buy_noads(self):
+        self._click()
+        if not self.save_mgr.no_ads:
+            self.shop.buy_remove_ads(on_done=self._coin())
+
     def _restore(self):
         self._click()
         self.shop.restore()
@@ -2579,6 +2600,10 @@ class ShopScreen:
                 return b.callback
         if self.btn_shield.rect.collidepoint(lp):
             return self._buy_shield
+        if self._ad_ready() and self.btn_ad.rect.collidepoint(lp):
+            return self.btn_ad.callback
+        if self._noads_offer() and not self.save_mgr.no_ads and self.btn_noads.rect.collidepoint(lp):
+            return self._buy_noads
         return None
 
     def handle_event(self, event):
@@ -2626,6 +2651,7 @@ class ShopScreen:
         """The whole scrolling list as one opaque surface, rebuilt only when something on it changes."""
         sm = self.save_mgr
         key = (self.selected, getattr(self, "_feat_day", None), tuple(sm.is_skin_unlocked(s) for s in self.skins), sm.shield_stock,
+               self._ad_ready(), self._noads_offer(), sm.no_ads, sm.ad_diamonds_left(shop_mod.AD_PER_DAY),
                tuple(self.shop.pack_price(p[0], p[2]) for p in shop_mod.DIAMOND_PACKS), get_language(), VW)
         if getattr(self, "_content_key", None) == key and getattr(self, "_content_img", None) is not None:
             return self._content_img
@@ -2690,6 +2716,17 @@ class ShopScreen:
         sb.bg_color = (45, 52, 60) if full else (0, 170, 230)
         sb.hover_color = (55, 62, 70) if full else (90, 220, 255)
         sb.draw(img)
+        if self._ad_ready():
+            ab = self.btn_ad
+            ab.text = t("ad_watch_btn", n=shop_mod.AD_REWARD, left=sm.ad_diamonds_left(shop_mod.AD_PER_DAY))
+            ab.draw(img)
+        if self._noads_offer():
+            nb = self.btn_noads
+            if sm.no_ads:
+                nb.text, nb.bg_color, nb.hover_color = t("noads_owned"), (45, 110, 80), (45, 110, 80)
+            else:
+                nb.text = t("noads_btn", price=self.shop.price_label_product(shop_mod.REMOVE_ADS, shop_mod.REMOVE_ADS_PRICE))
+            nb.draw(img)
         self._content_key, self._content_img = key, img
         return img
 
@@ -3223,6 +3260,10 @@ class SettingsModal:
         ]
         self.btn_lang = Button((x, y + 745, w, 92), t("lang_toggle"), 34, callback=self._toggle_lang)
         self.btn_fs = Button((x, y + 855, w, 92), t("fullscreen"), 32, callback=on_toggle_fullscreen) if desktop else None
+        # phones with ads: Google's privacy options form, required where a consent form was shown (EEA / UK)
+        self.privacy = None                 # (required(), show()) set by HoloGame
+        self.btn_privacy = Button((x, y + 855, w, 92), t("privacy_options"), 28, bg_color=(90, 100, 140),
+                                  callback=lambda: self.privacy and self.privacy[1]())
         self.on_reset = on_reset          # kept for callers; progress reset is no longer offered in the settings
         self.btn_close = Button((VW // 2 - 220, self.card.bottom - 158, 440, 96), t("close"), 38,
                                 bg_color=(0, 214, 255), hover_color=(90, 236, 255), text_color=(255, 255, 255), callback=on_close)
@@ -3256,14 +3297,18 @@ class SettingsModal:
         if self.btn_fs:
             self.btn_fs.text = t("fullscreen")
         self.btn_close.text = t("close")
+        self.btn_privacy.text = t("privacy_options")
         for tg, key in zip(self.toggles, ("set_shake", "set_particles", "set_online", "set_ghost", "set_haptics", "set_show_fps")):
             tg.label = t(key)
 
+    def _privacy_on(self):
+        return bool(self.btn_fs is None and self.privacy and self.privacy[0]())
+
     def dyn_key(self):
-        return (self.save_mgr.language,)
+        return (self.save_mgr.language, self._privacy_on())
 
     def update(self, mouse_pos, dt=1.0):
-        for b in (self.btn_lang, self.btn_fs, self.btn_close):
+        for b in (self.btn_lang, self.btn_fs, self.btn_close, self.btn_privacy if self._privacy_on() else None):
             if b:
                 b.update(mouse_pos, dt)
 
@@ -3277,6 +3322,8 @@ class SettingsModal:
             return self._toggle_lang
         if self.btn_fs and self.btn_fs.handle_event(event):
             return self.on_toggle_fullscreen
+        if self._privacy_on() and self.btn_privacy.handle_event(event):
+            return self.btn_privacy.callback
         if self.btn_close.handle_event(event):
             return self.on_close
         if event.type == pygame.MOUSEBUTTONUP and self.save_mgr and self.music_slider.dragging is False:
@@ -3301,6 +3348,8 @@ class SettingsModal:
         self.btn_lang.draw(surface)
         if self.btn_fs:
             self.btn_fs.draw(surface)
+        elif self._privacy_on():
+            self.btn_privacy.draw(surface)
         self.btn_close.draw(surface)
         draw_text(surface, t("privacy_note"), 20, TEXT_MUTED, (VW // 2, self.card.bottom - 34), bold=False, max_w=self.card.w - 60)
 
@@ -3457,6 +3506,10 @@ class FailureModal:
             self.pack_buttons.append(b)
         self.btn_retry = Button((cx - 320, top + 626, 640, 100), t("retry_btn"), 38, bg_color=(255, 70, 100), hover_color=(255, 120, 140),
                                 callback=on_retry)
+        # set by HoloGame when an ad can pay the revive: (callback, ready())
+        self.ad_offer = None
+        self.btn_ad = Button((cx - 320, top + 530, 640, 78), "", 28, bg_color=(150, 70, 235), hover_color=(190, 120, 255),
+                             border_color=(200, 150, 255), callback=self._ad_continue)
         self.btn_levels = Button((cx - 320, top + 738, 310, 86), t("level_select_modal_btn"), 26, bg_color=(96, 140, 255), callback=on_levels)
         self.btn_menu = Button((cx + 10, top + 738, 310, 86), t("menu"), 30, bg_color=(120, 150, 215), callback=on_menu)
         self.on_retry, self.on_levels, self.on_menu = on_retry, on_levels, on_menu
@@ -3477,10 +3530,17 @@ class FailureModal:
         self.btn_menu.text = t("menu")
 
     def dyn_key(self):
-        return (self.save_mgr.diamonds if self.save_mgr else 0, self.waiting, self._enough())
+        return (self.save_mgr.diamonds if self.save_mgr else 0, self.waiting, self._enough(), self._ad_on())
 
     def _enough(self):
         return bool(self.save_mgr) and self.save_mgr.diamonds >= self.revive_cost
+
+    def _ad_on(self):
+        return bool(self.ad_offer and not self.waiting and self.ad_offer[1]())
+
+    def _ad_continue(self):
+        if self._ad_on():
+            self.ad_offer[0]()
 
     def _revive(self):
         if self._enough() and self.on_revive and not self.waiting:
@@ -3493,7 +3553,9 @@ class FailureModal:
     def update(self, mouse_pos, dt=1.0):
         self.anim += dt
         buttons = [self.btn_retry, self.btn_levels, self.btn_menu, self.btn_revive]
-        if not self._enough():
+        if self._ad_on():
+            buttons.append(self.btn_ad)
+        elif not self._enough():
             buttons += self.pack_buttons
         for b in buttons:
             b.update(mouse_pos, dt)
@@ -3501,7 +3563,9 @@ class FailureModal:
     def handle_event(self, event):
         cbs = [(self.btn_retry, self.on_retry), (self.btn_levels, self.on_levels), (self.btn_menu, self.on_menu),
               (self.btn_revive, self._revive)]
-        if not self._enough():
+        if self._ad_on():
+            cbs.append((self.btn_ad, self._ad_continue))
+        elif not self._enough():
             cbs += [(b, b.callback) for b in self.pack_buttons]
         for b, cb in cbs:
             if b.handle_event(event):
@@ -3535,7 +3599,10 @@ class FailureModal:
         else:
             eb.text, eb.icon = t("revive_need", cost=self.revive_cost), None
         eb.draw(surface)
-        if not enough:
+        if self._ad_on():
+            self.btn_ad.text = t("ad_continue_btn")
+            self.btn_ad.draw(surface)
+        elif not enough:
             have = self.save_mgr.diamonds if self.save_mgr else 0
             draw_text(surface, t("revive_short", have=have, cost=self.revive_cost), 22, (255, 200, 160), (VW // 2, self.top + 500), bold=False)
             for b in self.pack_buttons:
@@ -3828,24 +3895,39 @@ class EndlessReviveModal:
                                  hover_color=(60, 225, 255), callback=on_revive)
         self.btn_finish = Button((cx - 320, self.top + 460, 640, 90), t(f"{mode}_finish_btn"), 30, bg_color=(120, 150, 215),
                                  callback=on_finish)
+        self.ad_offer = None                   # (callback, ready()) set by HoloGame
+        self.btn_ad = Button((cx - 320, self.top + 450, 640, 84), "", 28, bg_color=(150, 70, 235), hover_color=(190, 120, 255),
+                             border_color=(200, 150, 255), callback=lambda: self._ad_on() and self.ad_offer[0]())
 
     def _enough(self):
         return self.save_mgr.diamonds >= self.revive_cost
 
     def dyn_key(self):
-        return (self.save_mgr.diamonds, self.waiting)
+        return (self.save_mgr.diamonds, self.waiting, self._ad_on())
+
+    def _ad_on(self):
+        return bool(self.ad_offer and not self.waiting and self.ad_offer[1]())
 
     def refresh_texts(self):
         self.btn_finish.text = t(f"{self.mode}_finish_btn")
 
     def update(self, mouse_pos, dt=1.0):
         self.anim += dt
-        for b in (self.btn_revive, self.btn_finish):
+        for b in (self.btn_revive, self.btn_finish, self.btn_ad):
             b.update(mouse_pos, dt)
 
+    def _layout(self):
+        """With an ad offer the finish button moves down to make room for it."""
+        ad = self._ad_on()
+        self.btn_finish.rect.y = self.top + (550 if ad else 460)
+        return ad
+
     def handle_event(self, event):
+        ad = self._layout()
         if self.btn_revive.handle_event(event) and self._enough() and not self.waiting:
             return self.on_revive
+        if ad and self.btn_ad.handle_event(event):
+            return self.btn_ad.callback
         if self.btn_finish.handle_event(event):
             return self.on_finish
         return None
@@ -3856,6 +3938,13 @@ class EndlessReviveModal:
         bg = (14, 20, 34)
         panel(surface, card, bg, ACCENT_CYAN, 26, 2)
         draw_diamond_badge(surface, card.right - 80, self.top + 50, self.save_mgr.diamonds)
+        ad = self._layout()
+        if ad:
+            card.h = 680
+            panel(surface, card, bg, ACCENT_CYAN, 26, 2)
+            draw_diamond_badge(surface, card.right - 80, self.top + 50, self.save_mgr.diamonds)
+            self.btn_ad.text = t("ad_continue_btn")
+            self.btn_ad.draw(surface)
         draw_text(surface, t(self.title_key), 40, ACCENT_CYAN, (VW // 2, self.top + 60), bg=bg, max_w=card.w - 200)
         draw_text(surface, fmt_int(self.points), 84, TEXT_WHITE, (VW // 2, self.top + 150), bg=bg)
         draw_text(surface, self.label, 30, (200, 210, 230), (VW // 2 - 40, self.top + 214), anchor="midright", bg=bg)

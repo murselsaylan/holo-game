@@ -125,6 +125,7 @@ export class MemStore {
   async walletSkins(pid: string) {
     const a = [...this.purchases.values()].filter((x) => x.pid === pid && x.product.startsWith("skin_")).map((x) => x.product.slice(5));
     const b = this.log.filter((l) => l.pid === pid && l.reason.startsWith("spend:skin:")).map((l) => l.reason.slice(11));
-    return [...new Set([...a, ...b])];
+    const c = [...this.purchases.values()].some((x) => x.pid === pid && x.product === "remove_ads") ? ["noads"] : [];
+    return [...new Set([...a, ...b, ...c])];
   }
 }

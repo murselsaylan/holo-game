@@ -486,5 +486,6 @@ async function purchase(store: Store, pid: string, product: string, token: strin
   }
   const r = await store.walletPurchase(pid, ref, product, orderId, value.diamonds, now);
   if (r.status === "other_player") return R(409, { error: "token used by another account", balance: bal });
-  return R(200, { ok: true, balance: r.balance, dup: r.status === "dup", diamonds: value.diamonds, skin: value.skin });
+  return R(200, { ok: true, balance: r.balance, dup: r.status === "dup", diamonds: value.diamonds, skin: value.skin,
+                  noads: value.noads === true });
 }

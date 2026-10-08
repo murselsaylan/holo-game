@@ -62,6 +62,7 @@ public class BillingBridge implements PurchasesUpdatedListener {
         "skin_rocket_bunny",
         "skin_diamond_prestige",          // Cosmic Diamond, the $14.99 top item
         "pack_100", "pack_350", "pack_1000", "pack_2500",
+        "remove_ads",                     // non-consumable: no interstitials between levels (1.0.8)
     };
 
     private final Activity activity;

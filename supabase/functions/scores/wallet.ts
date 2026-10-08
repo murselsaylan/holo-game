@@ -5,8 +5,9 @@ import { ACH_IDS, DAILY, EVENTS, LOGIN_REWARDS, PACKS, PREMIUM_SKINS, SHIELD_COS
 export const REVIVE_COST = 20;
 export const WELCOME_GIFT = 30;
 export const ACH_REWARD = 5;
-export const AD_REWARD = 3;
-export const AD_MAX_PER_DAY = 10;
+export const AD_REWARD = 10;                 // 1.0.8: a long rewarded video is worth more, fewer per day
+export const AD_MAX_PER_DAY = 5;
+export const ADREVIVE_MAX_PER_DAY = 10;       // "watch an ad to continue": pays one revive (REVIVE_COST), then spent
 export const AD_MIN_GAP_S = 30;
 /** The old local balance moves into the wallet on the first sync as it is (no limit, by the developer's choice);
  *  only clamped far below the INTEGER range so later additions can never overflow. WALLET_IMPORT_CAP overrides. */
@@ -43,8 +44,12 @@ export async function accountTag(pid: string): Promise<string> {
   return Array.from(new Uint8Array(h)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-export function productValue(product: string): { diamonds: number; skin: string | null } | null {
+/** The one-time "remove ads" purchase: no interstitials between levels on this account (kept like a skin). */
+export const REMOVE_ADS = "remove_ads";
+
+export function productValue(product: string): { diamonds: number; skin: string | null; noads?: boolean } | null {
   if (product in PACKS) return { diamonds: (PACKS as Record<string, number>)[product], skin: null };
+  if (product === REMOVE_ADS) return { diamonds: 0, skin: null, noads: true };
   if (product.startsWith("skin_") && (PREMIUM_SKINS as readonly string[]).includes(product.slice(5))) {
     return { diamonds: 0, skin: product.slice(5) };
   }
@@ -158,6 +163,13 @@ export async function earnClaim(store: WalletStore, pid: string, kind: string, r
     if (n >= AD_MAX_PER_DAY) return { error: "ad limit", status: 429 };
     if (now - last < AD_MIN_GAP_S) return { error: "ad cooldown", status: 429 };
     return { amount: AD_REWARD, reason: "ad", ref };
+  }
+  if (kind === "adrevive") {
+    if (!/^[0-9a-f]{16,32}$/.test(ref)) return { error: "bad ref", status: 400 };
+    const now = Math.floor(nowMs / 1000);
+    const { n } = await store.walletCount(pid, "adrevive", now - 86_400);
+    if (n >= ADREVIVE_MAX_PER_DAY) return { error: "ad limit", status: 429 };
+    return { amount: REVIVE_COST, reason: "adrevive", ref };
   }
   if (kind === "pack") {
     // Real-money packs need a Google Play receipt check on the server before they can be credited here.
