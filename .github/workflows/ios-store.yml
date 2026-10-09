@@ -5,10 +5,11 @@ name: HOLO App Store page
 #   git tag store-v1.0.7 && git push origin store-v1.0.7     -> page only
 #   git tag submit-v1.0.7 && git push origin submit-v1.0.7   -> page + send to App Review
 #   git tag iap-1 && git push origin iap-1                     -> In-App Purchases (tools/asc_iap.py)
+#   git tag status-1 && git push origin status-1               -> review / build / IAP states (read only)
 on:
   workflow_dispatch:
   push:
-    tags: ['store-v*', 'submit-v*', 'resubmit-v*', 'feedback-*', 'iap-*']
+    tags: ['store-v*', 'submit-v*', 'resubmit-v*', 'feedback-*', 'iap-*', 'status-*']
 
 permissions:
   contents: write                     # the run's output is pushed to the ci-logs branch (readable without the web UI)
@@ -32,6 +33,8 @@ jobs:
           set -o pipefail
           if [[ "$GITHUB_REF_NAME" == feedback-* ]]; then
             python tools/asc_feedback.py 2>&1 | tee "$RUNNER_TEMP/store.log"
+          elif [[ "$GITHUB_REF_NAME" == status-* ]]; then
+            python tools/asc_status.py 2>&1 | tee "$RUNNER_TEMP/store.log"
           elif [[ "$GITHUB_REF_NAME" == iap-* ]]; then
             python tools/asc_iap.py 2>&1 | tee "$RUNNER_TEMP/store.log"
           else
