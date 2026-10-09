@@ -7,6 +7,8 @@ import { accountTag, earnClaim, IMPORT_CAP, productValue, spendPrice } from "./w
 import { devPurchases, googleVerifier } from "./play.ts";
 import { googleConfigured, maskEmail, verifyGoogleIdToken } from "./google_id.ts";
 import type { Verifier } from "./play.ts";
+import { appleVerifier } from "./apple.ts";
+import type { AppleVerifier } from "./apple.ts";
 import type { WalletStore } from "./wallet.ts";
 
 export const COUNTRIES = new Set(["TR", "US", "DE", "GB", "JP", "KR", "FR", "BR", "CA", "AU", "IT", "ES", "NL", "AZ", "SE", "GX"]);
@@ -361,6 +363,8 @@ async function submit(store: Store, d: Record<string, unknown>, ip: string, nowM
 let verifier: Verifier = googleVerifier;
 /** Tests swap the Google Play check for a fake one. */
 export function setVerifier(v: Verifier) { verifier = v; }
+let apple: AppleVerifier = appleVerifier;
+export function setAppleVerifier(v: AppleVerifier) { apple = v; }
 
 // ---- endless climb ----------------------------------------------------------------------------------------------
 const WEEK_RE = /^\d{4}-W\d{2}$/;
@@ -449,7 +453,9 @@ async function wallet(store: Store, d: Record<string, unknown>, ip: string, nowM
   }
   const bal = await store.walletBalance(pl.id);
   if (bal === null) return R(409, { error: "sync first" });
-  if (op === "purchase") return await purchase(store, pl.id, key, String(d.token ?? ""), ref, bal, now);
+  if (op === "purchase") {
+    return await purchase(store, pl.id, key, String(d.token ?? ""), ref, bal, now, String(d.receipt ?? "").slice(0, 600_000));
+  }
   if (op === "earn") {
     const c = await earnClaim(store, pl.id, key, ref, nowMs);
     if ("error" in c) return R(c.status, { error: c.error, balance: bal });
@@ -468,7 +474,7 @@ async function wallet(store: Store, d: Record<string, unknown>, ip: string, nowM
 }
 
 async function purchase(store: Store, pid: string, product: string, token: string, ref: string, bal: number,
-                        now: number): Promise<Reply> {
+                        now: number, receipt = ""): Promise<Reply> {
   const value = productValue(product);
   if (!value) return R(400, { error: "unknown product", balance: bal });
   if (!token || token.length > 4096 || ref !== await sha256Hex(token)) return R(400, { error: "bad token", balance: bal });
@@ -477,7 +483,8 @@ async function purchase(store: Store, pid: string, product: string, token: strin
     if (!devPurchases()) return R(403, { error: "dev purchases disabled", balance: bal });
     orderId = "DEV." + ref.slice(0, 12);
   } else {
-    const p = await verifier(product, token);           // throws -> 500 -> the game keeps the purchase and retries
+    // "ios:<transactionId>" = App Store (apple.ts), anything else = a Google Play purchase token
+    const p = token.startsWith("ios:") ? await apple(product, token.slice(4), receipt) : await verifier(product, token);
     if (p === null) return R(503, { error: "verification not configured", balance: bal });
     if (p.state === "pending") return R(202, { ok: false, pending: true, balance: bal });
     if (p.state !== "purchased") return R(410, { error: "not purchased", balance: bal });

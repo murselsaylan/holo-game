@@ -6,6 +6,7 @@ Money only ever moves through a *billing backend*:
   "dev"     test mode (config "dev_free_purchases": true): every purchase succeeds instantly, nothing is charged.
   "android" Google Play Billing through the Java bridge in android_src/ (see docs/MONETIZATION.md). Needs a Play developer
             account, products created in the Play Console and a build that includes the bridge.
+  "ios"     StoreKit (storekit_ios.py); the same product ids are In-App Purchases in App Store Connect.
 
 Entitlements are stored in the save file. That is fine for cosmetics; anyone who edits their save can unlock skins, which
 is the normal trade-off for a leaderboard-safe cosmetic store (scores are verified server-side and are not affected).
@@ -195,12 +196,73 @@ class AndroidBilling(Billing):
         return out
 
 
+def all_products():
+    return [p[0] for p in DIAMOND_PACKS] + [skin_product(s) for s in skin_catalog.premium_ids()] + [REMOVE_ADS]
+
+
+class IOSBilling(Billing):
+    """App Store purchases via storekit_ios.StoreKit. Prices come from the App Store in the player's currency."""
+    name = "ios"
+
+    def __init__(self):
+        self._kit = None
+        try:
+            import storekit_ios
+            self._kit = storekit_ios.StoreKit(all_products())
+        except Exception as e:
+            print("StoreKit unavailable:", e)
+
+    def available(self):
+        try:
+            return bool(self._kit and self._kit.ready())
+        except Exception:
+            return False
+
+    def price(self, product_id, default=""):
+        return (self._kit.prices.get(product_id) if self._kit else "") or default
+
+    def purchase(self, product_id, account_tag=""):
+        try:
+            return bool(self._kit and self._kit.buy(product_id, account_tag))
+        except Exception as e:
+            print("App Store purchase error:", e)
+            return False
+
+    def finish(self, token):
+        try:
+            if self._kit:
+                self._kit.finish(token)
+        except Exception as e:
+            print("App Store finish error:", e)
+
+    def refresh(self):
+        pass                # unfinished transactions come back to the observer by themselves at every start
+
+    def restore_purchases(self):
+        """The Restore button: skins and remove-ads bought before (new phone / reinstall) come back as "buy" events.
+        Only on request - StoreKit may ask for the Apple ID password."""
+        try:
+            if self._kit:
+                self._kit.restore()
+        except Exception:
+            pass
+
+    def poll(self):
+        try:
+            return self._kit.poll() if self._kit else []
+        except Exception as e:
+            print("StoreKit poll error:", e)
+            return []
+
+
 def make_billing():
     kind = str(config.get("billing", "")).lower()
     if not config.get("release_mode", False) and (config.get("dev_free_purchases", False) or os.environ.get("HOLO_DEV_PURCHASES", "") == "1"):
         return DevBilling()
     if kind == "android" and paths.is_android():
         return AndroidBilling()
+    if kind == "ios" and paths.is_ios():
+        return IOSBilling()
     return Billing()
 
 
@@ -248,9 +310,10 @@ class Shop:
 
     @property
     def sells_money(self):
-        """Real-money items (diamond packs, premium skins' price, restore) are shown at all. Not on iOS until StoreKit
-        is in: App Review rejects buttons that cannot be bought - there the shop is diamonds only."""
-        return not paths.is_ios()
+        """Real-money items (diamond packs, premium skins' price, restore) are shown at all. On iOS only with StoreKit
+        in the build and the products loaded: App Review rejects buttons that cannot be bought - otherwise the shop
+        is diamonds only."""
+        return not paths.is_ios() or self.billing.available()
 
     # -- actions ---------------------------------------------------------------------
     def _say(self, key, seconds=3.5):
@@ -347,8 +410,8 @@ class Shop:
             return False
 
     def restore(self):
-        """Ask Play for unfinished purchases and the server for everything this account owns."""
-        self.billing.refresh()
+        """Ask Play / the App Store for earlier purchases and the server for everything this account owns."""
+        getattr(self.billing, "restore_purchases", self.billing.refresh)()
         if self.save_mgr.wallet is not None:
             self.save_mgr.wallet.wallet_sync()
         self._say("shop_restored")

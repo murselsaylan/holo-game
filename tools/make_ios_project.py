@@ -59,7 +59,9 @@ def stage():
     cfg = json.load(open(os.path.join(ROOT, "config.json"), encoding="utf-8"))
     for k in ("test_tools", "dev_unlock_all", "dev_free_purchases"):
         cfg.pop(k, None)
-    cfg["billing"] = ""                                   # no StoreKit yet: real-money items show "soon"
+    cfg["billing"] = "ios"                                # StoreKit (storekit_ios.py, products = App Store IAPs)
+    if os.environ.get("HOLO_ADS_TEST"):
+        cfg["ads_test"] = True                            # Google's test ads in a release build (TestFlight checks)
     cfg["release_mode"] = True
     with open(os.path.join(STAGE, "config.json"), "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2)
@@ -196,7 +198,11 @@ def add_admob(pbx, info):
     for name in fetch_admob():
         pbx = add_xcframework(pbx, name)
     # -ObjC: load the SDK's categories; the Swift paths: parts of the SDK are Swift, the app target is not
-    flags = ('OTHER_LDFLAGS = ("$(inherited)", "-ObjC", );\n\t\t\t\t'
+    # system frameworks the SDK uses but does not auto-link (JavaScriptCore: the ads' measurement scripts)
+    fw = " ".join(f'"-framework", {f},' for f in ("JavaScriptCore", "WebKit", "StoreKit", "AdSupport", "CoreTelephony",
+                                                   "AppTrackingTransparency", "SystemConfiguration", "MessageUI",
+                                                   "MediaPlayer", "Security"))
+    flags = ('OTHER_LDFLAGS = ("$(inherited)", "-ObjC", ' + fw + ' );\n\t\t\t\t'
              'LIBRARY_SEARCH_PATHS = ("$(inherited)", "$(SDKROOT)/usr/lib/swift", '
              '"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)", );\n\t\t\t\t')
     pbx = pbx.replace(f"PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};", flags + f"PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};")

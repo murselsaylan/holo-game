@@ -537,7 +537,11 @@ class OnlineClient:
                 product, token = iap.get("product", ""), iap.get("token", "")
                 ref = hashlib.sha256(token.encode()).hexdigest()
                 try:
-                    r = self._wallet_req(conn, "purchase", product, ref, {"product": product, "token": token})
+                    extra = {"product": product, "token": token}
+                    if token.startswith("ios:"):            # App Store: the server checks the app receipt too
+                        import storekit_ios
+                        extra["receipt"] = storekit_ios.receipt()
+                    r = self._wallet_req(conn, "purchase", product, ref, extra)
                     if r.get("pending"):                    # 202: paid by a slow method, not settled yet
                         self._results.put(("purchase", (product, token, "wait", r)))
                     else:
