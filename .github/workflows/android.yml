@@ -1,0 +1,93 @@
+name: HOLO Android release
+
+# Builds the signed Play release (AAB) on GitHub's Linux machines - the same steps as the Colab notebook, no files to
+# drag. The upload key comes from two repository secrets the developer adds once (Settings > Secrets > Actions):
+#   ANDROID_KEYSTORE_B64       holo-upload.jks as base64
+#   ANDROID_KEYSTORE_PASSWORD  the password from holo-keystore-bilgi.txt (store and key use the same one, alias "holo")
+#   git tag android-v1.0.8 && git push origin android-v1.0.8
+# The AAB is pushed to the "builds" branch (aab/holo-<version>.aab) and kept as a run artifact.
+on:
+  workflow_dispatch:
+  push:
+    tags: ['android-v*']
+
+permissions:
+  contents: write
+
+jobs:
+  aab:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq git zip unzip python3-pip autoconf automake libtool libtool-bin pkg-config \
+            zlib1g-dev libncurses-dev cmake libffi-dev libssl-dev m4
+          pip install -q Cython==0.29.36 buildozer virtualenv
+      - name: Release source (tester tools off, real ad units, Play Billing on)
+        run: |
+          python tools/make_apk_zip.py --release
+          mkdir -p "$RUNNER_TEMP/holo" && unzip -q holo_release_source.zip -d "$RUNNER_TEMP/holo"
+          grep -E "^(version|android.numeric_version|android.release_artifact)" "$RUNNER_TEMP/holo/buildozer.spec" || true
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            ${{ runner.temp }}/holo/.buildozer
+          key: buildozer-${{ hashFiles('buildozer.spec', 'android_recipes/**') }}
+          restore-keys: buildozer-
+      - name: Signed AAB
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KS_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        working-directory: ${{ runner.temp }}/holo
+        run: |
+          if [ -z "$KS_B64" ] || [ -z "$KS_PW" ]; then echo "keystore secrets missing"; exit 1; fi
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/holo-upload.jks"
+          export P4A_RELEASE_KEYSTORE="$RUNNER_TEMP/holo-upload.jks" P4A_RELEASE_KEYALIAS=holo
+          export P4A_RELEASE_KEYSTORE_PASSWD="$KS_PW" P4A_RELEASE_KEYALIAS_PASSWD="$KS_PW"
+          for attempt in 1 2 3; do
+            find .buildozer -path "*/build/venv" -type d -prune -exec rm -rf {} + 2>/dev/null || true
+            echo "=== attempt $attempt"
+            yes | buildozer -v android release > "$RUNNER_TEMP/build.log" 2>&1 || true
+            tail -c 3000 "$RUNNER_TEMP/build.log" | grep -v -i "passw" || true
+            ls bin/*.aab 2>/dev/null && break
+          done
+          rm -f "$RUNNER_TEMP/holo-upload.jks"
+          ls bin/*.aab
+      - name: Keep the AAB (branch builds) and the build log tail (branch ci-logs)
+        if: always()
+        env:
+          KS_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          V=$(python -c "import re;print(re.search(r'\"(.*)\"', open('version.py').read()).group(1))")
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          AAB=$(ls "$RUNNER_TEMP"/holo/bin/*.aab 2>/dev/null | head -1)
+          if [ -n "$AAB" ]; then
+            cp "$AAB" /tmp/holo.aab
+            git checkout --orphan builds-tmp && git rm -rq --cached . && mkdir -p aab && cp /tmp/holo.aab "aab/holo-$V.aab"
+            git add "aab/holo-$V.aab" && git commit -qm "AAB $V (run $GITHUB_RUN_NUMBER) [skip ci]" && git push -qf origin HEAD:builds
+            git checkout -q -f "$GITHUB_SHA"
+          fi
+          # the log is published: drop every line naming a password and blank the password itself wherever it appears
+          tail -c 20000 "$RUNNER_TEMP/build.log" 2>/dev/null | grep -v -i "passw"             | python -c "import os,sys;p=os.environ.get('KS_PW','');t=sys.stdin.read();sys.stdout.write(t.replace(p,'***') if p else t)"             > /tmp/android.log || echo "no log" > /tmp/android.log
+          git fetch origin ci-logs 2>/dev/null && git checkout -B ci-logs FETCH_HEAD || git checkout --orphan ci-logs
+          git rm -rq --cached . 2>/dev/null || true
+          cp /tmp/android.log "android-$GITHUB_RUN_NUMBER.log"
+          git add "android-$GITHUB_RUN_NUMBER.log"
+          git commit -qm "android log $GITHUB_RUN_NUMBER [skip ci]"
+          git push -q origin HEAD:ci-logs
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: holo-aab
+          path: ${{ runner.temp }}/holo/bin/*.aab
