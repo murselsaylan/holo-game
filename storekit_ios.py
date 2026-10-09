@@ -26,7 +26,13 @@ def _p(obj, name):
 
 
 def _items(nsarray):
-    return [nsarray.objectAtIndex_(i) for i in range(int(_p(nsarray, "count")))]
+    """An NSArray as a Python list (rubicon already wraps it as a sequence)."""
+    if nsarray is None:
+        return []
+    try:
+        return list(nsarray)
+    except TypeError:
+        return [nsarray.objectAtIndex_(i) for i in range(int(nsarray.count))]
 
 
 class HoloStoreObserver(NSObject):
@@ -82,6 +88,12 @@ class StoreKit:
         self._req.start()
 
     def _products(self, response):
+        try:
+            self._read_products(response)
+        finally:
+            self._req = None
+
+    def _read_products(self, response):
         fmt = ObjCClass("NSNumberFormatter").alloc().init()
         fmt.numberStyle = 2                                   # NSNumberFormatterCurrencyStyle
         for prod in _items(_p(response, "products")):
@@ -90,8 +102,7 @@ class StoreKit:
             fmt.locale = _p(prod, "priceLocale")
             self.prices[pid] = str(fmt.stringFromNumber_(_p(prod, "price")))
         bad = [str(x) for x in _items(_p(response, "invalidProductIdentifiers"))]
-        print(f"storekit: {len(self.products)} products" + (f", unknown {bad}" if bad else ""))
-        self._req = None
+        print(f"storekit: {len(self.products)} products {sorted(self.prices.items())[:3]}" + (f", unknown {bad}" if bad else ""))
 
     def _products_failed(self):
         print("storekit: product request failed")
