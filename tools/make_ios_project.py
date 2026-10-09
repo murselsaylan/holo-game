@@ -189,14 +189,60 @@ def add_xcframework(pbx, name):
     return pbx
 
 
+def add_privacy_manifest(pbx, sdk_names):
+    """The app's PrivacyInfo.xcprivacy: the statically linked SDKs' own manifests are not copied into the app, so
+    their declarations (collected data, required-reason APIs) are merged into the app's, plus what Python itself uses
+    (file timestamps, boot time for monotonic clocks)."""
+    collected, apis = {}, {"NSPrivacyAccessedAPICategoryFileTimestamp": {"C617.1"},
+                           "NSPrivacyAccessedAPICategorySystemBootTime": {"35F9.1"}}
+    for name in sdk_names:
+        for base, dirs, files in os.walk(os.path.join(TEMPLATE, "Support", name)):
+            if "PrivacyInfo.xcprivacy" in files and "simulator" not in base:
+                d = plistlib.load(open(os.path.join(base, "PrivacyInfo.xcprivacy"), "rb"))
+                for c in d.get("NSPrivacyCollectedDataTypes", []):
+                    t = c["NSPrivacyCollectedDataType"]
+                    cur = collected.setdefault(t, {"NSPrivacyCollectedDataType": t, "NSPrivacyCollectedDataTypeLinked": False,
+                                                   "NSPrivacyCollectedDataTypeTracking": False,
+                                                   "NSPrivacyCollectedDataTypePurposes": []})
+                    cur["NSPrivacyCollectedDataTypeLinked"] |= bool(c.get("NSPrivacyCollectedDataTypeLinked"))
+                    cur["NSPrivacyCollectedDataTypeTracking"] |= bool(c.get("NSPrivacyCollectedDataTypeTracking"))
+                    for p in c.get("NSPrivacyCollectedDataTypePurposes", []):
+                        if p not in cur["NSPrivacyCollectedDataTypePurposes"]:
+                            cur["NSPrivacyCollectedDataTypePurposes"].append(p)
+                for a in d.get("NSPrivacyAccessedAPITypes", []):
+                    apis.setdefault(a["NSPrivacyAccessedAPIType"], set()).update(a.get("NSPrivacyAccessedAPITypeReasons", []))
+                break
+    manifest = {"NSPrivacyTracking": False, "NSPrivacyTrackingDomains": [],
+                "NSPrivacyCollectedDataTypes": list(collected.values()),
+                "NSPrivacyAccessedAPITypes": [{"NSPrivacyAccessedAPIType": k, "NSPrivacyAccessedAPITypeReasons": sorted(v)}
+                                              for k, v in sorted(apis.items())]}
+    with open(os.path.join(APP_DIR, "PrivacyInfo.xcprivacy"), "wb") as f:
+        plistlib.dump(manifest, f)
+    fid, bid = _pbx_id("privacy:ref"), _pbx_id("privacy:res")
+    pbx = pbx.replace("/* Begin PBXFileReference section */\n", "/* Begin PBXFileReference section */\n"
+                      f"\t\t{fid} /* PrivacyInfo.xcprivacy */ = {{isa = PBXFileReference; lastKnownFileType = text.xml; "
+                      f"path = PrivacyInfo.xcprivacy; sourceTree = \"<group>\"; }};\n", 1)
+    pbx = pbx.replace("/* Begin PBXBuildFile section */\n", "/* Begin PBXBuildFile section */\n"
+                      f"\t\t{bid} /* PrivacyInfo.xcprivacy in Resources */ = {{isa = PBXBuildFile; fileRef = {fid} "
+                      f"/* PrivacyInfo.xcprivacy */; }};\n", 1)
+    pbx = _insert_after_block_list(pbx, "60796EEC19190F4100A9926B /* Supporting Files */ = {", "children = (\n",
+                                   f"\t\t\t\t{fid} /* PrivacyInfo.xcprivacy */,\n")
+    pbx = _insert_after_block_list(pbx, "60796EE019190F4100A9926B /* Resources */ = {", "files = (\n",
+                                   f"\t\t\t\t{bid} /* PrivacyInfo.xcprivacy in Resources */,\n")
+    print("privacy manifest:", sorted(collected), {k: sorted(v) for k, v in apis.items()})
+    return pbx
+
+
 def add_admob(pbx, info):
     cfg = json.load(open(os.path.join(ROOT, "config.json"), encoding="utf-8"))
     app_id = ((cfg.get("admob") or {}).get("ios") or {}).get("app_id", "")
     if not app_id or os.environ.get("HOLO_NO_ADMOB"):
         print("AdMob: not added")
         return pbx
-    for name in fetch_admob():
+    names = fetch_admob()
+    for name in names:
         pbx = add_xcframework(pbx, name)
+    pbx = add_privacy_manifest(pbx, names)
     # -ObjC: load the SDK's categories; the Swift paths: parts of the SDK are Swift, the app target is not
     # system frameworks the SDK uses but does not auto-link (JavaScriptCore: the ads' measurement scripts)
     fw = " ".join(f'"-framework", {f},' for f in ("JavaScriptCore", "WebKit", "StoreKit", "AdSupport", "CoreTelephony",
