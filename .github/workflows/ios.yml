@@ -35,13 +35,13 @@ jobs:
         working-directory: build_ios/HOLO/pygame-ios-template
         run: |
           xcodebuild -project pygame-ios.xcodeproj -target pygame-ios -configuration Debug \
-            -sdk iphonesimulator -arch arm64 CODE_SIGNING_ALLOWED=NO SYMROOT="$PWD/out" build | tail -40
+            -sdk iphonesimulator -arch arm64 CODE_SIGNING_ALLOWED=NO SYMROOT="$PWD/out" build | tee "$RUNNER_TEMP/build.log" | tail -40
           ls out/Debug-iphonesimulator
       - name: Device build check (unsigned, same scheme as the TestFlight build)
         working-directory: build_ios/HOLO/pygame-ios-template
         run: |
           xcodebuild -project pygame-ios.xcodeproj -scheme pygame-ios -configuration Release \
-            -destination "generic/platform=iOS" CODE_SIGNING_ALLOWED=NO SYMROOT="$PWD/out_device" build | tail -25
+            -destination "generic/platform=iOS" CODE_SIGNING_ALLOWED=NO SYMROOT="$PWD/out_device" build | tee "$RUNNER_TEMP/build_device.log" | tail -25
           ls out_device/Release-iphoneos
       - name: Run in the simulator
         working-directory: build_ios/HOLO/pygame-ios-template
@@ -139,3 +139,14 @@ jobs:
         with:
           name: holo-ios-simulator
           path: HOLO-ios-simulator.zip
+      - name: Keep the build errors (branch ci-logs)
+        if: failure()
+        run: |
+          { grep -E "error|warning: .*(GoogleMobileAds|UserMessaging)|Undefined symbol|ld:" "$RUNNER_TEMP"/build*.log | head -150; echo ...; tail -60 "$RUNNER_TEMP"/build*.log; } > /tmp/builderr.log 2>&1 || echo "no build log" > /tmp/builderr.log
+          git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
+          git fetch origin ci-logs 2>/dev/null && git checkout -B ci-logs FETCH_HEAD || git checkout --orphan ci-logs
+          git rm -rq --cached . 2>/dev/null || true
+          cp /tmp/builderr.log "build-fail-$GITHUB_RUN_NUMBER.log"
+          git add "build-fail-$GITHUB_RUN_NUMBER.log"
+          git commit -qm "ios build errors $GITHUB_RUN_NUMBER [skip ci]"
+          git push -q origin HEAD:ci-logs

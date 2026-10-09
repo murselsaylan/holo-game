@@ -1249,7 +1249,10 @@ class HoloGame:
                 ("tap", tap), ("pause", lambda: setattr(self, "state", "paused")), ("resume", self.resume_game),
                 ("tap", tap), ("crash", crash), ("retry", self.retry_after_fail), ("tap", tap),
                 ("menu", self.open_menu), ("leaderboard", lambda: self.open_leaderboard("global")),
-                ("menu", self.open_menu), ("done", lambda: None)]
+                ("menu", self.open_menu), ("endless", self.open_endless), ("tap", tap), ("tap", tap), ("tap", tap),
+                ("crash", crash), ("wait", lambda: None), ("wait", lambda: None), ("menu", self.open_menu),
+                ("leaderboard endless", lambda: self.open_leaderboard("endless")), ("menu", self.open_menu),
+                ("done", lambda: None)]
             self._tour_t = 3.0
         self._tour_t -= dt
         if self._tour_t > 0 or not self._tour:
@@ -2316,6 +2319,13 @@ class HoloGame:
                 print(f"[state] {self._logged_state} -> {self.state}  lvl {getattr(self, 'level_id', 0)}  "
                       f"mem {memstat.footprint()} MB  t {self.ui_time:.0f}s")
                 self._logged_state = self.state
+                self._alive_n, self._alive_t = 8, 0.5
+            if paths.is_mobile() and getattr(self, "_alive_n", 0) > 0:      # the seconds after a screen change
+                self._alive_t -= dt
+                if self._alive_t <= 0:
+                    self._alive_n -= 1
+                    self._alive_t = 0.5
+                    print(f"[alive] {self.state} mem {memstat.footprint()} MB fps {self.clock.get_fps():.0f}")
             if probe:
                 probe.mid()
             first = self.state != getattr(self, "_drawn_state", None)

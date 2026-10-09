@@ -293,6 +293,8 @@ class OnlineClient:
                 kind, payload = self._results.get_nowait()
             except queue.Empty:
                 break
+            if kind not in ("offline",):
+                print(f"[poll] {kind}")
             if kind == "board":
                 scope, data = payload
                 self.boards[scope] = data
@@ -390,6 +392,8 @@ class OnlineClient:
         conn = _Connection(self.url)
         while True:
             kind, arg = jobs.get()
+            t0 = time.time()
+            print(f"[net] {kind} {arg if kind in ('fetch', 'ghost') else ''} ...")
             try:
                 if kind == "register":
                     self._do_register(conn)
@@ -426,6 +430,7 @@ class OnlineClient:
                 print("online worker error:", e)
                 conn.close()
                 self._results.put(("offline", None))
+            print(f"[net] {kind} done {time.time() - t0:.1f}s")
 
     def _do_account(self, conn, kind, arg):
         s = self.save
