@@ -22,6 +22,7 @@ import config
 import paths
 import achievements as ach_mod
 import skin_catalog as catalog
+import skin_text
 
 VW = 900
 VH = 1620
@@ -2299,7 +2300,7 @@ class SkinScreen:
             self.draw_dynamic(surface)
         draw_text(surface, catalog.tier_name(tier, lang), 22, tcol, (cx, 412))
         draw_text(surface, sk["name"], 44, TEXT_WHITE, (cx, 452))
-        draw_text(surface, sk["desc"], 24, TEXT_MUTED, (cx, 500), bold=False, max_w=760)
+        draw_text(surface, skin_text.desc(sid, sk), 24, TEXT_MUTED, (cx, 500), bold=False, max_w=760)
 
         unlocked = sm.is_skin_unlocked(sid)
         equipped = sm.equipped_skin == sid
@@ -2750,7 +2751,7 @@ class ShopScreen:
         if not getattr(self, "_static", False):
             self.draw_dynamic(surface)
         draw_text(surface, sk["name"], 44, TEXT_WHITE, (cx, 384))
-        draw_text(surface, sk["desc"], 24, (160, 195, 235), (cx, 426), bold=False, max_w=760)
+        draw_text(surface, skin_text.desc(self.selected, sk), 24, (160, 195, 235), (cx, 426), bold=False, max_w=760)
         if premium:
             draw_text(surface, t("premium_tag"), 20, (255, 210, 110), (cx, 456), bold=True)
         if self.selected == self._featured:
@@ -4298,7 +4299,7 @@ class FeaturedScreen:
             x = r.x + 330
             draw_text(surface, catalog.tier_name(1, lang), 22, gold, (x, r.y + 38), anchor="midleft", bg=bg)
             draw_text(surface, sk["name"], 44, TEXT_WHITE, (x, r.y + 84), anchor="midleft", max_w=r.right - x - 24, bg=bg)
-            draw_text(surface, sk.get("desc", ""), 22, TEXT_MUTED, (x, r.y + 130), anchor="midleft", bold=False,
+            draw_text(surface, skin_text.desc(sid, sk), 22, TEXT_MUTED, (x, r.y + 130), anchor="midleft", bold=False,
                       max_w=r.right - x - 24, bg=bg)
             if sm.is_skin_unlocked(sid):
                 on = sm.equipped_skin == sid

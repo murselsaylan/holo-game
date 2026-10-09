@@ -1,0 +1,105 @@
+"""Skin descriptions in every game language (skins.py keeps the Turkish one in "desc", which stays the fallback)."""
+import locales
+
+# id: (en, de, es)
+_DESC = {
+    "neon_pulse": ("Cyberpunk neon light theme", "Cyberpunk-Neonlicht", "Tema de luz neón cyberpunk"),
+    "cyber_matrix": ("Silver and gold gears, metal chain", "Silber- und Goldzahnräder, Metallkette", "Engranajes de plata y oro, cadena metálica"),
+    "solar_nova": ("Flame-red solar burst", "Flammenroter Sonnenausbruch", "Estallido solar rojo fuego"),
+    "cosmic_void": ("Deep galaxy & nebula energy", "Tiefe Galaxie & Nebelenergie", "Galaxia profunda y energía de nebulosa"),
+    "electric_storm": ("High-voltage plasma lightning", "Hochspannungs-Plasmablitze", "Rayos de plasma de alto voltaje"),
+    "sakura_dream": ("Graceful cherry blossom petals", "Zarte Kirschblütenblätter", "Delicados pétalos de cerezo"),
+    "monochrome_zen": ("Black & white harmony", "Schwarz-Weiß-Harmonie", "Armonía en blanco y negro"),
+    "boba_tea": ("Strawberry milk & brown sugar boba pearls", "Erdbeermilch & Braunzucker-Bobaperlen", "Leche de fresa y perlas de boba con azúcar moreno"),
+    "meow_paw": ("Cute cat paws and mint candy", "Süße Katzenpfoten und Minzbonbons", "Patitas de gato y caramelo de menta"),
+    "gummy_pop": ("Colourful sparkling gummy candy", "Bunte glitzernde Gummibärchen", "Gominolas brillantes de colores"),
+    "starry_pastel": ("Soft baby blue and pastel stardust", "Zartes Babyblau und Pastell-Sternenstaub", "Azul bebé suave y polvo de estrellas pastel"),
+    "golden_crown": ("Legendary glowing pure gold crown", "Legendäre leuchtende Krone aus reinem Gold", "Corona legendaria de oro puro brillante"),
+    "aurora_borealis": ("Emerald & violet aura of the northern lights", "Smaragd- & Violett-Aura des Nordlichts", "Aura esmeralda y violeta de la aurora boreal"),
+    "inferno_dragon": ("Scorching magma flames & volcanic sparks", "Glühende Magmaflammen & Vulkanfunken", "Llamas de magma y chispas volcánicas"),
+    "deep_ocean": ("Bioluminescent ocean abyss & coral glow", "Biolumineszente Tiefsee & Korallenglanz", "Abismo oceánico bioluminiscente y brillo de coral"),
+    "toxic_hazard": ("Radioactive neon green & high-hazard acid", "Radioaktives Neongrün & gefährliche Säure", "Verde neón radiactivo y ácido peligroso"),
+    "phantom_wraith": ("Cosmic ghost mist & shadow lavender aura", "Kosmischer Geisternebel & Lavendel-Schattenaura", "Niebla fantasma cósmica y aura lavanda"),
+    "galactic_nebula": ("Deep galactic nebula & interstellar dust", "Galaktischer Nebel & interstellarer Staub", "Nebulosa galáctica y polvo interestelar"),
+    "frost_crystal": ("Glacial cryogenic frost & diamond shine", "Gletscher-Raureif & Diamantglanz", "Escarcha glacial y brillo de diamante"),
+    "pixel_retro": ("8-bit retro arcade & neon pixels", "8-Bit-Retro-Arcade & Neonpixel", "Arcade retro de 8 bits y píxeles neón"),
+    "honey_bee": ("Sweet golden honeycomb & sparkling amber", "Süße goldene Honigwabe & funkelnder Bernstein", "Panal de miel dorado y ámbar brillante"),
+    "cyber_phantom": ("Elite cyber titanium & iridescent ghost armour", "Elite-Cybertitan & schillernde Geisterrüstung", "Titanio cibernético y armadura fantasma iridiscente"),
+    "comet_tail": ("The glowing trail of an ice comet", "Die leuchtende Spur eines Eiskometen", "La estela brillante de un cometa de hielo"),
+    "stardust_dream": ("A cloud of gold and pink stardust", "Eine Wolke aus goldenem und rosa Sternenstaub", "Una nube de polvo de estrellas dorado y rosa"),
+    "quantum_lattice": ("Quantum lattice: crystal nodes", "Quantengitter: Kristallknoten", "Red cuántica: nodos de cristal"),
+    "pulsar_beam": ("Pulse after pulse from a neutron star", "Puls um Puls von einem Neutronenstern", "Pulso tras pulso de una estrella de neutrones"),
+    "supernova": ("An exploding star: embers and sparks", "Ein explodierender Stern: Glut und Funken", "Una estrella que estalla: brasas y chispas"),
+    "event_horizon": ("A dark core with a blazing accretion ring", "Dunkler Kern, brennender Akkretionsring", "Núcleo oscuro y anillo de acreción ardiente"),
+    "mochi_pal": ("Squishy pink mochi friends", "Weiche rosa Mochi-Freunde", "Amigos mochi rosas y blanditos"),
+    "mint_blob": ("Cool mint jelly, always smiling", "Kühles Minzgelee, immer lächelnd", "Gelatina de menta fresca, siempre sonriendo"),
+    "lemon_chick": ("Lemony chick twins", "Zitronige Kükenzwillinge", "Pollitos gemelos de limón"),
+    "berry_kitty": ("Berry-coloured little kittens", "Beerenfarbene kleine Kätzchen", "Gatitos color frutos del bosque"),
+    "cloud_bunny": ("Cloud bunny: ears in the wind", "Wolkenhase: Ohren im Wind", "Conejo nube: orejas al viento"),
+    "rainbow_unicorn": ("A unicorn with a rainbow mane", "Ein Einhorn mit Regenbogenmähne", "Un unicornio con crin de arcoíris"),
+    "galaxy_cat": ("A stardust-covered space cat", "Eine sternenstaubbedeckte Weltraumkatze", "Un gato espacial cubierto de polvo de estrellas"),
+    "bunny_moon": ("Moon bunny: a chain of hearts", "Mondhase: eine Herzkette", "Conejo lunar: cadena de corazones"),
+    "diamond_heart": ("A pair of shining hearts", "Ein Paar leuchtender Herzen", "Un par de corazones brillantes"),
+    "angel_halo": ("Angel orbs with halos", "Engelskugeln mit Heiligenschein", "Orbes de ángel con aureola"),
+    "royal_crown": ("A royal pair with golden crowns", "Ein königliches Paar mit goldenen Kronen", "Una pareja real con coronas de oro"),
+    "nebula_koi": ("Orange koi swimming through a nebula", "Orange Koi, die durch einen Nebel schwimmen", "Koi naranjas nadando en una nebulosa"),
+    "moon_dust": ("Moon dust: silver crystal orbs", "Mondstaub: silberne Kristallkugeln", "Polvo lunar: orbes de cristal plateado"),
+    "mars_rover": ("The sparking rover of the red planet", "Der funkensprühende Rover des roten Planeten", "El rover chispeante del planeta rojo"),
+    "saturn_ring": ("Gold-purple dust of the ringed planet", "Gold-violetter Staub des Ringplaneten", "Polvo dorado y morado del planeta anillado"),
+    "cosmic_penguin": ("A space penguin from the ice planet", "Ein Weltraumpinguin vom Eisplaneten", "Un pingüino espacial del planeta helado"),
+    "solar_flare_cat": ("A cat as hot as a solar flare", "Eine Katze, heiß wie eine Sonneneruption", "Un gato tan ardiente como una llamarada solar"),
+    "alien_slime": ("Alien slime: green and purple", "Alien-Schleim: grün und lila", "Baba alienígena: verde y morada"),
+    "star_bear": ("A little bear dusted with stardust", "Ein Bärchen voller Sternenstaub", "Un osito cubierto de polvo de estrellas"),
+    "pixel_probe": ("An old-school pixel probe", "Eine Pixelsonde alter Schule", "Una sonda de píxeles a la antigua"),
+    "dark_matter": ("Invisible mass: a dark core", "Unsichtbare Masse: ein dunkler Kern", "Masa invisible: un núcleo oscuro"),
+    "neutron_star": ("A spinning neutron star and its pulses", "Ein rotierender Neutronenstern und seine Pulse", "Una estrella de neutrones giratoria y sus pulsos"),
+    "big_bang": ("The moment everything began", "Der Moment, in dem alles begann", "El instante en que todo empezó"),
+    "astro_kitty": ("A little kitten in a spacesuit", "Ein Kätzchen im Raumanzug", "Un gatito con traje de astronauta"),
+    "rocket_bunny": ("A bunny running on rocket fuel", "Ein Hase mit Raketenantrieb", "Un conejo propulsado por cohete"),
+    "nova_heart": ("Supernova heart: a rainbow chain", "Supernova-Herz: eine Regenbogenkette", "Corazón supernova: cadena de arcoíris"),
+    "comet_angel": ("An angel born from a comet", "Ein Engel, aus einem Kometen geboren", "Un ángel nacido de un cometa"),
+    "sakura_fox": ("A sweet fox dancing with cherry blossoms", "Ein süßer Fuchs, der mit Kirschblüten tanzt", "Un zorrito que baila con flores de cerezo"),
+    "panda_boba": ("A tiny cute panda gliding on boba pearls", "Ein kleiner Panda, der auf Bobaperlen gleitet", "Un pandita que se desliza sobre perlas de boba"),
+    "sugar_puppy": ("A cheerful caramel-candy puppy", "Ein fröhlicher Karamell-Welpe", "Un cachorro alegre de caramelo"),
+    "starlight_chick": ("A tiny chick born from stardust", "Ein winziges Küken aus Sternenstaub", "Un pollito diminuto nacido del polvo de estrellas"),
+    "solar_wind": ("Golden particles swept by the solar wind", "Goldene Teilchen im Sonnenwind", "Partículas doradas arrastradas por el viento solar"),
+    "quartz": ("Pure quartz crystal, full of light", "Reiner Quarzkristall voller Licht", "Cristal de cuarzo puro, lleno de luz"),
+    "gas_giant": ("A stormy ringed gas giant", "Ein stürmischer Gasriese mit Ringen", "Un gigante gaseoso tormentoso y anillado"),
+    "ice_moon": ("A frozen moon with icy craters", "Ein gefrorener Mond mit Eiskratern", "Una luna helada con cráteres de hielo"),
+    "red_dwarf": ("A small but burning red dwarf star", "Ein kleiner, aber glühender roter Zwerg", "Una enana roja pequeña pero ardiente"),
+    "little_prince": ("A little prince wandering between stars", "Ein kleiner Prinz, der durch die Sterne reist", "Un principito que viaja entre estrellas"),
+    "leviathan": ("A giant sea monster from the deep", "Ein riesiges Seeungeheuer aus der Tiefe", "Un monstruo marino gigante de las profundidades"),
+    "jelly_drift": ("A glowing jellyfish drifting in the current", "Eine leuchtende Qualle in der Strömung", "Una medusa luminosa a la deriva"),
+    "void_walker": ("A shadow traveller walking the void", "Ein Schattenreisender in der Leere", "Un viajero sombrío que camina por el vacío"),
+    "snow_leopard": ("The mysterious cat of the snowy peaks", "Die geheimnisvolle Katze der Schneegipfel", "El misterioso felino de las cumbres nevadas"),
+    "frost_fox": ("A little fox shimmering with frost", "Ein kleiner Fuchs, der im Raureif glänzt", "Un zorrito que brilla con la escarcha"),
+    "snowball": ("Fluffy snowball friends", "Flauschige Schneeball-Freunde", "Amigos bola de nieve esponjosos"),
+    "arcade_king": ("The arcade's record holder, always crowned", "Der Rekordhalter der Spielhalle, stets gekrönt", "El campeón de los recreativos, siempre coronado"),
+    "pixel_heart": ("A heart beating pixel by pixel", "Ein Herz, das Pixel für Pixel schlägt", "Un corazón que late píxel a píxel"),
+    "joystick": ("The neon stick of a retro controller", "Der Neonstick eines Retro-Controllers", "La palanca neón de un mando retro"),
+    "coin_pop": ("A pair of jingling gold coins", "Ein Paar klimpernder Goldmünzen", "Un par de monedas de oro tintineantes"),
+    "diamond_prestige": ("Cosmic diamond: the purest light in the universe", "Kosmischer Diamant: das reinste Licht des Universums", "Diamante cósmico: la luz más pura del universo"),
+    "platinum_prestige": ("Platinum forged from a star's core", "Platin, im Kern eines Sterns geschmiedet", "Platino forjado en el núcleo de una estrella"),
+    "gold_prestige": ("Pure gold flowing from the heart of the sun", "Reines Gold aus dem Herzen der Sonne", "Oro puro que brota del corazón del sol"),
+    "silver_prestige": ("A silver pair shining in the moonlight", "Ein silbernes Paar im Mondlicht", "Una pareja de plata que brilla a la luz de la luna"),
+    "bronze_prestige": ("Bronze hardened by stardust", "Bronze, gehärtet durch Sternenstaub", "Bronce endurecido con polvo de estrellas"),
+    "star_hunter": ("Legend of the endless climb: the golden star hunter", "Legende des endlosen Aufstiegs: der goldene Sternjäger", "Leyenda de la escalada infinita: el cazador de estrellas dorado"),
+    "comet_rider": ("Riding a comet: a trail of blue flame", "Auf einem Kometen: eine blaue Flammenspur", "A lomos de un cometa: estela de llama azul"),
+    "starfall": ("A purple night under a shower of stars", "Eine lila Nacht im Sternschnuppenregen", "Una noche morada bajo una lluvia de estrellas"),
+    "twinkle_orb": ("Tiny winking stars", "Winzige zwinkernde Sterne", "Estrellitas que guiñan"),
+    "stargazer": ("A stargazer collecting their first stars", "Ein Sterngucker, der seine ersten Sterne sammelt", "Un astrónomo que reúne sus primeras estrellas"),
+}
+_LANG_COL = {"en": 0, "de": 1, "es": 2}
+
+
+def desc(skin_id, skin=None):
+    """The skin's description in the current language (Turkish from skins.py when there is no translation)."""
+    lang = locales.get_language()
+    if skin is None:
+        import skins
+        skin = skins.SKINS.get(skin_id, {})
+    col = _LANG_COL.get(lang)
+    row = _DESC.get(skin_id)
+    if col is not None and row:
+        return row[col]
+    return skin.get("desc", "")
