@@ -1,6 +1,6 @@
 """In-App Purchases in App Store Connect via the API (run by .github/workflows/ios-store.yml on an "iap-*" tag).
 
-    python tools/asc_iap.py
+    python tools/asc_iap.py            (--reshot: replace the review screenshots too)
 
 Creates whatever is missing of the products the game sells (shop.py: diamond packs, legendary skins, remove_ads) with
 their names (tr + en), price, availability in every country and the review screenshot. Safe to run again: existing
@@ -17,7 +17,8 @@ from asc_store import APP, FAILED, ROOT, call, step   # noqa: E402
 
 import requests                                         # noqa: E402
 
-SHOT = os.path.join(ROOT, "store_assets", "ios_screens", "en", "08_shop.png")
+SHOTS = os.path.join(ROOT, "store_assets", "ios_iap")      # tools/make_iap_shots.py: skin.png, packs.png
+RESHOT = "--reshot" in sys.argv                            # replace review screenshots that are already there
 REVIEW_NOTE = ("Bought in the game's shop (main menu > SHOP). Diamonds are credited by our server after it checks the "
                "transaction with the App Store; skins appear in the SKINS screen; Remove Ads stops the ads between "
                "levels. Restore Purchases is at the bottom of the shop.")
@@ -120,8 +121,11 @@ def ensure(pid, kind, usd, locs, have):
                      "availableTerritories": {"data": [{"type": "territories", "id": t} for t in territories()]}}}})
             print("    available in", len(territories()), "countries")
         shot = call("GET", f"/v2/inAppPurchases/{iid}/appStoreReviewScreenshot", ok=(200, 404))
+        if shot.get("data") and RESHOT:
+            call("DELETE", f"/v1/inAppPurchaseAppStoreReviewScreenshots/{shot['data']['id']}")
+            shot = {}
         if not shot.get("data"):
-            blob = open(SHOT, "rb").read()
+            blob = open(os.path.join(SHOTS, "skin.png" if pid.startswith("skin_") else "packs.png"), "rb").read()
             s = call("POST", "/v1/inAppPurchaseAppStoreReviewScreenshots", {"data": {
                 "type": "inAppPurchaseAppStoreReviewScreenshots", "attributes": {"fileName": "shop.png", "fileSize": len(blob)},
                 "relationships": {"inAppPurchaseV2": {"data": {"type": "inAppPurchases", "id": iid}}}}})["data"]

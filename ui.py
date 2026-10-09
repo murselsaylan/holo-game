@@ -2494,6 +2494,7 @@ class ShopScreen:
         self.btn_shield.rect.y = gy + (180 if self.shop.sells_money else 30)
         self.btn_ad.rect.y = self.btn_shield.rect.y + 72
         self.btn_noads.rect.y = self.btn_ad.rect.y + 72
+        self._sold_money = self.shop.sells_money
         self._content_key = None
 
     def _click(self):
@@ -2576,6 +2577,9 @@ class ShopScreen:
     def update(self, mouse_pos, dt=1.0):
         self.time_val += 0.035 * dt
         self.shop.poll()
+        if self.shop.sells_money != getattr(self, "_sold_money", None):     # iOS: App Store prices arrive later
+            self._sold_money = self.shop.sells_money
+            self.refresh_texts()
         for b in (self.btn_back, self.buy_button, self.btn_gems, self.btn_money, self.btn_restore):
             b.update(mouse_pos, dt)
         self._scroll.update(self._content_h(), self._view_h(), dt)
