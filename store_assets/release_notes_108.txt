@@ -1,0 +1,28 @@
+<tr-TR>
+Reklam izleyerek elmas kazan ve yandığında reklamla devam et.
+"Reklamları Kaldır" ile bölüm aralarındaki reklamlara tek seferde veda et.
+Mağazaya elmas paketleri ve efsanevi skinler eklendi.
+Skin açıklamaları artık her dilde.
+Kararlılık iyileştirmeleri.
+</tr-TR>
+<en-US>
+Watch an ad to earn diamonds, or to keep going after a crash.
+"Remove Ads" turns off the ads between levels for good.
+Diamond packs and legendary skins are now in the shop.
+Skin descriptions in every language.
+Stability improvements.
+</en-US>
+<de-DE>
+Sieh dir eine Werbung an, um Diamanten zu verdienen oder nach einem Absturz weiterzuspielen.
+„Werbung entfernen" schaltet die Werbung zwischen den Levels dauerhaft ab.
+Diamantpakete und legendäre Skins sind jetzt im Shop.
+Skin-Beschreibungen in jeder Sprache.
+Stabilitätsverbesserungen.
+</de-DE>
+<es-ES>
+Mira un anuncio para ganar diamantes o para seguir tras chocar.
+"Quitar anuncios" elimina para siempre los anuncios entre niveles.
+Paquetes de diamantes y skins legendarias ya en la tienda.
+Descripciones de skins en todos los idiomas.
+Mejoras de estabilidad.
+</es-ES>

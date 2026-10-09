@@ -85,6 +85,8 @@ def set_texts(v):
     for loc, m in CFG["locales"].items():
         a = {"description": m["description"], "keywords": m["keywords"], "promotionalText": m["promotional_text"],
              "supportUrl": CFG["support_url"]}
+        if m.get("whats_new") and CFG["version"] != "1.0.7":   # the first release has no "What's New"
+            a["whatsNew"] = m["whats_new"]
         if loc in have:
             lid = have[loc]["id"]
             call("PATCH", f"/v1/appStoreVersionLocalizations/{lid}",

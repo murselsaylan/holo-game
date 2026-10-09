@@ -4,7 +4,10 @@
   "copyright": "2026 Mürsel Saylan",
   "support_url": "https://btpiblrrsjmhuacwkopr.supabase.co/functions/v1/scores",
   "privacy_url": "https://btpiblrrsjmhuacwkopr.supabase.co/functions/v1/scores/privacy",
-  "categories": ["GAMES", "GAMES_ACTION"],
+  "categories": [
+    "GAMES",
+    "GAMES_ACTION"
+  ],
   "screenshot_type": "APP_IPHONE_67",
   "locales": {
     "tr": {
@@ -12,7 +15,8 @@
       "subtitle": "Tek dokunuşla ritim ve refleks",
       "promotional_text": "Tek dokunuşla oynanan zorlu bir ritim-refleks oyunu: 100 bölüm, her seferinde yeni haritalı Sonsuz Tırmanış ve dünya sıralaması. Birinciyi geçebilir misin?",
       "keywords": "refleks,ritim,küre,uzay,neon,zor oyun,tek dokunuş,arcade,sonsuz,bölüm,beceri,rekor,yörünge,hızlı",
-      "description": "İki küre, tek bir bağ. Ekrana her dokunduğunda dönen küre durur, duran küre dönmeye başlar. Ritmi yakala; duvarlara, lazerlere ve dönen kollara değmeden yolunu bul.\n\n• 100 el yapımı bölüm, 5 uzay sektörü: her sektör yeni bir mekanik getirir (seken duvarlar, enerji bariyerleri, küçülme boğazları, kaçış koşuları, lazerler).\n• Sonsuz Tırmanış: her seferinde yeni bir harita, yükseldikçe hızlanan bir tırmanış. Yıldız topla, rekorunu geç.\n• Dünya sıralaması: skorların sunucuda yeniden oynatılarak doğrulanır, hileye yer yok.\n• Dünya birincisinin hayaletiyle yarış.\n• 80'den fazla görünüm: oyunda kazandığın elmas ve yıldızlarla aç.\n• Günlük ödüller, haftalık görevler, başarımlar ve sezon etkinlikleri.\n• Tek parmakla oynanır: öğrenmesi kolay, ustalaşması zor.\n\nBölümleri internet olmadan da oynayabilirsin; sıralama ve hediyeler için bağlantı gerekir."
+      "description": "İki küre, tek bir bağ. Ekrana her dokunduğunda dönen küre durur, duran küre dönmeye başlar. Ritmi yakala; duvarlara, lazerlere ve dönen kollara değmeden yolunu bul.\n\n• 100 el yapımı bölüm, 5 uzay sektörü: her sektör yeni bir mekanik getirir (seken duvarlar, enerji bariyerleri, küçülme boğazları, kaçış koşuları, lazerler).\n• Sonsuz Tırmanış: her seferinde yeni bir harita, yükseldikçe hızlanan bir tırmanış. Yıldız topla, rekorunu geç.\n• Dünya sıralaması: skorların sunucuda yeniden oynatılarak doğrulanır, hileye yer yok.\n• Dünya birincisinin hayaletiyle yarış.\n• 80'den fazla görünüm: oyunda kazandığın elmas ve yıldızlarla aç.\n• Günlük ödüller, haftalık görevler, başarımlar ve sezon etkinlikleri.\n• Tek parmakla oynanır: öğrenmesi kolay, ustalaşması zor.\n\nBölümleri internet olmadan da oynayabilirsin; sıralama ve hediyeler için bağlantı gerekir.",
+      "whats_new": "Reklam izleyerek elmas kazan ve yandığında reklamla devam et.\n\"Reklamları Kaldır\" ile bölüm aralarındaki reklamlara tek seferde veda et.\nMağazaya elmas paketleri ve efsanevi skinler eklendi.\nSkin açıklamaları artık her dilde.\nKararlılık iyileştirmeleri."
     },
     "en-US": {
       "screens": "store_assets/ios_screens/en",
@@ -20,7 +24,8 @@
       "subtitle": "One-tap rhythm & reflex game",
       "promotional_text": "A tough one-tap rhythm and reflex game: 100 levels, an endless climb with a new map every run and a world ranking. Can you beat the world #1?",
       "keywords": "reflex,rhythm,orbit,space,neon,hard game,one tap,arcade,endless,levels,skill,record,tether,fast",
-      "description": "Two orbs. One tether. Endless space.\n\nEvery tap swaps which orb is the pivot and which one swings - that is the whole control scheme. Deceptively simple, endlessly demanding: catch the rhythm and find your way past walls, lasers and spinning arms.\n\n• 100 handmade levels across 5 space sectors, each with a new mechanic: bumpers, energy barriers, shrink throats, escape runs, lasers.\n• Endless Climb: a new map every run, faster the higher you go. Grab stars and beat your record.\n• Global leaderboard: the server replays your taps to verify every score - no cheating.\n• Race the ghost of the world's #1.\n• 80+ orb skins, unlocked with the diamonds and stars you earn by playing.\n• Daily rewards, weekly missions, achievements and seasonal events.\n• Played with one finger: easy to learn, hard to master.\n\nLevels can be played offline; the leaderboard and gifts need a connection."
+      "description": "Two orbs. One tether. Endless space.\n\nEvery tap swaps which orb is the pivot and which one swings - that is the whole control scheme. Deceptively simple, endlessly demanding: catch the rhythm and find your way past walls, lasers and spinning arms.\n\n• 100 handmade levels across 5 space sectors, each with a new mechanic: bumpers, energy barriers, shrink throats, escape runs, lasers.\n• Endless Climb: a new map every run, faster the higher you go. Grab stars and beat your record.\n• Global leaderboard: the server replays your taps to verify every score - no cheating.\n• Race the ghost of the world's #1.\n• 80+ orb skins, unlocked with the diamonds and stars you earn by playing.\n• Daily rewards, weekly missions, achievements and seasonal events.\n• Played with one finger: easy to learn, hard to master.\n\nLevels can be played offline; the leaderboard and gifts need a connection.",
+      "whats_new": "Watch an ad to earn diamonds, or to keep going after a crash.\n\"Remove Ads\" turns off the ads between levels for good.\nDiamond packs and legendary skins are now in the shop.\nSkin descriptions in every language.\nStability improvements."
     }
   }
 }
