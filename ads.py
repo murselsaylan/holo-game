@@ -4,9 +4,10 @@
     "continue"  rewarded interstitial on the crash screen -> one revive (server wallet kind "adrevive" pays its price)
     "levels"    interstitial after every LEVELS_PER_AD finished levels - gone for good with the "remove_ads" purchase
 
-Android only for now (android_src/org/holo/ads/AdsBridge.java, Google Mobile Ads SDK + UMP consent). Ad unit ids come
-from config.json "admob"; builds that are not release builds use Google's public test ids, so testing never touches
-the real units. Without the bridge (desktop, iOS for now, debug APKs) available() is always False and the game shows
+Android: android_src/org/holo/ads/AdsBridge.java; iOS: ads_ios.py (rubicon-objc over the SDK that
+tools/make_ios_project.py links) - both Google Mobile Ads SDK + UMP consent, same interface. Ad unit ids come from
+config.json "admob"; builds that are not release builds (or have "ads_test") use Google's public test ids, so testing
+never touches the real units. Without a bridge (desktop, debug APKs) available() is always False and the game shows
 no ad buttons.
 """
 import config
@@ -39,9 +40,18 @@ class Ads:
     def __init__(self):
         self._bridge = None
         self._wait = {}                     # slot -> (on_reward, on_close)
-        if not paths.is_android() or config.get("ads_off", False):
+        self._muted = False
+        if not paths.is_mobile() or config.get("ads_off", False):
             return
         ids = unit_ids()
+        if paths.is_ios():
+            try:
+                import ads_ios
+                self._bridge = ads_ios.AdsBridgeIOS(ids["diamonds"], ids["continue"], ids["levels"])
+            except Exception as e:
+                print("ads unavailable:", e)
+                self._bridge = None
+            return
         try:
             from jnius import autoclass     # python-for-android only
             activity = autoclass("org.kivy.android.PythonActivity").mActivity
@@ -71,11 +81,25 @@ class Ads:
         self._wait[slot] = (on_reward, on_close)
         try:
             self._bridge.show(slot)
+            self._mute(True)
             return True
         except Exception as e:
             print("ad error:", e)
             self._wait.pop(slot, None)
             return False
+
+    def _mute(self, on):
+        """iOS shows the ad over the running game (Android pauses the activity, and SDL its sound, by itself)."""
+        if not paths.is_ios() or on == self._muted:
+            return
+        self._muted = on
+        try:
+            import pygame
+            if pygame.mixer.get_init():
+                (pygame.mixer.pause if on else pygame.mixer.unpause)()
+                (pygame.mixer.music.pause if on else pygame.mixer.music.unpause)()
+        except Exception:
+            pass
 
     def privacy_options_required(self):
         try:
@@ -92,7 +116,13 @@ class Ads:
 
     def poll(self):
         """Every frame: runs the callbacks of the ads that finished."""
-        if self._bridge is None or not self._wait:
+        if self._bridge is None:
+            return
+        tick = getattr(self._bridge, "tick", None)
+        if tick is not None:
+            tick()
+        if not self._wait:
+            self._mute(False)
             return
         for _ in range(4):
             try:

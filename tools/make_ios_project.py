@@ -108,6 +108,104 @@ def add_packages():
         print("removed", removed, "build leftovers from", os.path.basename(target))
 
 
+# ---------------------------------------------------------------------------------------------- AdMob (ads.py)
+ADMOB_ZIP = "https://dl.google.com/googleadmobadssdk/googlemobileadssdkios.zip"
+# Google's SKAdNetwork ids (developers.google.com/admob/ios/quick-start - "Update your Info.plist")
+SKADNETWORK_IDS = """cstr6suwn9 4fzdc2evr5 2fnua5tdw4 ydx93a7ass p78axxw29g v72qych5uu ludvb6z3bs cp8zw746q7 3sh42y64q3
+c6k4g5qg8m s39g8k73mm wg4vff78zm 3qy4746246 f38h382jlk hs6bdukanm mlmmfzh3r3 v4nxqhlyqp wzmmz9fp6w su67r6k2v3 yclnxrl5pm
+t38b2kh725 7ug5zh24hu gta9lk7p23 vutu7akeur y5ghdn5j9k v9wttpbfk9 n38lu8286q 47vhws6wlr kbd757ywx3 9t245vhmpl a2p9lx4jpn
+22mmun2rn5 44jx6755aq k674qkevps 4468km3ulz 2u9pt9hc89 8s468mfl3y klf5c3l5u5 ppxm28t8ap kbmxgpxpgc uw77j35x4d 578prtvx9j
+4dzt52r2t5 tl55sbb4fm c3frkrj4fj e5fvkxwrpn 8c4e2ghe7u 3rd42ekr43 97r2b46745 3qcr597p9d""".split()
+
+
+def fetch_admob():
+    """Google Mobile Ads SDK + UMP (consent) xcframeworks into the template's Support/ folder. Returns their names."""
+    import urllib.request
+    import zipfile
+    cache = os.path.join(OUT, "admob_sdk.zip")
+    if not os.path.isfile(cache):
+        os.makedirs(OUT, exist_ok=True)
+        with urllib.request.urlopen(ADMOB_ZIP, timeout=300) as r:
+            open(cache, "wb").write(r.read())
+    names = []
+    with zipfile.ZipFile(cache) as z:
+        tops = sorted({n.split("/")[1] for n in z.namelist() if n.count("/") >= 2 and n.split("/")[1].endswith(".xcframework")})
+        print("AdMob SDK zip:", z.namelist()[0].split("/")[0], tops)
+        for top in tops:
+            for n in z.namelist():
+                parts = n.split("/")
+                if len(parts) > 2 and parts[1] == top and not n.endswith("/"):
+                    dst = os.path.join(TEMPLATE, "Support", *parts[1:])
+                    os.makedirs(os.path.dirname(dst), exist_ok=True)
+                    with z.open(n) as src, open(dst, "wb") as out:
+                        out.write(src.read())
+            names.append(top)
+    # zip extraction loses the symlinks / exec bits some framework layouts use: make binaries executable again
+    for base, dirs, files in os.walk(os.path.join(TEMPLATE, "Support")):
+        for f in files:
+            if base.endswith(".framework") and "." not in f:
+                os.chmod(os.path.join(base, f), 0o755)
+    return names
+
+
+def _pbx_id(seed):
+    import hashlib
+    return hashlib.md5(("holo-" + seed).encode()).hexdigest()[:24].upper()
+
+
+def _insert_after_block_list(pbx, block_marker, list_key, line):
+    i = pbx.index(block_marker)
+    j = pbx.index(list_key, i) + len(list_key)
+    return pbx[:j] + line + pbx[j:]
+
+
+def add_xcframework(pbx, name):
+    """Links (and, when it is dynamic, embeds) Support/<name> in the app target, like the template's own SDL2."""
+    binary = None
+    for base, dirs, files in os.walk(os.path.join(TEMPLATE, "Support", name)):
+        for f in files:
+            if f == name.replace(".xcframework", "") and "simulator" not in base:
+                binary = os.path.join(base, f)
+    static = bool(binary) and open(binary, "rb").read(8) == b"!<arch>\n"
+    fid, bid, eid = _pbx_id(name + ":ref"), _pbx_id(name + ":link"), _pbx_id(name + ":embed")
+    pbx = pbx.replace("/* Begin PBXFileReference section */\n", "/* Begin PBXFileReference section */\n"
+                      f"\t\t{fid} /* {name} */ = {{isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; "
+                      f"name = {name}; path = Support/{name}; sourceTree = \"<group>\"; }};\n", 1)
+    build = f"\t\t{bid} /* {name} in Frameworks */ = {{isa = PBXBuildFile; fileRef = {fid} /* {name} */; }};\n"
+    if not static:
+        build += (f"\t\t{eid} /* {name} in Embed Frameworks */ = {{isa = PBXBuildFile; fileRef = {fid} /* {name} */; "
+                  f"settings = {{ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }}; }};\n")
+    pbx = pbx.replace("/* Begin PBXBuildFile section */\n", "/* Begin PBXBuildFile section */\n" + build, 1)
+    pbx = _insert_after_block_list(pbx, "60796EDF19190F4100A9926B /* Frameworks */ = {", "files = (\n",
+                                   f"\t\t\t\t{bid} /* {name} in Frameworks */,\n")
+    pbx = _insert_after_block_list(pbx, "60796EE419190F4100A9926B /* Frameworks */ = {", "children = (\n",
+                                   f"\t\t\t\t{fid} /* {name} */,\n")
+    if not static:
+        pbx = _insert_after_block_list(pbx, "6060E7A12AF8BF4400C04AE0 /* Embed Frameworks */ = {", "files = (\n",
+                                       f"\t\t\t\t{eid} /* {name} in Embed Frameworks */,\n")
+    print(f"linked {name} ({'static' if static else 'dynamic, embedded'})")
+    return pbx
+
+
+def add_admob(pbx, info):
+    cfg = json.load(open(os.path.join(ROOT, "config.json"), encoding="utf-8"))
+    app_id = ((cfg.get("admob") or {}).get("ios") or {}).get("app_id", "")
+    if not app_id or os.environ.get("HOLO_NO_ADMOB"):
+        print("AdMob: not added")
+        return pbx
+    for name in fetch_admob():
+        pbx = add_xcframework(pbx, name)
+    # -ObjC: load the SDK's categories; the Swift paths: parts of the SDK are Swift, the app target is not
+    flags = ('OTHER_LDFLAGS = ("$(inherited)", "-ObjC", );\n\t\t\t\t'
+             'LIBRARY_SEARCH_PATHS = ("$(inherited)", "$(SDKROOT)/usr/lib/swift", '
+             '"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)", );\n\t\t\t\t')
+    pbx = pbx.replace(f"PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};", flags + f"PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};")
+    info["GADApplicationIdentifier"] = app_id
+    info["SKAdNetworkItems"] = [{"SKAdNetworkIdentifier": f"{x}.skadnetwork"} for x in SKADNETWORK_IDS]
+    print("AdMob: app id", app_id)
+    return pbx
+
+
 def configure():
     import version
     info_path = os.path.join(APP_DIR, "pygame-ios-Info.plist")
@@ -127,14 +225,15 @@ def configure():
     # although HOLO never asks for Bluetooth
     info["NSBluetoothAlwaysUsageDescription"] = "HOLO can be played with a Bluetooth game controller."
     info["NSBluetoothPeripheralUsageDescription"] = "HOLO can be played with a Bluetooth game controller."
-    with open(info_path, "wb") as f:
-        plistlib.dump(info, f)
 
     pbx_path = os.path.join(TEMPLATE, "pygame-ios.xcodeproj", "project.pbxproj")
     pbx = open(pbx_path, encoding="utf-8").read()
     pbx = re.sub(r"PRODUCT_BUNDLE_IDENTIFIER = [^;]*;", f"PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};", pbx)
     pbx = re.sub(r'TARGETED_DEVICE_FAMILY = [^;]*;', 'TARGETED_DEVICE_FAMILY = 1;', pbx)      # iPhone only (portrait game)
     pbx = re.sub(r'IPHONEOS_DEPLOYMENT_TARGET = [^;]*;', 'IPHONEOS_DEPLOYMENT_TARGET = 15.0;', pbx)
+    pbx = add_admob(pbx, info)
+    with open(info_path, "wb") as f:
+        plistlib.dump(info, f)
     # unsigned archive (App Store signature comes at export): the template's "Sign Python Binary Modules" phase
     # would run codesign with an empty identity and fail - fall back to an ad-hoc signature, replaced at export
     pbx = pbx.replace('--sign \\\"$EXPANDED_CODE_SIGN_IDENTITY\\\"', '--sign \\\"${EXPANDED_CODE_SIGN_IDENTITY:--}\\\"')

@@ -104,11 +104,12 @@ jobs:
           PY
           rm -f ~/Library/Logs/DiagnosticReports/*pygame* 2>/dev/null || true
           xcrun simctl launch --console-pty "$DEV" com.hologame.holo > "$GITHUB_WORKSPACE/screens/tour.log" 2>&1 &
-          for s in 15 30 45 60 75 90; do
-            sleep 15
-            xcrun simctl io "$DEV" screenshot "$GITHUB_WORKSPACE/screens/4_tour_${s}s.png" || true
-          done
           mkdir -p "$GITHUB_WORKSPACE/tourlogs"
+          for s in $(seq 5 5 120); do
+            sleep 5
+            xcrun simctl io "$DEV" screenshot "$GITHUB_WORKSPACE/screens/4_tour_${s}s.png" || true
+            sips -Z 640 -s format jpeg "$GITHUB_WORKSPACE/screens/4_tour_${s}s.png" --out "$GITHUB_WORKSPACE/tourlogs/shot_$(printf %03d $s).jpg" >/dev/null 2>&1 || true
+          done
           cp "$DATA/Library/Application Support/holo/holo.log" "$GITHUB_WORKSPACE/tourlogs/holo.log" 2>/dev/null || echo "no holo.log" > "$GITHUB_WORKSPACE/tourlogs/holo.log"
           cp "$GITHUB_WORKSPACE/screens/tour.log" "$GITHUB_WORKSPACE/tourlogs/console.log" || true
           cp ~/Library/Logs/DiagnosticReports/*pygame* "$GITHUB_WORKSPACE/tourlogs/" 2>/dev/null || echo "no crash report" > "$GITHUB_WORKSPACE/tourlogs/no_crash_report.txt"

@@ -1240,6 +1240,11 @@ class HoloGame:
                 ("menu", self.open_menu), ("shop", lambda: self.open_shop(top=True)), ("skins", self.open_skins),
                 ("achievements", self.open_achievements), ("daily", self.open_daily),
                 ("settings", lambda: self.open_settings("menu")), ("close settings", self.close_settings),
+                ("ads", lambda: print("[tour] ads ready:", {k: self.ads.available(k) for k in ("diamonds", "continue", "levels")})),
+                ("ad levels", lambda: print("[tour] ad shown:", self.ads.show("levels", on_close=lambda: print("[tour] ad closed")))),
+                ("ad dismiss", self._tour_dismiss_ad),
+                ("ad diamonds", lambda: print("[tour] ad shown:", self.ads.show("diamonds", on_reward=lambda: print("[tour] ad reward"), on_close=lambda: print("[tour] ad closed")))),
+                ("ad dismiss", self._tour_dismiss_ad),
                 ("levels", self.open_level_select), ("level 32", lambda: self.load_and_play_level(32)),
                 ("tap", tap), ("pause", lambda: setattr(self, "state", "paused")), ("resume", self.resume_game),
                 ("tap", tap), ("crash", crash), ("retry", self.retry_after_fail), ("tap", tap),
@@ -1256,6 +1261,14 @@ class HoloGame:
         except Exception as e:
             print(f"[tour] {name} failed: {e!r}")
         self._tour_t = 2.5
+
+    def _tour_dismiss_ad(self):
+        """Closes the ad the tour opened (the simulator run has nobody to press its close button)."""
+        if paths.is_ios():
+            import ads_ios
+            vc = ads_ios._root_vc()
+            print("[tour] on top:", vc)
+            vc.dismissViewControllerAnimated_completion_(False, None)
 
     def _start_autoplay(self):
         if config.get("release_mode", False):
