@@ -10,6 +10,7 @@ On with config "olo" (off until 1.0.9) or HOLO_OLO=1, and the player's setting "
 import math
 import os
 import random
+import time
 
 import pygame
 
@@ -57,6 +58,10 @@ class Olo:
     def react(self, attempts, pct, best_pct, alive_s):
         self.kind = kind_of(attempts, pct, best_pct, alive_s)
         pool = R[self.kind]
+        hour = time.localtime().tm_hour                 # night owls and early birds get their own lines now and then
+        clock = "night" if hour < 5 else ("morning" if 6 <= hour < 10 else None)
+        if clock and self.kind in ("fail", "repeat") and random.random() < 0.25:
+            pool = R[clock]
         fresh = [r for r in pool if id(r) not in self._recent] or pool
         pick = random.choice(fresh)
         self._recent = (self._recent + [id(pick)])[-30:]
