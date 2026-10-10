@@ -230,3 +230,12 @@ _MORE = {
 }
 for _k, _v in _MORE.items():
     R.setdefault(_k, []).extend(_v)
+
+# German and Spanish (olo_lines_i18n.py), matched by the English line
+from olo_lines_i18n import T as _T  # noqa: E402
+
+for _rs in R.values():
+    for _r in _rs:
+        for _st, _txt in _r:
+            if _txt["en"] in _T:
+                _txt["de"], _txt["es"] = _T[_txt["en"]]
