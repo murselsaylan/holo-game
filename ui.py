@@ -3665,9 +3665,12 @@ class FailureModal:
         dim(surface, 200, (12, 6, 12))
         card = pygame.Rect(90, self.top, VW - 180, 850)
         panel(surface, card, (24, 16, 24), (200, 40, 65), 26, 2)
+        title_w = card.w - 40
         if self.save_mgr:
             draw_diamond_badge(surface, card.right - 80, self.top + 50, self.save_mgr.diamonds)
-        draw_text(surface, t("failure_title"), 56, (240, 56, 80), (VW // 2, self.top + 70), max_w=card.w - 40, bg=(24, 16, 24))
+            bw = max(96, get_font(28, True).size(str(self.save_mgr.diamonds))[0] + 54)
+            title_w = 2 * (card.right - 80 - bw // 2 - 14 - VW // 2)     # centred title stays clear of the badge
+        draw_text(surface, t("failure_title"), 56, (240, 56, 80), (VW // 2, self.top + 70), max_w=title_w, bg=(24, 16, 24))
         draw_text(surface, t("failure_pct", val=self.progress_pct), 84, (255, 220, 100), (VW // 2, self.top + 180), bg=(24, 16, 24))
         pb = pygame.Rect(card.x + 60, self.top + 250, card.w - 120, 16)
         pygame.draw.rect(surface, (55, 25, 38), pb, border_radius=8)
