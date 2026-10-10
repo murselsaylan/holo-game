@@ -3334,7 +3334,7 @@ class SettingsModal:
         self.on_toggle_fullscreen = on_toggle_fullscreen
         self.desktop = desktop
         s = save_manager.settings
-        self.card = pygame.Rect(60, VH // 2 - 650, VW - 120, 1300)
+        self.card = pygame.Rect(60, VH // 2 - 710, VW - 120, 1420)
         x, w = self.card.x + 60, self.card.w - 120
         y = self.card.y + 190
         self.music_slider = Slider(x + 300, y, w - 300, 16, 0, 1, s.get("music_volume", 0.6), self._music)
@@ -3346,12 +3346,13 @@ class SettingsModal:
             Toggle((x, y + 460, w, 70), t("set_ghost"), s.get("ghost_race", True), lambda v: self._set("ghost_race", v)),
             Toggle((x, y + 550, w, 70), t("set_haptics"), s.get("haptics", True), lambda v: self._set("haptics", v)),
             Toggle((x, y + 640, w, 70), t("set_show_fps"), s.get("show_fps", False), lambda v: self._set("show_fps", v)),
+            Toggle((x, y + 730, w, 70), t("set_olo"), s.get("olo", True), lambda v: self._set("olo", v)),
         ]
-        self.btn_lang = Button((x, y + 745, w, 92), t("lang_toggle"), 34, callback=self._toggle_lang)
-        self.btn_fs = Button((x, y + 855, w, 92), t("fullscreen"), 32, callback=on_toggle_fullscreen) if desktop else None
+        self.btn_lang = Button((x, y + 835, w, 92), t("lang_toggle"), 34, callback=self._toggle_lang)
+        self.btn_fs = Button((x, y + 945, w, 92), t("fullscreen"), 32, callback=on_toggle_fullscreen) if desktop else None
         # phones with ads: Google's privacy options form, required where a consent form was shown (EEA / UK)
         self.privacy = None                 # (required(), show()) set by HoloGame
-        self.btn_privacy = Button((x, y + 855, w, 92), t("privacy_options"), 28, bg_color=(90, 100, 140),
+        self.btn_privacy = Button((x, y + 945, w, 92), t("privacy_options"), 28, bg_color=(90, 100, 140),
                                   callback=lambda: self.privacy and self.privacy[1]())
         self.on_reset = on_reset          # kept for callers; progress reset is no longer offered in the settings
         self.btn_close = Button((VW // 2 - 220, self.card.bottom - 158, 440, 96), t("close"), 38,
@@ -3387,7 +3388,7 @@ class SettingsModal:
             self.btn_fs.text = t("fullscreen")
         self.btn_close.text = t("close")
         self.btn_privacy.text = t("privacy_options")
-        for tg, key in zip(self.toggles, ("set_shake", "set_particles", "set_online", "set_ghost", "set_haptics", "set_show_fps")):
+        for tg, key in zip(self.toggles, ("set_shake", "set_particles", "set_online", "set_ghost", "set_haptics", "set_show_fps", "set_olo")):
             tg.label = t(key)
 
     def _privacy_on(self):

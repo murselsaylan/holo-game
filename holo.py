@@ -342,7 +342,7 @@ class HoloGame:
         self.shop_ui = ui.ShopScreen(self.save_mgr, self.shop, self.open_menu, audio_manager=self.audio)
         if not hasattr(self, "ads"):
             self.ads = ads_mod.Ads()
-            self.olo = olo_mod.Olo()           # the mascot on the failure screen (1.0.9)
+            self.olo = olo_mod.Olo()           # the mascot on the failure screen
             self._ad_due = False            # an interstitial is owed at the next level change (ads.LEVELS_PER_AD)
         self.shop_ui.ads = self.ads
         self.shop_ui.on_watch_ad = self._watch_ad_diamonds
@@ -1553,10 +1553,14 @@ class HoloGame:
                     on_endless=self.open_endless if self.save_mgr.endless_unlocked else None)
                 self._offer_ad_continue(self.failure_modal)
                 self._level_finished_for_ad()
+                pct = int(s.max_progress * 100)
+                best = getattr(self, "_olo_best", {})              # this session's best on the level ("new best" lines)
+                self._olo_best = best
                 if olo_mod.enabled(self.save_mgr):
-                    self.olo.react(self.attempts, int(s.max_progress * 100), 0, s.n * SIM_DT)
+                    self.olo.react(self.attempts, pct, best.get(self.level_id, 0), s.n * SIM_DT)
                 else:
                     self.olo.hide()
+                best[self.level_id] = max(best.get(self.level_id, 0), pct)
         else:
             self.particles.update(dt * 60.0)
             if st == "menu":

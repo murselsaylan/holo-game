@@ -1,11 +1,11 @@
-"""Olo - the mascot who mocks you on the failure screen (1.0.9).
+"""Olo - the mascot who mocks you on the failure screen (1.0.8).
 
 A doodle alien (stickers in assets/olo/, built from the developer's sticker sheets by tools/olo_assets.py) who sits
 on the top edge of the failure window - his lower half hidden behind it - with a small talk box beside him: a couple
 of still poses that hop from one to the next, each with a line typed out. What he says depends on how you crashed
 (olo_lines.py).
 
-On with config "olo" (off until 1.0.9) or HOLO_OLO=1, and the player's setting "olo" (default on).
+On with config "olo" (since 1.0.8) or HOLO_OLO=1, and the player's setting "olo" (default on).
 """
 import math
 import os
