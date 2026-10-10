@@ -23,20 +23,37 @@ def splits(proj, n):
     return [0] + idx + [L]
 
 
-def cut(src, cols, rows, out, labels=False):
+def cut(src, cols, rows, out, labels=False, first=0):
+    """cols: one number, or one per row ("5,5,5,6" when the last row is longer). Files are numbered from `first`."""
     a = np.asarray(Image.open(src).convert("RGB")).astype(int).copy()
     ink = a.min(axis=2) < 200
-    cx, cy = splits(ink.sum(axis=0), cols), splits(ink.sum(axis=1), rows)
-    if labels:                                                 # numbered sheets: wipe each cell's top-left number
-        lw, lh = int((cx[1] - cx[0]) * 0.24), int((cy[1] - cy[0]) * 0.19)
+    per_row = [int(c) for c in str(cols).split(",")] if "," in str(cols) else [int(cols)] * rows
+    cy = splits(ink.sum(axis=1), rows)
+    cxs = [splits(ink[cy[r]:cy[r + 1]].sum(axis=0), per_row[r]) for r in range(rows)]
+    if labels:                     # numbered sheets: the number in each even grid cell's top-left corner is a set of
+        from scipy import ndimage  # small separate ink blobs there - erased; the character's own lines are not
+        H, W = a.shape[:2]
+        lab, n = ndimage.label(ink, structure=np.ones((3, 3)))
+        boxes = ndimage.find_objects(lab)
         for r in range(rows):
-            for c in range(cols):
-                a[cy[r]:cy[r] + lh, cx[c]:cx[c] + lw] = 255
+            gh, gw = H / rows, W / per_row[r]
+            for c in range(per_row[r]):
+                zx0, zy0 = int(c * gw), int(r * gh)
+                zx1, zy1 = zx0 + int(gw * 0.26), zy0 + int(gh * 0.24)
+                for i, bx in enumerate(boxes):
+                    if bx is None:
+                        continue
+                    ys, xs = bx
+                    if xs.start >= zx0 and xs.stop <= zx1 and ys.start >= zy0 and ys.stop <= zy1:
+                        a[lab == i + 1] = 255
         ink = a.min(axis=2) < 200
+        cy = splits(ink.sum(axis=1), rows)
+        cxs = [splits(ink[cy[r]:cy[r + 1]].sum(axis=0), per_row[r]) for r in range(rows)]
     os.makedirs(out, exist_ok=True)
-    n = 0
+    n = first
     for r in range(rows):
-        for c in range(cols):
+        cx = cxs[r]
+        for c in range(per_row[r]):
             x0, x1, y0, y1 = cx[c], cx[c + 1], cy[r], cy[r + 1]
             m = ink[y0:y1, x0:x1]
             ys, xs = np.nonzero(m)
@@ -85,12 +102,13 @@ def cut(src, cols, rows, out, labels=False):
                     break
                 outside |= new
             alpha = np.where(outside, 0, 255).astype(np.uint8)
-            Image.fromarray(np.dstack([crop.astype(np.uint8), alpha])).save(os.path.join(out, f"s{n:02d}.png"))
+            Image.fromarray(np.dstack([crop.astype(np.uint8), alpha])).save(os.path.join(out, f"p{n:03d}.png"))
             n += 1
-    return n
+    return n - first
 
 
 if __name__ == "__main__":
     out = sys.argv[4] if len(sys.argv) > 4 and not sys.argv[4].startswith("--") else os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                                               "store_assets", "olo_stickers")
-    print("stickers", cut(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), out, labels="--labels" in sys.argv))
+    first = next((int(x[8:]) for x in sys.argv if x.startswith("--first=")), 0)
+    print("stickers", cut(sys.argv[1], sys.argv[2], int(sys.argv[3]), out, labels="--labels" in sys.argv, first=first))

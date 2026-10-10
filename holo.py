@@ -1848,8 +1848,8 @@ class HoloGame:
         """Olo stands in the free strip under the failure window - drawn every frame on top of the (frozen) screen."""
         olo = getattr(self, "olo", None)
         if olo is not None and olo.active and st == "failed" and isinstance(self.failure_modal, ui.FailureModal):
-            top = self.failure_modal.top + 850
-            olo.draw(f, pygame.Rect(10, top, f.get_width() - 20, f.get_height() - 70 - top))
+            m = self.failure_modal
+            olo.draw(f, pygame.Rect(f.get_width() // 2 - 360, m.top, 720, 850))
 
     def _draw_scene(self, f, st, in_play):
         if st == "intro":
