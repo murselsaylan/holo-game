@@ -202,6 +202,10 @@ class OnlineClient:
         self._submit_jobs.put(("grestore", str(id_token)))
 
     # ---- endless climb
+    def report_name(self, target_id, name):
+        """A viewer flags another pilot's name (sent with the crash reports' endpoint, kind "name")."""
+        self._submit_jobs.put(("namerep", (str(target_id)[:64], str(name)[:32])))
+
     def submit_endless(self, week, nonce, taps, end_step, assists=None):
         """Queue a finished climb (the server rebuilds its map from week + nonce, replays it with its paid help,
         ranks it, pays diamonds)."""
@@ -405,6 +409,13 @@ class OnlineClient:
                     self._do_google(conn, kind, arg)
                 elif kind == "wallet":
                     self._do_wallet(conn)
+                elif kind == "namerep":
+                    import paths
+                    from version import __version__
+                    target, name = arg
+                    conn.request("POST", "/api/report", {"player_id": self.save.player_id, "kind": "name",
+                                                         "platform": "ios" if paths.is_ios() else "android",
+                                                         "version": __version__, "text": f"{target}|{name}"})
                 elif kind == "endless":
                     self._do_endless(conn)
                 elif kind == "ghost":

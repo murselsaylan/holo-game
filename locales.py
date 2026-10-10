@@ -1222,6 +1222,27 @@ _ADS = {
            "noads_thanks": "Anuncios entre niveles eliminados, ¡gracias!", "ad_reward_msg": "¡Diamantes en camino!",
            "privacy_options": "PRIVACIDAD DE ANUNCIOS"},
 }
+_NAMES = {
+    "tr": {"lb_hide": "BU PİLOTU GİZLE", "lb_unhide": "PİLOTU TEKRAR GÖSTER", "lb_report": "ADI ŞİKÂYET ET",
+           "lb_filter_on": "UYGUNSUZ ADLAR: GİZLİ (DEĞİŞTİR)", "lb_filter_off": "UYGUNSUZ ADLAR: AÇIK (DEĞİŞTİR)",
+           "lb_reported": "Şikâyetin bize ulaştı, teşekkürler.", "lb_hidden_pilot": "GİZLİ PİLOT",
+           "lb_row_hint": "Bir pilota dokun: gizle ya da şikâyet et"},
+    "en": {"lb_hide": "HIDE THIS PILOT", "lb_unhide": "SHOW THIS PILOT AGAIN", "lb_report": "REPORT THIS NAME",
+           "lb_filter_on": "OFFENSIVE NAMES: HIDDEN (CHANGE)", "lb_filter_off": "OFFENSIVE NAMES: SHOWN (CHANGE)",
+           "lb_reported": "Report sent, thank you.", "lb_hidden_pilot": "HIDDEN PILOT",
+           "lb_row_hint": "Tap a pilot to hide or report"},
+    "de": {"lb_hide": "PILOT AUSBLENDEN", "lb_unhide": "PILOT WIEDER ZEIGEN", "lb_report": "NAMEN MELDEN",
+           "lb_filter_on": "ANSTÖSSIGE NAMEN: VERSTECKT (ÄNDERN)", "lb_filter_off": "ANSTÖSSIGE NAMEN: SICHTBAR (ÄNDERN)",
+           "lb_reported": "Meldung gesendet, danke.", "lb_hidden_pilot": "AUSGEBLENDET",
+           "lb_row_hint": "Tippe auf einen Piloten: ausblenden oder melden"},
+    "es": {"lb_hide": "OCULTAR PILOTO", "lb_unhide": "MOSTRAR PILOTO", "lb_report": "DENUNCIAR NOMBRE",
+           "lb_filter_on": "NOMBRES OFENSIVOS: OCULTOS (CAMBIAR)", "lb_filter_off": "NOMBRES OFENSIVOS: VISIBLES (CAMBIAR)",
+           "lb_reported": "Denuncia enviada, gracias.", "lb_hidden_pilot": "PILOTO OCULTO",
+           "lb_row_hint": "Toca un piloto para ocultarlo o denunciarlo"},
+}
+for _lang, _d in _NAMES.items():
+    if _lang in STRINGS:
+        STRINGS[_lang].update(_d)
 for _lang, _d in _ADS.items():
     if _lang in STRINGS:
         STRINGS[_lang].update(_d)

@@ -23,6 +23,7 @@ import paths
 import achievements as ach_mod
 import skin_catalog as catalog
 import skin_text
+import name_filter
 
 VW = 900
 VH = 1620
@@ -1952,6 +1953,10 @@ class LeaderboardScreen:
         self.tabs = []
         self.btn_refresh = Button((VW - 200, 34, 170, 88), t("refresh"), 30, callback=self.refresh)
         self.btn_profile = Button((VW // 2 - 240, VH - 150, 480, 84), t("profile_btn"), 30, callback=on_edit_profile)
+        self.sel = None                 # the row whose actions are open (hide / report / name filter)
+        self.sel_btns = []
+        self._down = None
+        self.toast = ("", 0.0)
         self._build_tabs()
 
     def _build_tabs(self):
@@ -1985,7 +1990,57 @@ class LeaderboardScreen:
             # "around me": just the 5 pilots right above and the 5 right below you, so it differs from the world list
             self.online.fetch(self.scope, limit=11 if self.scope == "around" else 100)
 
+    # ---- a row's actions: hide the pilot (only for me), report the name, switch the offensive-name filter
+    def _open_row(self, e):
+        self.sel = e
+        cx, w = VW // 2, VW - 240
+        y = VH // 2 - 160
+        hidden = e.get("id") in name_filter.hidden_players(self.save_mgr)
+        self.sel_btns = [
+            Button((cx - w // 2, y, w, 92), t("lb_unhide") if hidden else t("lb_hide"), 32, callback=self._toggle_hide),
+            Button((cx - w // 2, y + 112, w, 92), t("lb_report"), 32, bg_color=(150, 40, 60), callback=self._report),
+            Button((cx - w // 2, y + 224, w, 92), t("lb_filter_on") if name_filter.filter_on(self.save_mgr)
+                   else t("lb_filter_off"), 28, callback=self._toggle_filter),
+            Button((cx - w // 2, y + 352, w, 92), t("close"), 32, bg_color=(0, 214, 255), hover_color=(90, 236, 255),
+                   callback=self._close_row),
+        ]
+
+    def _close_row(self):
+        self.sel = None
+
+    def _toggle_hide(self):
+        pid = self.sel.get("id")
+        name_filter.set_hidden(self.save_mgr, pid, pid not in name_filter.hidden_players(self.save_mgr))
+        self.sel = None
+
+    def _report(self):
+        if self.online:
+            self.online.report_name(self.sel.get("id", ""), self.sel.get("name", ""))
+        self.toast = (t("lb_reported"), 2.5)
+        self.sel = None
+
+    def _toggle_filter(self):
+        s = self.save_mgr.settings
+        s["hide_bad_names"] = not s.get("hide_bad_names", True)
+        self.save_mgr.save()
+        self._open_row(self.sel)
+
+    def _row_at(self, pos):
+        view = pygame.Rect(30, self.top, VW - 60, VH - self.top - self.bottom_h)
+        if not view.collidepoint(pos):
+            return None
+        y = pos[1] - (self.top + 60) + self.scroll.y
+        i = int(y // self.ROW_H)
+        rows = self._rows()
+        return rows[i] if y >= 0 and 0 <= i < len(rows) else None
+
     def update(self, mouse_pos, dt=1.0):
+        if self.toast[1] > 0:
+            self.toast = (self.toast[0], self.toast[1] - dt / 60.0)
+        if self.sel is not None:
+            for b in self.sel_btns:
+                b.update(mouse_pos, dt)
+            return
         self.btn_back.update(mouse_pos, dt)
         self.btn_refresh.update(mouse_pos, dt)
         for _, b in self.tabs:
@@ -2003,6 +2058,11 @@ class LeaderboardScreen:
         return []
 
     def handle_event(self, event):
+        if self.sel is not None:
+            for b in self.sel_btns:
+                if b.handle_event(event):
+                    return b.callback
+            return None
         if self.btn_back.handle_event(event):
             return self.on_back
         if self.btn_refresh.handle_event(event):
@@ -2016,10 +2076,16 @@ class LeaderboardScreen:
             self.scroll.wheel(event.y)
         elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.top < event.pos[1] < VH - self.bottom_h:
             self.scroll.on_down(event.pos)
+            self._down = event.pos
         elif event.type == pygame.MOUSEMOTION and event.buttons[0]:
             self.scroll.on_move(event.pos)
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             self.scroll.on_up(event.pos)
+            d, self._down = self._down, None
+            if d and abs(event.pos[0] - d[0]) + abs(event.pos[1] - d[1]) < 24:      # a tap, not a scroll
+                e = self._row_at(event.pos)
+                if e and e.get("id") and e.get("id") != self.save_mgr.player_id and not e.get("me"):
+                    self._open_row(e)
         return None
 
     def _row_sprite(self, e, i, is_me, w):
@@ -2027,7 +2093,10 @@ class LeaderboardScreen:
         every frame made this screen the slowest one); the key holds everything drawn, so new data redraws it."""
         rk = e.get("rank", i + 1)
         endless = "metres" in e
-        key = (w, rk, i % 2, is_me, e.get("country", "GX"), e.get("name", "---"), e.get("levels", 0), e.get("stars", 0),
+        name = e.get("name", "---") if is_me else name_filter.shown_name(self.save_mgr, e.get("id"), e.get("name", "---"))
+        if name is None:
+            name = t("lb_hidden_pilot")
+        key = (w, rk, i % 2, is_me, e.get("country", "GX"), name, e.get("levels", 0), e.get("stars", 0),
                e.get("score", 0), e.get("metres"))
         cache = LeaderboardScreen._ROWS
         spr = cache.get(key)
@@ -2044,13 +2113,13 @@ class LeaderboardScreen:
         draw_text(spr, f"{rk}", 36 if rk < 1000 else 28, rc, (r.x + 48, r.centery))
         draw_country_badge(spr, e.get("country", "GX"), r.x + 158, r.centery, width=96, height=42)
         if endless:
-            draw_text(spr, e.get("name", "---"), 34, TEXT_WHITE, (r.x + 230, r.centery), anchor="midleft", max_w=330)
+            draw_text(spr, name, 34, TEXT_WHITE, (r.x + 230, r.centery), anchor="midleft", max_w=330)
             draw_text(spr, fmt_int(e.get("points", e.get("metres", 0))), 34, ACCENT_GOLD, (r.right - 20, r.centery), anchor="midright")
             if len(cache) > 400:
                 cache.clear()
             cache[key] = spr
             return spr
-        draw_text(spr, e.get("name", "---"), 34, TEXT_WHITE, (r.x + 230, r.centery), anchor="midleft", max_w=220)
+        draw_text(spr, name, 34, TEXT_WHITE, (r.x + 230, r.centery), anchor="midleft", max_w=220)
         draw_text(spr, f"{e.get('levels', 0)}", 40, ACCENT_CYAN, (r.right - 215, r.centery - 8))
         draw_text(spr, f"{e.get('stars', 0)}", 22, ACCENT_GOLD, (r.right - 205, r.centery + 26), anchor="midleft", bold=False)
         draw_vector_star(spr, r.right - 226, r.centery + 26, radius=9, filled=True)
@@ -2139,6 +2208,21 @@ class LeaderboardScreen:
                   "disabled": t("online_disabled"), "idle": ""}.get(status, "")
             col = ACCENT_GREEN if status == "ok" else (255, 160, 90 if status != "loading" else 200)
             draw_text(surface, st, 24, col, (VW // 2, 280), bold=False)
+        if self._rows() and self.sel is None:
+            draw_text(surface, t("lb_row_hint"), 22, TEXT_MUTED, (VW // 2, VH - self.bottom_h - 4), bold=False)
+        if self.toast[1] > 0:
+            tr = pygame.Rect(80, VH // 2 - 50, VW - 160, 100)
+            panel(surface, tr, (20, 44, 34), ACCENT_GREEN, 20, 2)
+            draw_text(surface, self.toast[0], 30, TEXT_WHITE, tr.center, max_w=tr.w - 40)
+        if self.sel is not None:
+            dim(surface, 215)
+            card = pygame.Rect(60, VH // 2 - 330, VW - 120, 720)
+            panel(surface, card, (18, 24, 38), (45, 65, 105), 26, 2)
+            draw_country_badge(surface, self.sel.get("country", "GX"), VW // 2, card.y + 70, width=96, height=42)
+            nm = name_filter.shown_name(self.save_mgr, self.sel.get("id"), self.sel.get("name", "---")) or t("lb_hidden_pilot")
+            draw_text(surface, nm, 44, TEXT_WHITE, (VW // 2, card.y + 140), max_w=card.w - 80)
+            for b in self.sel_btns:
+                b.draw(surface)
 
 
 # ================================================================================================ skins

@@ -140,6 +140,8 @@ def set_age(info):
             continue
         if k == "contests":
             attrs[k] = "NONE"
+        elif k in ("userGeneratedContent", "advertising"):
+            attrs[k] = True        # pilot names on the public rankings; ads since 1.0.8
         elif isinstance(val, bool) or k in ("gambling", "unrestrictedWebAccess", "lootBox", "messagingAndChat",
                                             "parentalControls", "ageAssurance", "userGeneratedContent", "advertising",
                                             "healthOrWellnessTopics", "seventeenPlus", "socialMedia",

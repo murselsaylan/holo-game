@@ -1346,7 +1346,9 @@ class HoloGame:
         world = (getattr(self.online, "ghosts", None) or {}).get(self.level_id) or {}
         taps = None
         if world.get("taps") and world.get("id") != self.save_mgr.player_id:
-            taps, self.ghost_name = world["taps"], world.get("name") or "#1"
+            import name_filter
+            taps = world["taps"]
+            self.ghost_name = name_filter.shown_name(self.save_mgr, world.get("id"), world.get("name") or "#1") or "#1"
         else:
             own = self.save_mgr.get_best_taps(self.level_id)
             if own and not self.save_mgr.get_best_assists(self.level_id):

@@ -49,6 +49,7 @@ DEFAULT_SETTINGS = {
     "online": True,
     "ghost_race": True,                  # race a ghost (the world #1 of the level, else my best) - on (1.0.7)
     "haptics": True,
+    "hide_bad_names": True,              # mask offensive pilot names on the rankings (name_filter.py)
 }
 
 

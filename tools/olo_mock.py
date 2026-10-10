@@ -34,7 +34,9 @@ import locales  # noqa: E402
 from fonts import get_font  # noqa: E402
 
 LANG = sys.argv[1] if len(sys.argv) > 1 else "tr"
-LINE = {"tr": ["Bu bölümü benim", "büyükannem geçti."], "en": ["My grandma beat", "this level. Just saying."]}[LANG]
+LINE = {"tr": ["Parmağın mı kaydı, beynin mi?", "Bir daha dene de güleyim."],
+        "en": ["Did your finger slip, or your brain?", "Go again. I need a laugh."]}[LANG]
+MOOD = sys.argv[2] if len(sys.argv) > 2 else "smug"
 
 g = holo.HoloGame(headless=True)
 sm = g.save_mgr
@@ -109,19 +111,33 @@ def olo2(surf, cx, cy, s, mood="laugh"):
         for tx, ty in ((-38, -4), (36, -6)):                                         # tears of laughter
             pygame.draw.polygon(surf, (120, 200, 255), [P(tx, ty), P(tx - 5, ty + 12), P(tx + 5, ty + 12)])
             pygame.draw.circle(surf, (120, 200, 255), P(tx, ty + 12), int(5 * s))
+    elif mood == "smug":
+        C(-10, -14, 13, (200, 140, 20))                                  # bored iris, half hidden by the lid
+        C(-10, -14, 6, INK, o=False)
+        pygame.draw.polygon(surf, G, [P(-32, -46), P(34, -46), P(34, -14), P(-32, -22)])   # heavy, bored lid
+        pygame.draw.line(surf, INK, P(-30, -22), P(32, -14), W_ + 1)
+        pygame.draw.ellipse(surf, (255, 255, 255), (*P(-28, -2), int(18 * s), int(9 * s)))  # bag under the eye
+        pygame.draw.arc(surf, G2, (*P(-30, -4), int(56 * s), int(16 * s)), math.pi, 2 * math.pi, max(2, W_ - 2))
     else:
         C(6, -16, 15, (200, 140, 20))
         C(8, -16, 8, INK, o=False)
         C(4, -20, 3, (255, 255, 255), o=False)
         pygame.draw.polygon(surf, G, [P(-32, -46), P(34, -46), P(34, -20), P(-32, -24)])     # heavy lid
         pygame.draw.line(surf, INK, P(-30, -24), P(32, -20), W_)
-    pygame.draw.line(surf, INK, P(-18, -54), P(30, -62), W_ + 2)                          # cocked brow
+    if mood == "smug":
+        pygame.draw.lines(surf, INK, False, [P(-26, -58), P(4, -50), P(32, -66)], W_ + 2)   # one brow, V-cocked
+    else:
+        pygame.draw.line(surf, INK, P(-18, -54), P(30, -62), W_ + 2)                      # cocked brow
     # mouth: wide crooked laugh with one fang and a tongue
     if mood == "laugh":
         mouth = [P(-26, 14), P(30, 8), P(22, 36), P(2, 46), P(-16, 38)]
         _poly(surf, (60, 10, 20), mouth, INK, W_)
         pygame.draw.ellipse(surf, (240, 90, 110), (*P(-8, 30), int(24 * s), int(14 * s)))
         pygame.draw.polygon(surf, (255, 255, 255), [P(14, 9), P(24, 9), P(19, 22)])     # fang
+    elif mood == "smug":
+        pygame.draw.lines(surf, INK, False, [P(-22, 26), P(4, 26), P(30, 8)], W_ + 2)       # one-sided smirk
+        C(20, 36, 18, (255, 140, 190), ow=max(2, W_ - 2))                              # chewing-gum bubble
+        C(14, 29, 5, (255, 210, 230), o=False)
     else:
         pygame.draw.lines(surf, INK, False, [P(-20, 20), P(2, 26), P(28, 14)], W_ + 1)
         pygame.draw.polygon(surf, (255, 255, 255), [P(14, 21), P(22, 18), P(19, 28)])
@@ -163,10 +179,10 @@ scene = frame.copy()
 # Olo stands in the lower-left corner; what he says runs along the bottom in a talk box
 box = pygame.Rect(30, H - 330, W - 60, 190)
 dialog(scene, box, "OLO", LINE)
-olo2(scene, 175, H - 290, 1.5, mood="laugh")
+olo2(scene, 175, H - 290, 1.5, mood=MOOD)
 out = pygame.transform.smoothscale(scene, (W, H))
 os.makedirs(os.path.join(ROOT, "store_assets"), exist_ok=True)
-p = os.path.join(ROOT, "store_assets", f"olo_mock_{LANG}.png")
+p = os.path.join(ROOT, "store_assets", f"olo_mock_{LANG}_{MOOD}.png")
 pygame.image.save(out, p)
 pygame.image.save(frame, os.path.join(ROOT, "store_assets", "olo_mock_base.png"))
 print("saved", p)
