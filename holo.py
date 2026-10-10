@@ -29,6 +29,7 @@ from level_manager import Level
 import endless as E
 import ads as ads_mod
 import memstat
+import olo as olo_mod
 from endless_view import EndlessLevel, sector_for_stage
 import arena as A
 from arena_view import ArenaLevel
@@ -341,6 +342,7 @@ class HoloGame:
         self.shop_ui = ui.ShopScreen(self.save_mgr, self.shop, self.open_menu, audio_manager=self.audio)
         if not hasattr(self, "ads"):
             self.ads = ads_mod.Ads()
+            self.olo = olo_mod.Olo()           # the mascot on the failure screen (1.0.9)
             self._ad_due = False            # an interstitial is owed at the next level change (ads.LEVELS_PER_AD)
         self.shop_ui.ads = self.ads
         self.shop_ui.on_watch_ad = self._watch_ad_diamonds
@@ -1551,6 +1553,10 @@ class HoloGame:
                     on_endless=self.open_endless if self.save_mgr.endless_unlocked else None)
                 self._offer_ad_continue(self.failure_modal)
                 self._level_finished_for_ad()
+                if olo_mod.enabled(self.save_mgr):
+                    self.olo.react(self.attempts, int(s.max_progress * 100), 0, s.n * SIM_DT)
+                else:
+                    self.olo.hide()
         else:
             self.particles.update(dt * 60.0)
             if st == "menu":
@@ -1585,6 +1591,7 @@ class HoloGame:
                 self.settings_modal.update(v_mouse, dt * 60.0)
             elif st == "failed" and self.failure_modal:
                 self.failure_modal.update(v_mouse, dt * 60.0)
+                self.olo.update(dt)
             elif st == "victory" and self.victory_modal:
                 self.victory_modal.update(v_mouse, dt * 60.0)
         if st in ("dying", "failed", "victory"):
@@ -1821,6 +1828,7 @@ class HoloGame:
                         if surf is not f:
                             surf.blit(f, (0, 0))
                         self._modal_frame = ((freeze_key, sig), surf)
+                self._draw_olo(f, st)
                 self._draw_toasts(f)
                 self._present()
                 return
@@ -1832,8 +1840,16 @@ class HoloGame:
             ui.set_dim_mode(None)
         if freeze_key is not None and snap is not None:
             self._frozen_bg = (freeze_key, snap)
+        self._draw_olo(f, st)
         self._draw_toasts(f)
         self._present()
+
+    def _draw_olo(self, f, st):
+        """Olo stands in the free strip under the failure window - drawn every frame on top of the (frozen) screen."""
+        olo = getattr(self, "olo", None)
+        if olo is not None and olo.active and st == "failed" and isinstance(self.failure_modal, ui.FailureModal):
+            top = self.failure_modal.top + 850
+            olo.draw(f, pygame.Rect(10, top, f.get_width() - 20, f.get_height() - 70 - top))
 
     def _draw_scene(self, f, st, in_play):
         if st == "intro":
