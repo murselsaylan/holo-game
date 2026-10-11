@@ -91,7 +91,7 @@ R = {
          ("smug", {"tr": "Parmağın mı kaydı, beynin mi?", "en": "Did your finger slip, or your brain?"})],
         [("film", {"tr": "Kaydettim. Herkes görecek.", "en": "Recorded. Everyone will see."}),
          ("selfie", {"tr": "Ben ve senin rezaletin. Güzel kare.", "en": "Me and your disaster. Nice shot."})],
-        [("dead", {"tr": "Öldün. Başın sağ olsun. Kendi başın.", "en": "You died. My condolences. To you."})],
+        [("dead", {"tr": "Öldün. Ben de öldüm. Gülmekten.", "en": "You died. Me too. From laughing."})],
         [("angry", {"tr": "O duvar orada duruyordu be!", "en": "That wall was RIGHT THERE!"}),
          ("shrug", {"tr": "Duvar yerinden oynamadı, sen oynadın.", "en": "The wall didn't move. You did."})],
         [("thumbs_down", {"tr": "Puanım: 2/10. 2'si cesaretine.", "en": "My rating: 2/10. The 2 is for courage."})],
@@ -172,7 +172,7 @@ _MORE = {
     ],
     "many": [
         [("cry_hands", {"tr": "Bakamıyorum artık. Çok acıklı.", "en": "I can't watch anymore. Too sad."}),
-         ("idea", {"tr": "Kalkanla dene. Ya da reklamla devam. Söz, ekran görüntüsü almam. ...Aldım.", "en": "Use a shield. Or continue with an ad. Promise, no screenshot. ...Took one."})],
+         ("idea", {"tr": "Kalkanla dene. Ya da reklamla devam. Söz, gülmem.", "en": "Use a shield. Or continue with an ad. I won't laugh."})],
         [("flat_floor", {"tr": "{n} deneme. Ben yere yattım, sen de yat.", "en": "{n} tries. I'm lying down. You should too."}),
          ("idea", {"tr": "Biraz mola, sonra gel. Bölüm kaçmıyor.", "en": "Take a break. The level isn't going anywhere."})],
         [("sob", {"tr": "Artık ben ağlıyorum, sen değil.", "en": "Now I'm the one crying."}),

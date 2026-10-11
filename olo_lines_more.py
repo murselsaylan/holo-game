@@ -114,6 +114,8 @@ M = {
            "Ich bin ein bisschen beeindruckt. Hab ich nie gesagt.", "Estoy algo impresionado. Haz como que no lo dije.")],
     ],
     "fail": [
+        [L("dead", "Öldün. Başın sağ olsun. Kendi başın.", "You died. My condolences. To you.",
+           "Du bist tot. Mein Beileid. An dich.", "Moriste. Mi más sentido pésame. Para ti.")],
         [L("toilet_phone", "Tuvaletteyken bile daha iyi oynarım.", "I play better than that on the toilet.",
            "Auf dem Klo spiel ich besser.", "Juego mejor que eso en el váter.")],
         [L("cat_love", "Kedime gösterdim. Kafasını salladı. Hayal kırıklığıyla.", "Showed my cat. She shook her head. Disappointed.",
