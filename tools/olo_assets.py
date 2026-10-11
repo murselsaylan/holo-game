@@ -37,6 +37,7 @@ LOGO = {17, 85, 97}
 LOGO_BOX = {17: (192, 96, 230, 140)}          # where the automatic search only finds part of the logo
 WIDE_GAPS = {8, 67, 100}                       # outlines with bigger gaps: close harder before filling
 BOTTLE = set()          # the champagne (100) did not survive the cut cleanly - left out
+MOUTH = {86: (138, 120, 15)}   # drawn without a mouth under the hand (read as faceless): a small frown, in final coords
 
 
 def fill_if_empty(a, close=6):
@@ -89,6 +90,15 @@ def clean(a):
     return a[max(0, ys.min() - 4):ys.max() + 5, max(0, xs.min() - 4):xs.max() + 5]
 
 
+def add_mouth(a, cx, cy, w):
+    """A small frown drawn at 4x and scaled down, so its edge is as soft as the sheet's ink."""
+    from PIL import ImageDraw
+    im = Image.fromarray(a)
+    big = im.resize((im.width * 4, im.height * 4), Image.LANCZOS)
+    ImageDraw.Draw(big).arc(((cx - w) * 4, cy * 4, (cx + w) * 4, (cy + 16) * 4), 200, 340, fill=(12, 12, 12, 255), width=20)
+    return np.array(big.resize(im.size, Image.LANCZOS))
+
+
 def logo_box(a):
     """The brand logo on a laptop lid: pixels clearly off the lid's grey, well inside the lid."""
     rgb = a[..., :3].astype(int)
@@ -127,6 +137,8 @@ def main():
         if num in BOTTLE:
             print("soda", num, recolor_green(a))
         a = clean(a)
+        if num in MOUTH:
+            a = add_mouth(a, *MOUTH[num])
         Image.fromarray(a).save(os.path.join(OUT, name + ".png"), optimize=True)
     print(len(PICK), "stickers ->", OUT)
 
