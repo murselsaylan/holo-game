@@ -55,7 +55,6 @@ R = {
         [("gamer", {"tr": "Ver o telefonu, göstereyim.", "en": "Give me that phone, let me show you."}),
          ("smug", {"tr": "...Şaka. Ben de geçemem. Ama sen hiç.", "en": "...Kidding. I can't either. But you? Never."})],
         [("tryhard", {"tr": "Bandanayı taktım, artık ciddiyim: kötüsün.", "en": "Headband on. Serious now: you're bad."})],
-        [("phone_love", {"tr": "Annene mesaj attım: '{n}. kez öldü'.", "en": "Texted your mom: 'died {n} times'."})],
         [("toilet_phone", {"tr": "Tuvaletteyim ama bunu kaçırmazdım.", "en": "I'm on the toilet, but I wouldn't miss this."})],
     ],
     "many": [

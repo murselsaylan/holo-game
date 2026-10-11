@@ -68,7 +68,6 @@ T = {
     "Give me that phone, let me show you.": ("Gib mal das Handy, ich zeig's dir.", "Dame el móvil, que te enseño."),
     "...Kidding. I can't either. But you? Never.": ("...Spaß. Ich kann's auch nicht. Aber du? Niemals.", "...Es broma. Yo tampoco puedo. ¿Pero tú? Jamás."),
     "Headband on. Serious now: you're bad.": ("Stirnband auf. Jetzt ernst: Du bist schlecht.", "Cinta puesta. En serio: eres malo."),
-    "Texted your mom: 'died {n} times'.": ("Hab deiner Mama geschrieben: '{n} mal gestorben'.", "Le escribí a tu madre: 'murió {n} veces'."),
     "I'm on the toilet, but I wouldn't miss this.": ("Ich sitz auf dem Klo, aber das lass ich mir nicht entgehen.", "Estoy en el váter, pero no me lo pierdo."),
     "Logging your deaths. My keyboard's on fire.": ("Ich protokolliere deine Tode. Meine Tastatur brennt.", "Apuntando tus muertes. Mi teclado echa humo."),
     "Went to pet the cat, came back, you died again.": ("Katze gestreichelt, zurück, du bist wieder tot.", "Fui a acariciar al gato, volví y ya habías muerto otra vez."),

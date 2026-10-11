@@ -62,7 +62,7 @@ M = {
            "Bin ins Bett umgezogen. Gemütlich zuschauen.", "Me fui a la cama. A mirar cómodo.")],
         [L("think", "Aynı yer, aynı hata. İlginç bir tercih.", "Same spot, same mistake. Bold choice.",
            "Gleiche Stelle, gleicher Fehler. Mutige Wahl.", "Mismo sitio, mismo error. Elección valiente.")],
-        [L("lying_phone", "Arkadaşlara attım: 'yine aynı yer'.", "Texted my friends: 'same spot again'.",
+        [L("phone_love", "Arkadaşlara attım: 'yine aynı yer'.", "Texted my friends: 'same spot again'.",
            "Meinen Freunden geschrieben: 'wieder dieselbe Stelle'.", "Les escribí a mis amigos: 'otra vez el mismo sitio'.")],
         [L("peek", "Bakmıyorum... Aa yine mi?", "Not looking... Oh, again?",
            "Ich schau nicht hin... Oh, schon wieder?", "No miro... ¿Otra vez?")],
