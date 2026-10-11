@@ -4,7 +4,7 @@ tools/olo_stickers_cut.py) -> assets/olo/<name>.png, cleaned and fixed.
     python tools/olo_assets.py
 
 Fixes: bodies the cut left empty are filled, brand logos on laptops become HOLO's two orbs, bottles become orange
-soda. Left out: 54 (middle finger), 61 (smoking), 62 (alcohol), 38 / 45 (vomiting) and duplicates.
+soda. Left out: 86 (no face under the hand), 54 (middle finger), 61 (smoking), 62 (alcohol), 38 / 45 (vomiting) and duplicates.
 """
 import os
 import sys
@@ -29,15 +29,17 @@ PICK = {
     56: "cry_hands", 57: "meditate", 58: "burger", 59: "flat", 60: "rain", 63: "phone_love", 64: "nervous",
     65: "cry_quiet", 66: "party", 69: "rage_chair", 70: "flat_floor", 71: "scream", 72: "dance_hop",
     73: "on_fire", 74: "cat_hug", 75: "confused", 76: "watermelon", 77: "sick", 79: "heart_hug", 81: "bed_phone",
-    82: "pizza", 83: "toilet_phone", 84: "headphones", 85: "laptop_stress", 86: "hand_face", 88: "lying_phone",
+    82: "pizza", 83: "toilet_phone", 84: "headphones", 85: "laptop_stress", 88: "lying_phone",
     89: "sob_puddle", 91: "sip", 93: "confetti", 94: "gift", 95: "flat_dizzy", 96: "thought", 97: "laptop_angry",
     98: "cat_love", 99: "confused_shrug",
 }
 LOGO = {17, 85, 97}
-LOGO_BOX = {17: (192, 96, 230, 140)}          # where the automatic search only finds part of the logo
+LOGO_BOX = {17: (192, 96, 230, 140), 85: (164, 166, 194, 201), 97: (180, 157, 211, 192)}   # where the automatic search only finds part of the logo
 WIDE_GAPS = {8, 67, 100}                       # outlines with bigger gaps: close harder before filling
 BOTTLE = set()          # the champagne (100) did not survive the cut cleanly - left out
-MOUTH = {86: (138, 120, 15)}   # drawn without a mouth under the hand (read as faceless): a small frown, in final coords
+MOUTH = {}                     # {num: (cx, cy, w)}: a small frown in final coords (86's still looked faceless - left out)
+NOFILL = {25}                  # the gap between the raised arm and the head is not a body (idea)
+KEEP_BITS = {8}                # keep every piece near the body (the last letter of CLAP)
 
 
 def fill_if_empty(a, close=6):
@@ -54,13 +56,13 @@ def fill_if_empty(a, close=6):
     if (a[..., 3][body] == 0).mean() < 0.25:
         return False
     body = ndimage.binary_dilation(body, iterations=close) & ~ink
-    hole = body & (a[..., 3] == 0)
+    hole = body & (a[..., 3] == 0) & ndimage.binary_fill_holes(closed)        # never past the outline
     a[hole, :3] = 255
     a[hole, 3] = 255
     return True
 
 
-def clean(a):
+def clean(a, reach_k=0.22):
     """Keeps the character and the bits near it (tears, ?!, zzz); drops stray pieces at the cell edges."""
     solid = a[..., 3] > 0
     lab, n = ndimage.label(solid, structure=np.ones((3, 3)))
@@ -69,7 +71,7 @@ def clean(a):
         main = 1 + int(np.argmax(sizes))
         ys, xs = np.nonzero(lab == main)
         x0, x1, y0, y1 = xs.min(), xs.max(), ys.min(), ys.max()
-        reach = 0.22 * max(x1 - x0, y1 - y0)
+        reach = reach_k * max(x1 - x0, y1 - y0)
         keep = lab == main
         for i in range(1, n + 1):
             if i == main:
@@ -127,7 +129,7 @@ def main():
             os.remove(os.path.join(OUT, f))
     for num, name in PICK.items():
         a = np.array(Image.open(os.path.join(SRC, f"p{num:03d}.png")).convert("RGBA"))
-        if fill_if_empty(a, close=10 if num in WIDE_GAPS else 6):
+        if num not in NOFILL and fill_if_empty(a, close=10 if num in WIDE_GAPS else 6):
             print("filled", num, name)
         if num in LOGO:
             got = (LOGO_BOX[num], tuple(int(v) for v in np.median(a[LOGO_BOX[num][1] - 6, LOGO_BOX[num][0]:LOGO_BOX[num][2], :3], axis=0)))                 if num in LOGO_BOX else logo_box(a)
@@ -136,7 +138,7 @@ def main():
                 print("logo", num, name, got)
         if num in BOTTLE:
             print("soda", num, recolor_green(a))
-        a = clean(a)
+        a = clean(a, 0.6 if num in KEEP_BITS else 0.22)
         if num in MOUTH:
             a = add_mouth(a, *MOUTH[num])
         Image.fromarray(a).save(os.path.join(OUT, name + ".png"), optimize=True)

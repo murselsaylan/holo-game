@@ -17,7 +17,7 @@ R = {
          ("laugh_point", {"tr": "Story'e attım bile.", "en": "Already posted it."})],
         [("pizza", {"tr": "Pizzamı ısırana kadar bitti.", "en": "Done before my first bite."})],
         [("run", {"tr": "Yetişemedim! Ne ara öldün?", "en": "I couldn't keep up! When did you die?"})],
-        [("hand_face", {"tr": "Ekrana dokunmadan da ölünüyormuş.", "en": "Turns out you can die without even touching."})],
+        [("facepalm", {"tr": "Ekrana dokunmadan da ölünüyormuş.", "en": "Turns out you can die without even touching."})],
         [("headphones", {"tr": "Kulaklığı taktım, şarkı başlamadan bitti.", "en": "Put my headphones on, over before the song."})],
         [("confused_shrug", {"tr": "Bu bir taktik mi? Anlamadım.", "en": "Is this a strategy? I don't get it."})],
     ],

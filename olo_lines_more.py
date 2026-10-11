@@ -25,7 +25,7 @@ M = {
            "Ich hab mich hingelegt. Du warst schneller.", "Me tumbé. Tú llegaste antes.")],
         [L("megaphone", "SON DAKİKA: PİLOT BAŞLAMADAN BİTİRDİ!", "BREAKING: PILOT FINISHED BEFORE STARTING!",
            "EILMELDUNG: PILOT FERTIG VOR DEM START!", "ÚLTIMA HORA: ¡EL PILOTO ACABÓ ANTES DE EMPEZAR!")],
-        [L("hand_face", "Göz kırptım. Kaçırdım. Neyse ki.", "I blinked. Missed it. Thankfully.",
+        [L("facepalm", "Göz kırptım. Kaçırdım. Neyse ki.", "I blinked. Missed it. Thankfully.",
            "Ich hab geblinzelt. Verpasst. Zum Glück.", "Parpadeé. Me lo perdí. Por suerte.")],
         [L("money", "Bu ölüm için bilet kesseydim zengin olurdum.", "If I sold tickets for that, I'd be rich.",
            "Hätte ich dafür Tickets verkauft, wär ich reich.", "Si vendiera entradas para eso, sería rico.")],
