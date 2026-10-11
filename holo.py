@@ -1,6 +1,7 @@
 import gc
 import sys
 import math
+import random
 import time
 import secrets
 
@@ -636,7 +637,7 @@ class HoloGame:
                                                    on_finish=self._endless_over)
         self._offer_ad_continue(self.failure_modal)
         if olo_mod.enabled(self.save_mgr):
-            self.olo.say("endless_revive", where="endless", m=int(run.metres))
+            self._olo_say("endless_revive", where="endless", m=int(run.metres))
 
     def _endless_over(self):
         run = self.endless_run
@@ -659,7 +660,7 @@ class HoloGame:
             on_board=lambda: self.open_leaderboard("endless"), points=run.points, stars=run.stars,
             wallet=self.save_mgr.star_coins, on_skins=self._open_star_skins)
         if olo_mod.enabled(self.save_mgr):
-            self.olo.say("endless_best" if new_best and metres > 0 else "endless_end", where="endless", m=int(metres))
+            self._olo_say("endless_best" if new_best and metres > 0 else "endless_end", where="endless", m=int(metres))
 
     def _open_star_skins(self):
         """From the climb's result straight to the Yıldız Avcısı page (what the stars buy)."""
@@ -1163,7 +1164,7 @@ class HoloGame:
             online=self.online, is_last=(nxt > MAX_LEVELS), assisted=False)   # paid help is ranked now
         if olo_mod.enabled(self.save_mgr):
             a = self.attempts
-            self.olo.say("win_first" if a <= 1 else ("win_hard" if a >= 5 else "win"), where="victory", delay=1.2, n=a)
+            self._olo_say("win_first" if a <= 1 else ("win_hard" if a >= 5 else "win"), where="victory", delay=1.2, n=a)
 
     # ------------------------------------------------------------------ frame update
     def update_gameplay(self, dt):
@@ -1564,6 +1565,7 @@ class HoloGame:
                 best = getattr(self, "_olo_best", {})              # this session's best on the level ("new best" lines)
                 self._olo_best = best
                 if olo_mod.enabled(self.save_mgr):
+                    self.olo.store = self.save_mgr.data
                     self.olo.react(self.attempts, pct, best.get(self.level_id, 0), s.n * SIM_DT)
                 else:
                     self.olo.hide()
@@ -1870,10 +1872,17 @@ class HoloGame:
         now = time.time()
         seen = float(self.save_mgr.data.get("olo_seen", 0) or 0)
         days = int((now - seen) // 86400) if seen else 0
+        hour = time.localtime().tm_hour
         kind = "menu_first" if not seen else ("menu_away" if days >= 2 else "menu")
+        if kind == "menu" and random.random() < 0.5 and (hour < 5 or 6 <= hour < 10):
+            kind = "menu_night" if hour < 5 else "menu_morning"
         self.save_mgr.data["olo_seen"] = now
+        self._olo_say(kind, where="menu", delay=1.0, lvl=self.save_mgr.campaign_level, d=days, h=hour or 12)
         self.save_mgr.save()
-        olo.say(kind, where="menu", delay=1.0, lvl=self.save_mgr.campaign_level, d=days)
+
+    def _olo_say(self, kind, **kw):
+        self.olo.store = self.save_mgr.data             # which lines were said lives in the save
+        self.olo.say(kind, name=self.save_mgr.player_name or "", **kw)
 
     def _draw_olo(self, f, st):
         """Olo on top of the (frozen) screen, drawn every frame: on the failure / victory / endless windows' top

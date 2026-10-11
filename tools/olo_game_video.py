@@ -1,5 +1,5 @@
-"""Records the real game (headless, phone size) with Olo on: a few crashes of different kinds, each failure screen
-for a few seconds - to see the mascot exactly as players will.
+"""Records the real game (headless, phone size) with Olo on, everywhere he shows up: the menu hello, a cleared level,
+the endless climb's crash and end, and a few failure screens - to see the mascot exactly as players will.
 
     python tools/olo_game_video.py [lang]   -> store_assets/olo_game_<lang>.mp4
 """
@@ -36,11 +36,8 @@ import holo  # noqa: E402
 import locales  # noqa: E402
 
 LANG = sys.argv[1] if len(sys.argv) > 1 else "tr"
-random.seed(7)
+random.seed(int(os.environ.get("OLO_SEED", "11")))
 FPS = 30
-# (attempts on the level, progress reached, seconds alive, seconds on the failure screen)
-SCENES = [(1, 0.03, 1.0, 6.5), (2, 0.86, 9.0, 6.5), (4, 0.40, 5.0, 6.5), (7, 0.35, 5.0, 6.5), (1, 0.30, 4.0, 6.5)]
-DEBUG = "--debug" in sys.argv
 
 g = holo.HoloGame(headless=True)
 sm = g.save_mgr
@@ -51,6 +48,8 @@ g.on_language_change()
 for lvl in range(1, 5):
     sm.stats[str(lvl)] = {"stars": 3, "best_score": 5000, "best_time": 12.0, "best_swaps": 6, "rank": "S"}
 sm.data["campaign_level"] = 5
+type(sm).endless_unlocked = property(lambda self: True)
+g._maybe_login_popup = lambda: None                 # the daily reward popup would cover the menu
 
 
 def main():
@@ -68,17 +67,40 @@ def main():
             fr = pygame.transform.smoothscale(g.frame, (ow, oh))
             wr.send(np.ascontiguousarray(pygame.surfarray.array3d(fr).swapaxes(0, 1)))
 
-    for tries, prog, alive, hold in SCENES:
+    def crash(tries, prog, alive, hold):
         g.load_and_play_level(5)
         g.attempts = tries
         shoot(0.6)
-        g.sim.n = int(alive * 60)
-        g.sim.max_progress = prog
-        g.sim.dead = True
+        g.sim.n, g.sim.max_progress, g.sim.dead = int(alive * 60), prog, True
         g.state, g.death_timer = "dying", 0.35
         shoot(0.5 + hold)
-        if DEBUG:
-            print("scene", tries, g.state, g.olo.active, round(g.olo.t, 2), g.olo.beats[:1])
+
+    # 1. the menu: first meeting (three poses), then sinks away
+    g._olo_menu_done = False
+    g.open_menu()
+    shoot(12.0)
+    # 2. a level cleared after a fight
+    g.load_and_play_level(5)
+    shoot(0.8)
+    g.attempts = 6
+    g._on_win()
+    shoot(6.5)
+    # 3. failure screens
+    crash(1, 0.03, 1.0, 4.5)
+    crash(2, 0.88, 9.0, 4.5)
+    # 4. the endless climb: a crash with the revive offer, then the end
+    g.open_endless()
+    shoot(1.0)
+    g.sim.dead = True
+    g.state, g.death_timer = "dying", 0.3
+    shoot(5.0)
+    g._endless_over()
+    shoot(5.0)
+    # 5. the menu again, another day
+    g._olo_menu_done = False
+    sm.data["olo_seen"] = sm.data.get("olo_seen", 0) - 86400
+    g.open_menu()
+    shoot(7.0)
     wr.close()
     print("saved", out)
 

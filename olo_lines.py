@@ -244,3 +244,9 @@ for _rs in R.values():
 from olo_lines_places import P as _P  # noqa: E402
 
 R.update(_P)
+
+# more of everything (olo_lines_more.py, all four languages there)
+from olo_lines_more import M as _M  # noqa: E402
+
+for _k, _v in _M.items():
+    R.setdefault(_k, []).extend(_v)

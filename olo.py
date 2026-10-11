@@ -12,6 +12,7 @@ import math
 import os
 import random
 import time
+import zlib
 
 import pygame
 
@@ -50,13 +51,14 @@ def kind_of(attempts, pct, best_pct, alive_s):
 class Olo:
     def __init__(self):
         self._img = {}
-        self._recent = []
         self.beats = []
         self.t = 0.0
         self.active = False
         self.kind = ""
         self.where = ""
         self.delay = 0.3
+        self.store = None                 # the save's data dict: which lines were said (kept across sessions)
+        self._used = {}
 
     def react(self, attempts, pct, best_pct, alive_s):
         """The failure screen: the kind of crash picks the lines."""
@@ -66,17 +68,33 @@ class Olo:
         clock = "night" if hour < 5 else ("morning" if 6 <= hour < 10 else None)
         if clock and kind in ("fail", "repeat") and random.random() < 0.25:
             pool = R[clock]
-        self.say(kind, pool, "fail", n=attempts, pct=pct)
+        self.say(kind, "fail", bag=clock if pool is not R[kind] else None, n=attempts, pct=pct)
         return kind
 
-    def say(self, kind, pool=None, where="fail", delay=0.3, **vals):
-        """Starts a reaction from `pool` (default R[kind]); `where` is the screen it belongs to (HoloGame._draw_olo)."""
-        pool = pool or R[kind]
-        fresh = [r for r in pool if id(r) not in self._recent] or pool
-        pick = random.choice(fresh)
-        self._recent = (self._recent + [id(pick)])[-30:]
+    def _pick(self, bag, skip=None):
+        """A random reaction from R[bag] that has not been said yet: every line comes once, in a random order, before
+        any comes again (a shuffle bag, kept in the save so a new session does not start over). Reactions whose
+        English text contains `skip` (a placeholder that would read oddly now, like {m} at 0 m) are left out."""
+        pool = R[bag]
+        ok = [i for i, r in enumerate(pool) if not (skip and any(skip in tx["en"] for _, tx in r))] or \
+            list(range(len(pool)))
+        used_all = self.store.setdefault("olo_used", {}) if self.store is not None else self._used
+        keys = [zlib.crc32(r[0][1]["en"].encode()) & 0xFFFFFF for r in pool]
+        said = [k for k in used_all.get(bag, []) if k in keys]
+        fresh = [i for i in ok if keys[i] not in said]
+        if not fresh:                                  # all said: a new round, not opening with the last few
+            last, said = said[-3:], []
+            fresh = [i for i in ok if keys[i] not in last] or ok
+        i = random.choice(fresh)
+        used_all[bag] = said + [keys[i]]
+        return pool[i]
+
+    def say(self, kind, where="fail", delay=0.3, bag=None, **vals):
+        """Starts a reaction of `kind` (from the pool `bag`, default the kind's own); `where` is the screen it
+        belongs to (HoloGame._draw_olo)."""
+        pick = self._pick(bag or kind, "{m}" if "m" in vals and vals["m"] < 10 else None)
         lang = get_language()
-        fmt = dict(n=0, pct=0, m=0, lvl=1, d=0)
+        fmt = dict(n=0, pct=0, m=0, lvl=1, d=0, name="", h=0)
         fmt.update(vals)
         self.beats = [(st, (txt.get(lang) or txt["en"]).format(**fmt)) for st, txt in pick]
         self.kind, self.where, self.delay = kind, where, delay
