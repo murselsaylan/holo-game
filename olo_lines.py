@@ -239,3 +239,8 @@ for _rs in R.values():
         for _st, _txt in _r:
             if _txt["en"] in _T:
                 _txt["de"], _txt["es"] = _T[_txt["en"]]
+
+# after a win, in the endless climb, on the menu (olo_lines_places.py, all four languages there)
+from olo_lines_places import P as _P  # noqa: E402
+
+R.update(_P)

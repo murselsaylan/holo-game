@@ -635,6 +635,8 @@ class HoloGame:
                                                    E.MAX_REVIVES - used, on_revive=self.revive_run,
                                                    on_finish=self._endless_over)
         self._offer_ad_continue(self.failure_modal)
+        if olo_mod.enabled(self.save_mgr):
+            self.olo.say("endless_revive", where="endless", m=int(run.metres))
 
     def _endless_over(self):
         run = self.endless_run
@@ -656,6 +658,8 @@ class HoloGame:
             on_menu=self.open_menu,
             on_board=lambda: self.open_leaderboard("endless"), points=run.points, stars=run.stars,
             wallet=self.save_mgr.star_coins, on_skins=self._open_star_skins)
+        if olo_mod.enabled(self.save_mgr):
+            self.olo.say("endless_best" if new_best and metres > 0 else "endless_end", where="endless", m=int(metres))
 
     def _open_star_skins(self):
         """From the climb's result straight to the Yıldız Avcısı page (what the stars buy)."""
@@ -1157,6 +1161,9 @@ class HoloGame:
             on_replay=lambda: self._after_ad(lambda: (setattr(self, "attempts", 1), self.restart_level())),
             on_menu=self.open_menu, on_levels=self.open_level_select, new_best=improved, attempts=self.attempts,
             online=self.online, is_last=(nxt > MAX_LEVELS), assisted=False)   # paid help is ranked now
+        if olo_mod.enabled(self.save_mgr):
+            a = self.attempts
+            self.olo.say("win_first" if a <= 1 else ("win_hard" if a >= 5 else "win"), where="victory", delay=1.2, n=a)
 
     # ------------------------------------------------------------------ frame update
     def update_gameplay(self, dt):
@@ -1595,9 +1602,9 @@ class HoloGame:
                 self.settings_modal.update(v_mouse, dt * 60.0)
             elif st == "failed" and self.failure_modal:
                 self.failure_modal.update(v_mouse, dt * 60.0)
-                self.olo.update(dt)
             elif st == "victory" and self.victory_modal:
                 self.victory_modal.update(v_mouse, dt * 60.0)
+        self._olo_tick(dt, st)
         if st in ("dying", "failed", "victory"):
             self._update_camera(dt)
         self.online.poll()
@@ -1848,12 +1855,41 @@ class HoloGame:
         self._draw_toasts(f)
         self._present()
 
-    def _draw_olo(self, f, st):
-        """Olo stands in the free strip under the failure window - drawn every frame on top of the (frozen) screen."""
+    def _olo_tick(self, dt, st):
+        """Olo's clock, and his one hello per session on the main menu (first meeting / back after days away)."""
         olo = getattr(self, "olo", None)
-        if olo is not None and olo.active and st == "failed" and isinstance(self.failure_modal, ui.FailureModal):
-            m = self.failure_modal
-            olo.draw(f, pygame.Rect(f.get_width() // 2 - 360, m.top, 720, 850))
+        if olo is None:
+            return
+        if olo.active:
+            olo.update(dt)
+        if st != "menu" or getattr(self, "_olo_menu_done", False) or self.menu_ui.enter < 1.0:
+            return
+        self._olo_menu_done = True
+        if not olo_mod.enabled(self.save_mgr):
+            return
+        now = time.time()
+        seen = float(self.save_mgr.data.get("olo_seen", 0) or 0)
+        days = int((now - seen) // 86400) if seen else 0
+        kind = "menu_first" if not seen else ("menu_away" if days >= 2 else "menu")
+        self.save_mgr.data["olo_seen"] = now
+        self.save_mgr.save()
+        olo.say(kind, where="menu", delay=1.0, lvl=self.save_mgr.campaign_level, d=days)
+
+    def _draw_olo(self, f, st):
+        """Olo on top of the (frozen) screen, drawn every frame: on the failure / victory / endless windows' top
+        edge, or peeking up from the bottom of the menu."""
+        olo = getattr(self, "olo", None)
+        if olo is None or not olo.active:
+            return
+        m, w = self.failure_modal, f.get_width()
+        if st == "failed" and olo.where == "fail" and isinstance(m, ui.FailureModal):
+            olo.draw(f, pygame.Rect(w // 2 - 360, m.top, 720, 850))
+        elif st == "failed" and olo.where == "endless" and isinstance(m, (ui.EndlessReviveModal, ui.EndlessResultModal)):
+            olo.draw(f, pygame.Rect(80, m.top, w - 160, 600))
+        elif st == "victory" and olo.where == "victory" and self.victory_modal is not None:
+            olo.draw(f, pygame.Rect(50, self.victory_modal.top, w - 100, 1400))
+        elif st == "menu" and olo.where == "menu":
+            olo.draw_peek(f, w // 2, f.get_height())
 
     def _draw_scene(self, f, st, in_play):
         if st == "intro":
