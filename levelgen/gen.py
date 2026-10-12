@@ -151,7 +151,7 @@ def make(i, seed=0, beam=48, verbose=False, roamers=0):
     # levels 1-3 are fixed hand-placed tutorial routes: never hardened. Levels with power-up gates are already tuned by
     # the gk (gate-strictness) mechanism above; adding independent extra hazards on top can open a different solving
     # path that quietly makes the gate's pickup optional again, so leave those alone too.
-    if i > 3 and not pl0["gates"] and (m > floor * 1.8 or m >= hi_val - 0.5):
+    if i > 3 and not pl0["gates"] and (m > floor * 1.8 or m >= hi_val - 0.5) and os.environ.get("HOLO_NO_HARDEN") != "1":
         ceiling = time.time() + 90.0
         for cd in (2, 4, 6):
             if time.time() > ceiling:

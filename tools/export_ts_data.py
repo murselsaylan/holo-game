@@ -34,6 +34,20 @@ with open(os.path.join(OUT, "levels_data.ts"), "w", encoding="utf-8") as f:
     f.write(";\nexport const DIGESTS: Record<string, string> = ")
     json.dump(digests, f, separators=(",", ":"))
     f.write(";\n")
+    # levels that were rebuilt (levelgen/legacy_levels holds their previous files): a game that is not updated yet still
+    # plays the old geometry, so its runs are replayed on that one instead of being refused with 409
+    legacy = {}
+    LEGACY_DIR = os.path.join(ROOT, "levelgen", "legacy_levels")
+    for name in sorted(os.listdir(LEGACY_DIR)) if os.path.isdir(LEGACY_DIR) else []:
+        with open(os.path.join(LEGACY_DIR, name), encoding="utf-8") as lf:
+            raw = json.load(lf)
+        old = LevelData(raw)
+        if old.digest != digests.get(str(raw["id"])):
+            legacy[old.digest] = {"level": raw["id"], "data": {k: v for k, v in raw.items() if k not in ("ref_taps", "difficulty", "title")}}
+    f.write("// deno-lint-ignore no-explicit-any\nexport const LEGACY: Record<string, { level: number; data: any }> = ")
+    json.dump(legacy, f, separators=(",", ":"))
+    f.write(";\n")
+    print("legacy level versions:", sorted(v["level"] for v in legacy.values()))
 
 
 def snap(sim, res):

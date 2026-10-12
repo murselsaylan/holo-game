@@ -1,7 +1,7 @@
 // Transport-independent request handler of the HOLO leaderboard (port of server/leaderboard_server.py).
 import { LevelData, replay, SIM_VERSION, MAX_LEVELS } from "./sim.ts";
 import type { Assist, Result } from "./sim.ts";
-import { LEVELS, DIGESTS } from "./levels_data.ts";
+import { LEVELS, DIGESTS, LEGACY } from "./levels_data.ts";
 import { DIAMOND_EVERY_M, DIAMONDS_PER_DAY, ENDLESS_VERSIONS, MAX_STEPS as ENDLESS_MAX_STEPS, poolDigest, replayEndless, seedOf, weekOf, weekStart, assistDigest, MAX_REVIVES as ENDLESS_MAX_REVIVES } from "./endless.ts";
 import { accountTag, earnClaim, IMPORT_CAP, productValue, spendPrice } from "./wallet.ts";
 import { devPurchases, googleVerifier } from "./play.ts";
@@ -142,6 +142,15 @@ function getLevel(n: number): LevelData | null {
     levelCache.set(n, d ? new LevelData(d, DIGESTS[String(n)]) : null);
   }
   return levelCache.get(n) ?? null;
+}
+
+/** A rebuilt level's previous version (by its digest): games not updated yet are still replayed on what they played. */
+const legacyCache = new Map<string, LevelData>();
+function getLegacyLevel(n: number, digest: string): LevelData | null {
+  const e = LEGACY[digest];
+  if (!e || e.level !== n) return null;
+  if (!legacyCache.has(digest)) legacyCache.set(digest, new LevelData(e.data, digest));
+  return legacyCache.get(digest) ?? null;
 }
 
 // ---- routing -------------------------------------------------------------------------------------------------
@@ -329,10 +338,14 @@ async function submit(store: Store, d: Record<string, unknown>, ip: string, nowM
   if (!(level >= 1 && level <= MAX_LEVELS) || taps.length > MAX_TAPS || taps.length === 0) return R(400, { error: "bad level or taps" });
   for (let k = 1; k < taps.length; k++) if (taps[k] - taps[k - 1] < MIN_TAP_GAP) return R(422, { error: "implausible input" });
   if (taps[0] < 0 || taps[taps.length - 1] > 60 * 900) return R(422, { error: "implausible input" });
-  const lvl = getLevel(level);
+  let lvl = getLevel(level);
   if (!lvl) return R(400, { error: "unknown level" });
   const claimed = String(d.lvl ?? "");
-  if (claimed && claimed !== lvl.digest) return R(409, { error: "level version mismatch - update the game" });
+  if (claimed && claimed !== lvl.digest) {
+    const old = getLegacyLevel(level, claimed);
+    if (!old) return R(409, { error: "level version mismatch - update the game" });
+    lvl = old;
+  }
   // paid help (1.0.4+): [[step, "S"|"R"|"R2"], ...] (R2 = the 1.0.6 slow-spin shielded revive) - replayed exactly, and it must have been paid for in diamonds
   let assists: Assist[] = [];
   if (d.assists !== undefined) {

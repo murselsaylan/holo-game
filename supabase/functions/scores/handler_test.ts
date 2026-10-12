@@ -4,7 +4,7 @@ import { handle, sign, cleanName, signSave, signCode, signBests, codeHash } from
 import type { Player, Ranks, Restored, Row, Store } from "./handler.ts";
 import { SIM_VERSION } from "./sim.ts";
 import type { Result } from "./sim.ts";
-import { DIGESTS } from "./levels_data.ts";
+import { DIGESTS, LEGACY } from "./levels_data.ts";
 
 class MemStore implements Store {
   players = new Map<string, Player>();
@@ -147,6 +147,17 @@ check("identity hijack (403)", (await post("/api/register", { player_id: pid, se
 check("level out of range (400)", (await post("/api/submit", await signed(101, refTaps(1)))).status === 400);
 { const rr = await post("/api/submit", await signed(1, refTaps(1), sec, ts, { lvl: "deadbeef00" })); check("stale level digest (409)", rr.status === 409, rr); }
 check("matching digest accepted", (await post("/api/submit", await signed(1, refTaps(1), sec, ts, { lvl: DIGESTS["1"] }))).status === 200);
+{ // a rebuilt level: games not updated yet still submit runs on its previous version (levelgen/legacy_levels)
+  const first = Object.entries(LEGACY)[0];
+  if (first) {
+    const [dg, e] = first;
+    const old = JSON.parse(readFileSync(new URL(`../../../levelgen/legacy_levels/level${e.level}.json`, import.meta.url), "utf-8"));
+    const ok = await post("/api/submit", await signed(e.level, old.ref_taps, sec, ts, { lvl: dg }));
+    check("previous level version accepted", ok.status === 200, ok);
+    const other = e.level === 1 ? 2 : 1;
+    check("previous version of another level (409)", (await post("/api/submit", await signed(other, refTaps(other), sec, ts, { lvl: dg }))).status === 409);
+  }
+}
 check("non-integer taps rejected", (await post("/api/submit", { player_id: pid, level: 1, ts, taps: [1.5, 200], sig: "x" })).status === 400);
 check("malformed JSON rejected", (await handle(store, "POST", "/api/submit", new URLSearchParams(), "{oops", "1.1.1.1", now)).status === 400);
 check("name cleaning", cleanName("  ahmet<script> ") === "PİLOT" && cleanName("ışık") === "IŞIK");
