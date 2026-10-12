@@ -46,6 +46,26 @@ def generate_swap_sfx():
         samples.append(val)
     return write_wav("sfx_swap.wav", samples, sample_rate)
 
+OLO_VOICE = (520, 590, 660, 740, 830)        # Olo's talking blips: one pitch per letter group
+
+
+def generate_olo_blip(k):
+    """A 50 ms cartoon-voice blip (Olo typing out a line): square-ish, pitch sliding down a little."""
+    sample_rate = 44100
+    n = int(sample_rate * 0.05)
+    base = OLO_VOICE[k]
+    samples, phase = [], 0.0
+    for i in range(n):
+        p = i / n
+        freq = base * (1.10 - 0.18 * p) * (1 + 0.02 * math.sin(i / sample_rate * 2 * math.pi * 38))
+        phase += 2 * math.pi * freq / sample_rate
+        s = math.sin(phase)
+        tone = 0.6 * s + 0.4 * (1 if s >= 0 else -1) * 0.6 + 0.15 * math.sin(phase * 2)
+        env = min(1.0, i / (sample_rate * 0.004)) * (1 - p) ** 1.8
+        samples.append(tone * env * 13000)
+    return write_wav(f"sfx_olo_{k + 1}.wav", samples, sample_rate)
+
+
 def generate_reverse_sfx():
     sample_rate = 44100
     duration = 0.16
@@ -397,6 +417,7 @@ class AudioManager:
             "sfx_near_miss.wav": generate_near_miss_sfx,
             "sfx_combo.wav": generate_combo_sfx,
             "sfx_heartbeat.wav": generate_heartbeat_sfx,
+            **{f"sfx_olo_{k + 1}.wav": (lambda k=k: generate_olo_blip(k)) for k in range(len(OLO_VOICE))},
             "bgm_synthwave.wav": lambda: generate_synthwave_bgm(135, "bgm_synthwave.wav"),
             "bgm_synthwave_fast.wav": lambda: generate_synthwave_bgm(162, "bgm_synthwave_fast.wav"),
         }
@@ -416,7 +437,7 @@ class AudioManager:
             "sfx_swap", "sfx_reverse", "sfx_star", "sfx_die", "sfx_win", "sfx_click",
             "sfx_warp", "sfx_shield", "sfx_near_miss", "sfx_combo", "sfx_heartbeat",
             "sfx_bounce", "sfx_smash", "sfx_chase", "sfx_fxend", "sfx_coin", "sfx_tension_rise", "sfx_tick",
-        ]
+        ] + [f"sfx_olo_{k + 1}" for k in range(len(OLO_VOICE))]
         for name in sound_files:
             path = os.path.join(AUDIO_DIR, f"{name}.wav")
             if os.path.exists(path):

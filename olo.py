@@ -58,6 +58,9 @@ class Olo:
         self.where = ""
         self.delay = 0.3
         self.store = None                 # the save's data dict: which lines were said (kept across sessions)
+        self.blip = None                  # a letter just typed that wants a voice blip (HoloGame plays it)
+        self._letters = 0
+        self._beat_i = -1
         self._used = {}
 
     def react(self, attempts, pct, best_pct, alive_s):
@@ -98,6 +101,7 @@ class Olo:
         fmt.update(vals)
         self.beats = [(st, (txt.get(lang) or txt["en"]).format(**fmt)) for st, txt in pick]
         self.kind, self.where, self.delay = kind, where, delay
+        self._letters, self._beat_i, self.blip = 0, -1, None
         self.t = 0.0
         self.active = True
 
@@ -132,6 +136,8 @@ class Olo:
         i = min(len(self.beats) - 1, int(t // BEAT_S))
         bt = t - i * BEAT_S
         sticker, line = self.beats[i]
+        if i != self._beat_i:                                      # a new pose: its line starts typing from 0
+            self._beat_i, self._letters = i, 0
         img = self._sticker(sticker, size)
         # hop on every new pose: squash, overshoot, settle; a slow sway keeps a still drawing alive
         if bt < 0.07:
@@ -205,6 +211,11 @@ class Olo:
         f = get_font(28, bold=True)
         shown = line[:max(0, int((bt - 0.15) * TYPE_CPS))]
         typed = self._wrap(f, shown, box.w - 36) if shown else []
+        letters = [c for c in shown if c.isalnum()]
+        if len(letters) > self._letters:                           # his voice: a blip every second letter
+            if len(letters) // 2 > self._letters // 2:
+                self.blip = letters[-1]
+            self._letters = len(letters)
         pane = pygame.Surface(box.size, pygame.SRCALPHA)
         pygame.draw.rect(pane, (10, 16, 30, 238), pane.get_rect(), border_radius=18)
         pygame.draw.rect(pane, EDGE + (255,), pane.get_rect(), 3, border_radius=18)

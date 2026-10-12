@@ -1899,6 +1899,9 @@ class HoloGame:
             olo.draw(f, pygame.Rect(50, self.victory_modal.top, w - 100, 1400))
         elif st == "menu" and olo.where == "menu":
             olo.draw_peek(f, w // 2, f.get_height())
+        if olo.blip:                                    # his voice while a line types: the letter picks the pitch
+            ch, olo.blip = olo.blip, None
+            self.audio.play_sfx(f"sfx_olo_{1 + ord(ch.lower()) % 5}", volume=0.5)
 
     def _draw_scene(self, f, st, in_play):
         if st == "intro":
