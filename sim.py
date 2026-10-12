@@ -28,6 +28,7 @@ REVIVE_SAFE = 1.0             # then moving hazards spare it for a second (walls
 REVIVE_CLEAR = 30.0           # preferred revive point: both orbs this far from any solid wall
 REVIVE_SPIN_START = 0.12      # revive "R2" (1.0.6): the pair starts turning at 12 % speed ...
 REVIVE_SPIN_RAMP = 2.5        # ... and is back to full speed after this many seconds; it is shielded until the next tap
+REVIVE_SPIN_RAMP_R3 = 4.0     # revive "R3" (1.0.8): a longer spin-up - players need time to get used to the speed again
 BARRIER_PASS = 0.8            # seconds a shield lets the pair phase through energy barriers only (extended while inside one, sim v10)
 FX_TIME = 10.0                # seconds a shrink / growth field stays in effect
 BREAK_R = 21.0                # only a grown (heavy) orb can smash a cracked wall
@@ -357,6 +358,7 @@ class Sim:
         self.guard = False                 # revive R2: every hit bounces (no shield used up) until the next tap
         self.spin_ramp = 1.0               # revive R2: rotation speed ramp 0 -> 1 (1 = normal)
         self.guard_walls = False           # revive R3: while guarded, walls stay solid even during a bounce's invulnerability
+        self.spin_ramp_s = REVIVE_SPIN_RAMP  # seconds of the current revive's spin-up (R3: longer)
         self.ang = fixed_angle if fixed_angle is not None else self._best_start_angle()
         self._place_rotating()
         self.snaps = [self._snap()]      # revive points (see revive())
@@ -441,6 +443,7 @@ class Sim:
         c.revive_t = self.revive_t
         c.guard = self.guard
         c.guard_walls = self.guard_walls
+        c.spin_ramp_s = self.spin_ramp_s
         c.spin_ramp = self.spin_ramp
         c.snaps = list(self.snaps)
         return c
@@ -520,6 +523,7 @@ class Sim:
             self.guard = True
             self.spin_ramp = 0.0
         self.guard_walls = bool(guarded and walls)
+        self.spin_ramp_s = REVIVE_SPIN_RAMP_R3 if (guarded and walls) else REVIVE_SPIN_RAMP
 
     def swap(self):
         if self.dead or self.won:
@@ -589,7 +593,7 @@ class Sim:
         omega = BASE_OMEGA * self.smooth / (rot.m ** 0.35)
         if self.spin_ramp < 1.0:                 # just revived (R2): turning slowly, easing back to full speed
             omega *= REVIVE_SPIN_START + (1.0 - REVIVE_SPIN_START) * self.spin_ramp * self.spin_ramp
-            self.spin_ramp = min(1.0, self.spin_ramp + dt / REVIVE_SPIN_RAMP)
+            self.spin_ramp = min(1.0, self.spin_ramp + dt / self.spin_ramp_s)
         d_ang = omega * dt * self.rot_sign
         sub = d_ang / 4.0
 

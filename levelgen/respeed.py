@@ -66,13 +66,29 @@ def respeed(i):
                         sol, best = s2, r2
                 if best >= 0.75:
                     break
-    pts, _ = S.trajectory(lvl, sol.taps, margin=0.0)
-    stars = []
-    for prog in (0.24, 0.52, 0.80):
-        p = pick(pts, prog, 0.07, avoid=stars)
-        if p is None:
-            return i, None, "star placement"
-        stars.append((round(p["x"]), round(p["y"])))
+    def place_stars(taps):
+        pts, _ = S.trajectory(lvl, taps, margin=0.0)
+        out = []
+        for prog in (0.24, 0.52, 0.80):
+            p = None
+            for shift in (0.0, 0.05, -0.05, 0.1, -0.1):       # a spot near the target point if the point itself has none
+                p = pick(pts, min(0.95, max(0.05, prog + shift)), 0.07, avoid=out)
+                if p is not None:
+                    break
+            if p is None:
+                return None
+            out.append((round(p["x"]), round(p["y"])))
+        return out
+
+    stars = place_stars(sol.taps)
+    if stars is None:                                          # the safer line found no spots: the plain one
+        s0 = S.solve(lvl, margin=0.0, beam=96, max_layers=320)
+        if s0.solved:
+            stars = place_stars(s0.taps)
+            if stars is not None:
+                sol = s0
+    if stars is None:
+        return i, None, "star placement"
     d["stars"] = [list(s) for s in stars]
     d["par_time"] = round(sol.time_s * 1.15, 1)
     d["par_swaps"] = int(sol.swaps * 1.15) + 1

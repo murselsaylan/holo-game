@@ -26,6 +26,7 @@ export const REVIVE_SAFE = 1.0;
 export const REVIVE_CLEAR = 30.0;
 export const REVIVE_SPIN_START = 0.12;   // revive R2 (1.0.6): starts turning at 12 % speed ...
 export const REVIVE_SPIN_RAMP = 2.5;     // ... full speed again after this many seconds
+export const REVIVE_SPIN_RAMP_R3 = 4.0;  // revive R3 (1.0.8): a longer spin-up
 export const BARRIER_PASS = 0.8;   // a shield phases the pair through energy barriers only (sim v10)
 export const MAX_LEVELS = 100;
 const TWO_PI = Math.PI * 2.0;
@@ -333,6 +334,7 @@ export class Sim {
   reviveT = 0.0;
   guard = false;          // revive R2: every hit bounces (no shield used up) until the next tap
   guardWalls = false;     // revive R3: while guarded, walls stay solid even during a bounce's invulnerability
+  spinRampS = REVIVE_SPIN_RAMP;   // seconds of the current revive's spin-up (R3: longer)
   spinRamp = 1.0;         // revive R2: rotation speed ramp 0 -> 1
   snaps: Snap[] = [];
   ang: number;
@@ -429,6 +431,7 @@ export class Sim {
     this.snaps = [s];
     if (guarded) { this.guard = true; this.spinRamp = 0.0; }
     this.guardWalls = guarded && walls;
+    this.spinRampS = guarded && walls ? REVIVE_SPIN_RAMP_R3 : REVIVE_SPIN_RAMP;
   }
 
   swap() {
@@ -486,7 +489,7 @@ export class Sim {
     let omega = BASE_OMEGA * this.smooth / Math.pow(rot.m, 0.35);
     if (this.spinRamp < 1.0) {               // just revived (R2): turning slowly, easing back to full speed
       omega *= REVIVE_SPIN_START + (1.0 - REVIVE_SPIN_START) * this.spinRamp * this.spinRamp;
-      this.spinRamp = Math.min(1.0, this.spinRamp + dt / REVIVE_SPIN_RAMP);
+      this.spinRamp = Math.min(1.0, this.spinRamp + dt / this.spinRampS);
     }
     const dAng = omega * dt * this.rotSign;
     let sub = dAng / 4.0;
