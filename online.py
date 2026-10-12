@@ -598,6 +598,8 @@ class OnlineClient:
                 self._clock_offset = float(srv) - (t0 + time.time()) / 2.0
         except (HTTPError, OSError, ValueError, http.client.HTTPException):
             pass
+        if _CFG.get("no_register"):          # CI simulator runs: every implicit register (submit, wallet...) stops here too
+            return
         r = conn.request("POST", "/api/register", {
             "player_id": s.player_id, "secret": s.player_secret,
             "name": s.player_name, "country": s.player_country})
