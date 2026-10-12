@@ -93,6 +93,9 @@ try:                                                     # levelgen/similar.py -
         VARIANT = {int(k): int(v) for k, v in _json.load(open(_vp)).items()}
 except Exception:
     VARIANT = {}
+# levels that came out far easier than their neighbours (2026-10 smoothing): power-up gates added after the schedule,
+# so the family schedule of every other level stays as it was
+GATE_OVERRIDE = {90: (["gshield", "ggrow", "gshrink"], 3)}
 BOSS = {20: ("wander", {"legs": 8, "long_bias": 0.6}), 40: ("wander", {"legs": 10, "long_bias": 0.5}), 60: ("wander", {"legs": 12, "long_bias": 0.55}),
         80: ("wander", {"legs": 12, "long_bias": 0.5}), 100: ("wander", {"legs": 16, "long_bias": 0.7})}
 TUTORIAL_GATES = {7: "ggrow", 11: "gshield", 15: "gshrink", 18: "gboost"}
@@ -183,6 +186,8 @@ def plan(i):
     p["gates"], p["gcount"] = kinds, gcount
     if i == 100:
         p["gates"], p["gcount"] = ["gshrink", "gboost", "ggrow", "gshield"], 4
+    if i in GATE_OVERRIDE:                               # levelgen/smooth.py: a level far below the curve gets power-up doors
+        p["gates"], p["gcount"] = GATE_OVERRIDE[i]
 
     if i in BOSS:
         fam, fkw = BOSS[i]
