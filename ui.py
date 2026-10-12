@@ -2208,8 +2208,6 @@ class LeaderboardScreen:
                   "disabled": t("online_disabled"), "idle": ""}.get(status, "")
             col = ACCENT_GREEN if status == "ok" else (255, 160, 90 if status != "loading" else 200)
             draw_text(surface, st, 24, col, (VW // 2, 280), bold=False)
-        if self._rows() and self.sel is None:
-            draw_text(surface, t("lb_row_hint"), 22, TEXT_MUTED, (VW // 2, VH - self.bottom_h - 4), bold=False)
         if self.toast[1] > 0:
             tr = pygame.Rect(80, VH // 2 - 50, VW - 160, 100)
             panel(surface, tr, (20, 44, 34), ACCENT_GREEN, 20, 2)
