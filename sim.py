@@ -356,6 +356,7 @@ class Sim:
         self.revive_t = 0.0
         self.guard = False                 # revive R2: every hit bounces (no shield used up) until the next tap
         self.spin_ramp = 1.0               # revive R2: rotation speed ramp 0 -> 1 (1 = normal)
+        self.guard_walls = False           # revive R3: while guarded, walls stay solid even during a bounce's invulnerability
         self.ang = fixed_angle if fixed_angle is not None else self._best_start_angle()
         self._place_rotating()
         self.snaps = [self._snap()]      # revive points (see revive())
@@ -439,6 +440,7 @@ class Sim:
         c.ang = self.ang
         c.revive_t = self.revive_t
         c.guard = self.guard
+        c.guard_walls = self.guard_walls
         c.spin_ramp = self.spin_ramp
         c.snaps = list(self.snaps)
         return c
@@ -483,12 +485,14 @@ class Sim:
         return (self.n, tuple((o.x, o.y, o.r, o.tr, o.m, o.tm) for o in self.orbs), self.piv, self.ang, self.rot_sign,
                 self.tether, self.tether_base, self.fx_t, self.boost_t, self.smooth)
 
-    def revive(self, guarded=False):
+    def revive(self, guarded=False, walls=False):
         """Continue after dying (20 diamonds): the pair goes back to where it safely was at least a second before
         (a clean state kept every quarter second), walls stay solid, and moving hazards spare it for a second.
         Time, taps, shields, stars and smashed walls are not rewound - only the pair's own motion.
         guarded (assist "R2", 1.0.6+): it starts turning very slowly, speeding up over REVIVE_SPIN_RAMP seconds, and
-        every hit bounces it like a shield (without using one up) until the player taps again."""
+        every hit bounces it like a shield (without using one up) until the player taps again.
+        walls (assist "R3", 1.0.8+): on top of that, the swinging orb can never enter a wall while guarded - a bounce's
+        invulnerability used to let it swing straight through one."""
         self.dead = False
         target = self.n - REVIVE_BACK
         snap = None
@@ -515,11 +519,13 @@ class Sim:
         if guarded:
             self.guard = True
             self.spin_ramp = 0.0
+        self.guard_walls = bool(guarded and walls)
 
     def swap(self):
         if self.dead or self.won:
             return
         self.guard = False                       # the revive shield lasts until the player's first tap
+        self.guard_walls = False
         since = self.t - self.last_swap_t
         self.last_swap_t = self.t
         if 0.28 <= since <= 1.35:
@@ -745,6 +751,17 @@ class Sim:
             else:
                 self.wall_escaping = False
 
+        # ---- revive R3: while guarded and invulnerable after a bounce, the swinging orb still may not enter a wall
+        # (an orb already inside one - the wall-escape case - is free to move out)
+        if self.guard_walls and self.protected:
+            if self._wall_hit(rot.x, rot.y, rot.r + self.margin, True):
+                ox = piv.x + math.cos(ang0) * self.tether
+                oy = piv.y + math.sin(ang0) * self.tether
+                if not self._wall_hit(ox, oy, rot.r + self.margin, True):
+                    self.ang = ang0
+                    rot.x, rot.y = ox, oy
+                    self.rot_sign = -self.rot_sign
+
         # ---- fatal collisions -----------------------------------------------------------
         if not self.protected:
             phasing = self.barrier_t > 0
@@ -928,7 +945,7 @@ def compute_result(sim):
 def replay(lvl, taps, margin=0.0, max_seconds=400.0, jitter=None, assists=None):
     """Replay a list of tap step-indices (swap applied before step number `tap`).
     `assists`: paid help as [step, "S"] (a bought shield put on the pair before that step), [step, "R2"] (the 1.0.6
-    slow-spin shielded revive) and [step, "R"] (a revive
+    slow-spin shielded revive), [step, "R3"] (1.0.8: R2 with walls solid for the revive shield) and [step, "R"] (a revive
     after dying at that step). Returns (Sim, result_dict_or_None)."""
     sim = Sim(lvl, margin=margin)
     taps = sorted(taps)
@@ -940,7 +957,7 @@ def replay(lvl, taps, margin=0.0, max_seconds=400.0, jitter=None, assists=None):
             if helps[hi][1] == "S":
                 sim.add_shield()
             else:
-                sim.revive(guarded=helps[hi][1] == "R2")
+                sim.revive(guarded=helps[hi][1] in ("R2", "R3"), walls=helps[hi][1] == "R3")
             hi += 1
         if sim.dead:
             break

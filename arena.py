@@ -465,7 +465,7 @@ def replay(seed, taps, end_step=None, max_steps=MAX_STEPS, assists=None):
             if helps[hi][1] == "S":
                 run.sim.add_shield()
             else:
-                run.revive(guarded=helps[hi][1] == "R2")
+                run.revive(guarded=helps[hi][1] in ("R2", "R3"))
             hi += 1
         if run.dead:
             break

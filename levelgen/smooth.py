@@ -2,6 +2,7 @@
 
     python levelgen/smooth.py                  # report: felt difficulty vs the curve, outliers
     python levelgen/smooth.py --fix 52,58,60   # rebuild those levels, keeping the candidate closest to the curve
+    python levelgen/smooth.py --band=0.10 --fix=55-80   # a tighter band (+-10 %) for the report and the fix
 
 "Felt" difficulty F adds what rebalance.py's D leaves out - how narrow the corridors are and how little safety margin the
 best line has - to D (time, swaps, hazards, gates, speed). The curve is K x rebalance.target(i): it only ever rises, so
@@ -59,36 +60,45 @@ def outliers(lo=FIRST, hi=100):
 
 
 def _work(job):
-    i, off = job
+    i, var, off = job
     os.environ["HOLO_TIGHT_OFFSET"] = str(off)
     os.environ["HOLO_NO_HARDEN"] = "1" if off < 0 else "0"
+    from levelgen import plan as P
+    P.VARIANT[i] = var                                    # a different layout roll of the same plan
     from levelgen import gen as G
     try:
         d, rep = G.make(i, 0)
     except Exception as e:  # pragma: no cover
-        return i, off, None, repr(e)
-    return i, off, d, rep
+        return i, var, off, None, repr(e)
+    return i, var, off, d, rep
 
 
-def fix(ids):
+def fix(ids, n_variants=3):
+    """Candidates per level: its current layout roll and n_variants - 1 new ones, each at a few tightness offsets
+    (looser when too hard, tighter when too easy). The candidate closest to the curve replaces the level if it is
+    closer than the level is now; a new roll is written to variants.json so the level can be rebuilt the same way."""
+    from levelgen import plan as P
     jobs = []
     for i in ids:
         r = ratio(i)
-        offs = (-0.08, -0.16, -0.24, -0.32) if r > 1.0 else (0.06, 0.12, 0.18)
-        jobs += [(i, o) for o in offs]
+        offs = (-0.06, -0.14, -0.24) if r > 1.0 else (0.0, 0.08, 0.16)
+        base = P.VARIANT.get(i, 0)
+        jobs += [(i, base + k * 11, o) for k in range(n_variants) for o in offs]
     best = {}
     with mp.Pool(min(14, len(jobs))) as pool:
-        for i, off, d, rep in pool.imap_unordered(_work, jobs):
+        for i, var, off, d, rep in pool.imap_unordered(_work, jobs):
             if d is None:
-                print(f"L{i} off {off:+.2f} FAILED {str(rep)[:120]}", flush=True)
+                print(f"L{i} v{var} off {off:+.2f} FAILED {str(rep)[:120]}", flush=True)
                 continue
             r = ratio(i, d)
-            print(f"L{i} off {off:+.2f}: F/curve {r:.2f}  W={d['difficulty']['corridor']} margin={d['difficulty']['margin']} "
+            print(f"L{i} v{var} off {off:+.2f}: F/curve {r:.2f}  W={d['difficulty']['corridor']} margin={d['difficulty']['margin']} "
                   f"swaps={d['difficulty']['swaps']} t={d['difficulty']['ref_time']}", flush=True)
             if i not in best or abs(r - 1.0) < abs(best[i][0] - 1.0):
-                best[i] = (r, d)
+                best[i] = (r, d, var)
     os.makedirs(LEGACY, exist_ok=True)
     from levelgen import gen as G
+    var_path = os.path.join(ROOT, "levelgen", "variants.json")
+    variants = json.load(open(var_path)) if os.path.exists(var_path) else {}
     for i in ids:
         old = ratio(i)
         if i in best and abs(best[i][0] - 1.0) < abs(old - 1.0):
@@ -96,16 +106,40 @@ def fix(ids):
             if not os.path.exists(leg):                        # keep the version players have (the first one replaced)
                 shutil.copy(os.path.join(LEVELS, f"level{i}.json"), leg)
             G.save(best[i][1])
-            print(f"L{i}: {old:.2f} -> {best[i][0]:.2f}  saved", flush=True)
+            if best[i][2]:
+                variants[str(i)] = best[i][2]
+            else:
+                variants.pop(str(i), None)
+            print(f"L{i}: {old:.2f} -> {best[i][0]:.2f}  saved (variant {best[i][2]})", flush=True)
         else:
             print(f"L{i}: kept ({old:.2f})", flush=True)
+    json.dump(variants, open(var_path, "w"))
+
+
+def _ids(val):
+    out = []
+    for part in val.split(","):
+        if "-" in part:
+            a, b = part.split("-")
+            out += list(range(int(a), int(b) + 1))
+        elif part:
+            out.append(int(part))
+    return out
 
 
 def main():
+    global HARD, EASY
+    for a in sys.argv[1:]:
+        if a.startswith("--band="):
+            b = float(a.split("=", 1)[1])
+            HARD, EASY = 1.0 + b, 1.0 - b
     args = [a for a in sys.argv[1:] if a.startswith("--fix")]
     if args:
         val = args[0].split("=", 1)[1] if "=" in args[0] else (sys.argv[sys.argv.index(args[0]) + 1] if len(sys.argv) > sys.argv.index(args[0]) + 1 else "")
-        ids = [int(x) for x in val.split(",") if x] if val else [i for i, _ in outliers()]
+        ids = _ids(val) if val else [i for i, _ in outliers()]
+        if "-" in val:                                     # a range: only its outliers
+            ids = [i for i in ids if not (EASY <= ratio(i) <= HARD)]
+        print("rebuilding", ids, flush=True)
         fix(ids)
     for i in range(FIRST, 101):
         r = ratio(i)

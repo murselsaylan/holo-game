@@ -320,12 +320,27 @@ class Level:
                     if r.top + 8 <= py <= r.bottom - 8:
                         pygame.draw.polygon(arena, (130, 255, 210), [(cx - 6, py - 4), (cx, py + 5), (cx + 6, py - 4)], 2)
 
+        # just revived: moving walls, lasers and spinners spare the pair (sim REVIVE_SAFE) - drawn faded, fading back in
+        spare = sim.revive_t if sim is not None else 0.0
+        fade = 1.0 if spare <= 0 else max(0.22, 1.0 - spare)
+        fq = round(fade, 1)                    # glow sprites are cached by strength: a few steps only
+
+        def fc(c):
+            return c if fade >= 1.0 else tuple(int(16 + (v - 16) * fade) for v in c)
+
         # moving walls
         for m in d.moving_walls:
             x, y, w, h = d.moving_rect(m, t)
             if not vis(y, y + h):
                 continue
-            arena.blit(self._piston_sprite(w, h), (int(x), int(y) - oy))
+            spr = self._piston_sprite(w, h)
+            if fade < 1.0:
+                ghost = self._piston.get(("ghost", spr.get_size()))
+                if ghost is None:
+                    ghost = self._piston[("ghost", spr.get_size())] = spr.copy()
+                ghost.set_alpha(int(255 * fade))
+                spr = ghost
+            arena.blit(spr, (int(x), int(y) - oy))
             led = (math.sin(t * 9.0) + 1.0) * 0.5
             pygame.draw.circle(arena, (int(200 + 55 * led), int(50 * led), 20), (int(x + w / 2), int(y + h / 2) - oy), 5)
 
@@ -365,11 +380,11 @@ class Level:
             active, warn = d.laser_state(l, t)
             a, b = (int(l[0]), int(l[1]) - oy), (int(l[2]), int(l[3]) - oy)
             if active:
-                pygame.draw.line(arena, (120, 20, 50), a, b, 16)
-                pygame.draw.line(arena, (255, 60, 110), a, b, 8)
-                pygame.draw.line(arena, (255, 235, 240), a, b, 3)
+                pygame.draw.line(arena, fc((120, 20, 50)), a, b, 16)
+                pygame.draw.line(arena, fc((255, 60, 110)), a, b, 8)
+                pygame.draw.line(arena, fc((255, 235, 240)), a, b, 3)
                 for p in (a, b):
-                    add_glow(arena, p[0], p[1], 26, (255, 60, 100), 1.0)
+                    add_glow(arena, p[0], p[1], 26, (255, 60, 100), fq)
             elif warn:
                 # A persistent dashed amber guide telegraphs the danger even
                 # on a low-refresh display; solid pink still means active.
@@ -398,15 +413,15 @@ class Level:
             th = int(s[5])
 
             # Multi-layer intense neon laser beam
-            pygame.draw.line(arena, (130, 15, 80), a, b, th + 10)
-            pygame.draw.line(arena, (255, 50, 150), a, b, th + 2)
-            pygame.draw.line(arena, (255, 245, 250), a, b, 4)
+            pygame.draw.line(arena, fc((130, 15, 80)), a, b, th + 10)
+            pygame.draw.line(arena, fc((255, 50, 150)), a, b, th + 2)
+            pygame.draw.line(arena, fc((255, 245, 250)), a, b, 4)
 
             # High-energy plasma beads at the beam tips
             r_tip = th // 2 + 4
             for p in (a, b):
-                pygame.draw.circle(arena, (255, 50, 150), p, r_tip + 2)
-                pygame.draw.circle(arena, (255, 245, 255), p, r_tip - 1)
+                pygame.draw.circle(arena, fc((255, 50, 150)), p, r_tip + 2)
+                pygame.draw.circle(arena, fc((255, 245, 255)), p, r_tip - 1)
 
             # Central emitter reactor core
             pygame.draw.circle(arena, (18, 10, 30), (cx_i, cy_i), 11)
@@ -414,7 +429,7 @@ class Level:
             pygame.draw.circle(arena, (255, 240, 255), (cx_i, cy_i), 4)
 
             # Ambient neon danger glow
-            add_glow(arena, s[0], s[1] - oy, r_spin + 20, (255, 50, 150), 0.55)
+            add_glow(arena, s[0], s[1] - oy, r_spin + 20, (255, 50, 150), round(0.55 * fq, 2))
 
         for i, z in enumerate(d.shields):
             if (sim is not None and sim.shield_taken[i]) or not vis(z[1] - 40, z[1] + 40):

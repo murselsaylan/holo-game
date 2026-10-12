@@ -374,7 +374,7 @@ export function replayEndless(seed: string, tapsIn: number[], endStep: number | 
   let i = 0, hi = 0;
   while (run.n < limit) {
     while (hi < helps.length && helps[hi][0] <= run.n && (helps[hi][1] === "S" || run.dead)) {
-      if (helps[hi][1] === "S") run.sim.addShield(); else run.sim.revive(helps[hi][1] === "R2");
+      if (helps[hi][1] === "S") run.sim.addShield(); else run.sim.revive(helps[hi][1] === "R2" || helps[hi][1] === "R3", helps[hi][1] === "R3");
       hi++;
     }
     if (run.dead) break;

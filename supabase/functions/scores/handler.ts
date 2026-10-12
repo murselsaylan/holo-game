@@ -351,16 +351,16 @@ async function submit(store: Store, d: Record<string, unknown>, ip: string, nowM
   if (d.assists !== undefined) {
     if (!Array.isArray(d.assists) || d.assists.length > MAX_ASSISTS) return R(400, { error: "bad assists" });
     for (const a of d.assists) {
-      if (!Array.isArray(a) || a.length !== 2 || !Number.isInteger(a[0]) || a[0] < 0 || (a[1] !== "S" && a[1] !== "R" && a[1] !== "R2")) {
+      if (!Array.isArray(a) || a.length !== 2 || !Number.isInteger(a[0]) || a[0] < 0 || (a[1] !== "S" && a[1] !== "R" && a[1] !== "R2" && a[1] !== "R3")) {
         return R(400, { error: "bad assists" });
       }
     }
-    assists = (d.assists as [number, "S" | "R" | "R2"][]).map((a) => [a[0], a[1]] as Assist);
+    assists = (d.assists as [number, "S" | "R" | "R2" | "R3"][]).map((a) => [a[0], a[1]] as Assist);
     if (assists.length && !safeEqual(String(d.asig ?? ""), await signAssisted(pl.secret, pid, level, ts, taps, assists))) {
       return R(403, { error: "bad signature" });
     }
   }
-  const revives = assists.filter((a) => a[1] === "R" || a[1] === "R2").length;
+  const revives = assists.filter((a) => a[1] === "R" || a[1] === "R2" || a[1] === "R3").length;
   const limitS = Math.max(90.0, lvl.parTime * 8) + revives * 30.0;          // each revive may add a retry's worth of time
   const { result } = replay(lvl, taps, limitS, assists);
   if (!result) return R(422, { error: "replay did not clear the level" });
@@ -408,7 +408,7 @@ async function endlessSubmit(store: Store, d: Record<string, unknown>, ip: strin
     if (!Array.isArray(d.assists) || d.assists.length > 60) return R(400, { error: "bad assists" });
     for (const a of d.assists) {
       if (!Array.isArray(a) || a.length !== 2 || !Number.isInteger(a[0]) || a[0] < 0 || a[0] > end ||
-          (a[1] !== "S" && a[1] !== "R" && a[1] !== "R2")) return R(400, { error: "bad assists" });
+          (a[1] !== "S" && a[1] !== "R" && a[1] !== "R2" && a[1] !== "R3")) return R(400, { error: "bad assists" });
     }
     assists = (d.assists as [number, string][]).map((a) => [a[0], a[1]] as [number, string]);
   }

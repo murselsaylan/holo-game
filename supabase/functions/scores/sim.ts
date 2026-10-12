@@ -332,6 +332,7 @@ export class Sim {
   maxProgress = 0.0;
   reviveT = 0.0;
   guard = false;          // revive R2: every hit bounces (no shield used up) until the next tap
+  guardWalls = false;     // revive R3: while guarded, walls stay solid even during a bounce's invulnerability
   spinRamp = 1.0;         // revive R2: rotation speed ramp 0 -> 1
   snaps: Snap[] = [];
   ang: number;
@@ -402,7 +403,7 @@ export class Sim {
 
   /** Back to where the pair safely was at least a second before it died; walls stay solid, moving hazards spare it
    *  for REVIVE_SAFE seconds (mirror of sim.py Sim.revive). */
-  revive(guarded = false) {
+  revive(guarded = false, walls = false) {
     this.dead = false;
     const target = this.n - REVIVE_BACK;
     let s: Snap | null = null;
@@ -427,11 +428,13 @@ export class Sim {
     this.reviveT = REVIVE_SAFE;
     this.snaps = [s];
     if (guarded) { this.guard = true; this.spinRamp = 0.0; }
+    this.guardWalls = guarded && walls;
   }
 
   swap() {
     if (this.dead || this.won) return;
     this.guard = false;
+    this.guardWalls = false;
     const since = this.t - this.lastSwapT;
     this.lastSwapT = this.t;
     if (0.28 <= since && since <= 1.35) {
@@ -649,6 +652,20 @@ export class Sim {
       }
     }
 
+    // revive R3: while guarded and invulnerable after a bounce, the swinging orb still may not enter a wall
+    // (an orb already inside one - the wall-escape case - is free to move out)
+    if (this.guardWalls && this.protected) {
+      if (this.wallHit(rot.x, rot.y, rot.r + this.margin, 1)) {
+        const ox = piv.x + Math.cos(ang0) * this.tether;
+        const oy = piv.y + Math.sin(ang0) * this.tether;
+        if (!this.wallHit(ox, oy, rot.r + this.margin, 1)) {
+          this.ang = ang0;
+          rot.x = ox; rot.y = oy;
+          this.rotSign = -this.rotSign;
+        }
+      }
+    }
+
     if (!this.protected) {
       const phasing = this.barrierT > 0;
       let kind = this.fatal(o0, mrects, lasers, spins, phasing);
@@ -773,7 +790,7 @@ export function computeResult(sim: Sim): Result {
   };
 }
 
-export type Assist = [number, "S" | "R" | "R2"];
+export type Assist = [number, "S" | "R" | "R2" | "R3"];
 
 /** `assists`: paid help, [step, "S"] = a bought shield put on before that step, [step, "R"] = revive after dying at
  *  that step (mirror of sim.py replay). */
@@ -786,7 +803,7 @@ export function replay(lvl: LevelData, tapsIn: number[], maxSeconds = 400.0,
   const maxSteps = Math.trunc(maxSeconds / SIM_DT);
   while (sim.n < maxSteps && !sim.won) {
     while (hi < helps.length && helps[hi][0] <= sim.n && (helps[hi][1] === "S" || sim.dead)) {
-      if (helps[hi][1] === "S") sim.addShield(); else sim.revive(helps[hi][1] === "R2");
+      if (helps[hi][1] === "S") sim.addShield(); else sim.revive(helps[hi][1] === "R2" || helps[hi][1] === "R3", helps[hi][1] === "R3");
       hi++;
     }
     if (sim.dead) break;

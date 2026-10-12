@@ -22,10 +22,10 @@ def one(level, rng, kind="R"):
     nxt = rng.randint(20, 90)
     while s.n < 60 * 90 and not s.won:
         if s.dead:
-            if len([h for h in helps if h[1] in ("R", "R2")]) >= 5:
+            if len([h for h in helps if h[1] in ("R", "R2", "R3")]) >= 5:
                 break
             helps.append([s.n, kind])
-            s.revive(guarded=kind == "R2")
+            s.revive(guarded=kind in ("R2", "R3"), walls=kind == "R3")
             continue
         if s.n >= nxt:
             s.swap()
@@ -44,8 +44,8 @@ def one(level, rng, kind="R"):
 
 def main():
     rng = random.Random(505)
-    cases = [one(level, rng, kind) for level in range(1, 101, 3) for kind in ("R", "R2", "R2")]
-    revs = sum(1 for c in cases for h in c["assists"] if h[1] in ("R", "R2"))
+    cases = [one(level, rng, kind) for level in range(1, 101, 3) for kind in ("R", "R2", "R3")]
+    revs = sum(1 for c in cases for h in c["assists"] if h[1] in ("R", "R2", "R3"))
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(cases, f)
     print(f"{len(cases)} cases, {revs} revives, wins {sum(c['py']['won'] for c in cases)} -> {OUT}")

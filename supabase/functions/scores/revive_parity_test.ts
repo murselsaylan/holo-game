@@ -8,7 +8,7 @@ const golden = JSON.parse(readFileSync(new URL("./revive_golden.json", import.me
 let bad = 0, maxDiff = 0, revives = 0;
 for (const g of golden) {
   const lvl = new LevelData(LEVELS[String(g.level)], DIGESTS[String(g.level)]);
-  revives += g.assists.filter((a: any) => a[1] === "R" || a[1] === "R2").length;
+  revives += g.assists.filter((a: any) => a[1] === "R" || a[1] === "R2" || a[1] === "R3").length;
   const { sim, result } = replay(lvl, g.taps, 90.0 + 30.0 * g.assists.length, g.assists);
   const p = g.py;
   const probs: string[] = [];

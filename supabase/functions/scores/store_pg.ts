@@ -83,7 +83,7 @@ export class PgStore implements Store {
     return await this.sql.begin(async (tx: Sql) => {
       const cur = await tx`SELECT score FROM bests WHERE player_id = ${pid} AND level = ${level}`;
       const improved = cur.length === 0 || res.level_total > Number(cur[0].score);
-      const r = assists.filter((a) => a[1] === "R" || a[1] === "R2").length, s = assists.filter((a) => a[1] === "S").length;
+      const r = assists.filter((a) => a[1] === "R" || a[1] === "R2" || a[1] === "R3").length, s = assists.filter((a) => a[1] === "S").length;
       if (improved && (r || s)) {
         // every revive / bought shield in the run must be one the player paid for and has not used in a ranked run yet
         const c = await tx`SELECT assist_revives_used AS ru, assist_shields_used AS su,

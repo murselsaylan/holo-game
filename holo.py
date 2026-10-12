@@ -930,12 +930,12 @@ class HoloGame:
 
     def _revive_now(self, s):
         self.assisted = True
-        self.assists.append([s.n, "R2"])
+        self.assists.append([s.n, "R3"])
         ach_mod.bump(self.save_mgr, "revive")
         if self.arena_run is not None and s is self.arena_run.sim:
             self.arena_run.revive(guarded=True)  # the arena also drops its pending radar locks
         else:
-            s.revive(guarded=True)             # same rule the server's replay applies (sim.py Sim.revive, "R2"):
+            s.revive(guarded=True, walls=True)  # same rule the server's replay applies (sim.py Sim.revive, "R3"):
         #                                        slow spin-up, shielded until the next tap
         self.particles.clear()
         self.rewind_cam_start = self.cam_y     # the camera glides back to the rewound pair ("rewinding" overlay)

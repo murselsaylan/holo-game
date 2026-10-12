@@ -409,7 +409,7 @@ def _endless_submit(store, d, ip):
     if int(d.get("v", 0)) != E.ENDLESS_VERSION or str(d.get("pool", "")) != E.pool_digest():
         return 409, {"error": "update the game"}
     helps = [[int(a[0]), str(a[1])] for a in (d.get("assists") or [])]
-    if any(a[1] not in ("S", "R", "R2") for a in helps) or sum(1 for a in helps if a[1] != "S") > E.MAX_REVIVES:
+    if any(a[1] not in ("S", "R", "R2", "R3") for a in helps) or sum(1 for a in helps if a[1] != "S") > E.MAX_REVIVES:
         return 400, {"error": "bad assists"}
     digest = hashlib.sha256(E.assist_digest(taps, helps).encode()).hexdigest()
     pl = _authed(store, d, lambda secret, pid, ts: sign_msg(secret, f"{pid}|endless|{week}|{nonce}|{end}|{ts}|{digest}"))

@@ -44,9 +44,9 @@ def main():
             if run.dead:
                 if len([h for h in helps if h[1] != "S"]) >= E.MAX_REVIVES:
                     break
-                kind = "R2" if i % 3 else "R"
+                kind = ("R", "R2", "R3")[i % 3]
                 helps.append([run.n, kind])
-                run.sim.revive(guarded=kind == "R2")
+                run.sim.revive(guarded=kind in ("R2", "R3"), walls=kind == "R3")
                 continue
             if run.n >= n_next:
                 run.swap()
