@@ -40,23 +40,35 @@ def difficulty(i):
     return max(0.02, min(1.0, 0.04 + 0.94 * base + wave + boss))
 
 
+CAMPAIGN = 200                  # the campaign is planned for ~200 levels (2026-10): curves are laid out over it
+
+
 def speed_of(i):
-    return round(0.92 + 0.62 * ((i - 1) / 99.0) ** 0.85, 3)
+    """Pair speed by level (1.0.8): slow early, rising later over the planned 200 levels - level 75 runs at ~75 % of the
+    old 100-level curve (0.92 + 0.62 x^0.85), level 100 at 1.12, level 200 at the 1.45 ceiling it keeps afterwards.
+    levelgen/respeed.py re-times existing levels to it."""
+    x = min(1.0, (i - 1) / float(CAMPAIGN - 1))
+    return round(0.92 + 0.53 * x ** 1.394, 3)
 
 
 def ramp_of(i):
-    """Hidden end-of-level speed-up (fraction of extra speed at the goal). Grows with the level number."""
-    return round(0.22 + 0.26 * ((i - 1) / 99.0) ** 0.9, 3)
+    """Hidden end-of-level speed-up (fraction of extra speed at the goal). Grows with the level number; past 100 only
+    slowly, to 0.55 at the planned end."""
+    if i <= 100:
+        return round(0.22 + 0.26 * ((i - 1) / 99.0) ** 0.9, 3)
+    return round(0.48 + 0.07 * min(1.0, (i - 100) / float(CAMPAIGN - 100)), 3)
 
 
 def margin_target(i):
     """Safety margin (px of extra orb radius) the best possible line must still tolerate on level i.
     ~20 px at the last level = roughly +-40 ms timing slack on the tightest move: brutal but humanly possible."""
-    return 58.0 * (20.0 / 58.0) ** ((i - 1) / 99.0)
+    return max(20.0, 58.0 * (20.0 / 58.0) ** ((i - 1) / 99.0))     # past 100: never below the level-100 slack
 
 
 def height_of(i):
     """Arena height. Later levels scroll: endurance is what makes level 100 hard to reach."""
+    if i > 100:                                                 # past 100: +15 px a level (level 200 ~6900 px)
+        return height_of(100) + int(round(15.0 * (min(i, CAMPAIGN) - 100) / 10.0) * 10)
     g = (i - 1) / 99.0
     bonus = 1300.0 * (max(0.0, i - 40) / 60.0) ** 1.3          # late levels are taller: more distance = more endurance
     return int(round((1470 + 2100 * g ** 1.2 + bonus) / 10.0) * 10)

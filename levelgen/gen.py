@@ -53,6 +53,7 @@ def build(i, tight, seed=0, count_delta=0, gk=0, roamers=0):
         H.add_roamers(L, ctx, roamers, rng)
     d = L.to_level(i, pl["title"], start, end, P.speed_of(i), P.ramp_of(i))
     d["sector"] = pl["sector"]
+    H.small_spinners(d)                     # 1.0.8: no full-length spinners in open space any more
     return d, pl, ctx
 
 

@@ -178,12 +178,31 @@ class Level:
         for pts in contours:
             pygame.draw.lines(fg, accent, True, pts, 1)
 
+        # moving walls: the track each one runs along, so a player can see how far it will come (1.0.8: brighter,
+        # with end stops; a two-axis wall shows the whole area it roams instead of a cross)
+        rail, stop = (150, 96, 42), (220, 140, 50)
         for m in d.moving_walls:
             x, y, w, h = m[0], m[1], m[2], m[3]
+            two_axis = len(m) > 8 and m[4] > 0 and m[5] > 0
+            if two_axis:
+                area = pygame.Rect(int(x - m[4]), int(y - m[5]), int(w + 2 * m[4]), int(h + 2 * m[5]))
+                for k in range(0, area.w, 24):
+                    pygame.draw.line(fg, rail, (area.x + k, area.y), (min(area.right, area.x + k + 12), area.y), 2)
+                    pygame.draw.line(fg, rail, (area.x + k, area.bottom), (min(area.right, area.x + k + 12), area.bottom), 2)
+                for k in range(0, area.h, 24):
+                    pygame.draw.line(fg, rail, (area.x, area.y + k), (area.x, min(area.bottom, area.y + k + 12)), 2)
+                    pygame.draw.line(fg, rail, (area.right, area.y + k), (area.right, min(area.bottom, area.y + k + 12)), 2)
+                continue
             if m[4] > 0:
-                pygame.draw.line(fg, (90, 58, 40), (x - m[4], y + h / 2), (x + w + m[4], y + h / 2), 3)
+                a, b, cy = x - m[4], x + w + m[4], y + h / 2
+                pygame.draw.line(fg, rail, (a, cy), (b, cy), 4)
+                for ex in (a, b):
+                    pygame.draw.line(fg, stop, (ex, cy - 12), (ex, cy + 12), 4)
             if m[5] > 0:
-                pygame.draw.line(fg, (90, 58, 40), (x + w / 2, y - m[5]), (x + w / 2, y + h + m[5]), 3)
+                a, b, cx = y - m[5], y + h + m[5], x + w / 2
+                pygame.draw.line(fg, rail, (cx, a), (cx, b), 4)
+                for ey in (a, b):
+                    pygame.draw.line(fg, stop, (cx - 12, ey), (cx + 12, ey), 4)
         for l in d.lasers:
             for (px, py) in ((l[0], l[1]), (l[2], l[3])):
                 pygame.draw.circle(fg, (60, 64, 80), (int(px), int(py)), 11)

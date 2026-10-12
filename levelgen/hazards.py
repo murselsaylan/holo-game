@@ -69,6 +69,20 @@ def laser(L, ctx, x, y, horiz, span, phase=0.0):
     return period
 
 
+def small_spinners(d):
+    """Every spinner as short as the ones in narrow corridors: the game halves a spinner in a corridor narrower than
+    380 px (sim.LevelData), so one in open space is halved here, in the level data - they all look and play alike."""
+    from sim import LevelData
+    lvl = LevelData(dict(d))
+    out = []
+    for s in d.get("spinners", []):
+        if lvl._corridor_span(s[0], s[1]) > 380.0:
+            s = [s[0], s[1], round(s[2] * 0.5, 2)] + list(s[3:])
+        out.append(list(s))
+    d["spinners"] = out
+    return d
+
+
 def spinner(L, ctx, x, y, horiz, span, sign=1, phase=0.0):
     hl = min(span / 2.0 - 40.0, lerp(30.0, 44.0, ctx.tight) * _st(ctx, "sz"))
     om = sign * lerp(0.6, 1.0, ctx.tight) * _st(ctx, "sp")

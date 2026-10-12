@@ -20,6 +20,7 @@ sys.path.insert(0, ROOT)
 LEVELS = os.path.join(ROOT, "levels")
 LEGACY = os.path.join(ROOT, "levelgen", "legacy_levels")
 K = 1.245                       # median F / target over the campaign (2026-10): the curve's scale
+from levelgen.plan import ARENA_LEVELS as OPEN_FIELD  # noqa: E402  (wall-less 'TRIAL' levels)
 FIRST = 41                      # the first 40 are left alone: hand-tuned onboarding, players pass them fine
 HARD, EASY = 1.20, 0.78         # outlier thresholds on F / curve
 
@@ -31,6 +32,8 @@ def felt(d):
     gates += len(d.get("chasers", [])) + len(d.get("barriers", [])) + len(d.get("breakables", []))
     D = 0.55 * df["ref_time"] + 0.30 * df["swaps"] + 1.2 * haz + 5.0 * min(gates, 6) + 30.0 * (d["speed"] - 0.9)
     narrow = max(0.0, 300.0 - df["corridor"]) / 150.0          # 0 at 300 px, 1 at 150 px
+    if d.get("id") in OPEN_FIELD:                               # open-field trials have no corridor to be narrow
+        narrow = 0.0
     return D + 30.0 * narrow + 0.5 * max(0.0, 20.0 - df["margin"])
 
 
