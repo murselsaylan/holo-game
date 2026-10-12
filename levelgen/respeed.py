@@ -26,6 +26,7 @@ from levelgen import solver as S  # noqa: E402
 from levelgen.gen import pick, save  # noqa: E402
 
 LEVELS = os.path.join(ROOT, "levels")
+BEAM = int(os.environ.get("RESPEED_BEAM", "48"))      # a wider search for levels the default one gives up on
 LEGACY = os.path.join(ROOT, "levelgen", "legacy_levels")
 SHIPPED = "a412c5b"           # the commit whose levels/ every released game (1.0.6, 1.0.7) carries
 
@@ -45,14 +46,14 @@ def respeed(i):
     H.small_spinners(d)
     d["speed"] = P.speed_of(i)
     lvl = LevelData(d)
-    m = S.max_margin(lvl, hi=64.0, iters=4, beam=48, max_layers=320)
+    m = S.max_margin(lvl, hi=64.0, iters=4, beam=BEAM, max_layers=320)
     if m < 0:
         return i, None, "unsolvable at the new speed"
     gate_shield = bool(d.get("barriers"))                  # the energy-barrier gate: pop timing shifts with a margin
     use = 0.0 if gate_shield else min(m, 20.0) * 0.9
-    sol = S.solve(lvl, margin=use, beam=96, max_layers=320)
+    sol = S.solve(lvl, margin=use, beam=2 * BEAM, max_layers=320)
     if not sol.solved:
-        sol = S.solve(lvl, margin=0.0, beam=144, max_layers=320)
+        sol = S.solve(lvl, margin=0.0, beam=3 * BEAM, max_layers=320)
     if not sol.solved:
         return i, None, "no reference solution"
     if not gate_shield:
@@ -80,24 +81,36 @@ def respeed(i):
             out.append((round(p["x"]), round(p["y"])))
         return out
 
-    stars = place_stars(sol.taps)
-    if stars is None:                                          # the safer line found no spots: the plain one
-        s0 = S.solve(lvl, margin=0.0, beam=96, max_layers=320)
-        if s0.solved:
-            stars = place_stars(s0.taps)
-            if stars is not None:
-                sol = s0
-    if stars is None:
-        return i, None, "star placement"
-    d["stars"] = [list(s) for s in stars]
+    # the chosen line, then the plain one: stars along it, and the level with those stars must still be won
+    why = "star placement"
+    s0 = None
+    for cand in (sol, "plain"):
+        if cand == "plain":
+            s0 = S.solve(lvl, margin=0.0, beam=2 * BEAM, max_layers=320)
+            if not s0.solved:
+                break
+            cand = s0
+        stars = place_stars(cand.taps)
+        if stars is None:
+            continue
+        d2 = dict(d)
+        d2["stars"] = [list(s) for s in stars]
+        sim, res = replay(LevelData(d2), cand.taps)
+        if res is None or sim.stars_collected < 3:
+            why = f"final replay won={res is not None} stars={sim.stars_collected}"
+            continue
+        d = d2
+        sol = cand
+        break
+    else:
+        return i, None, why
+    if s0 is not None and not s0.solved:
+        return i, None, why
     d["par_time"] = round(sol.time_s * 1.15, 1)
     d["par_swaps"] = int(sol.swaps * 1.15) + 1
     d["ref_taps"] = list(sol.taps)
     df = d["difficulty"]
     df.update(margin=round(m, 1), speed=d["speed"], swaps=sol.swaps, ref_time=round(sol.time_s, 1))
-    sim, res = replay(LevelData(d), sol.taps)
-    if res is None or sim.stars_collected < 3:
-        return i, None, f"final replay won={res is not None} stars={sim.stars_collected}"
     return i, d, f"speed {d['speed']} t={df['ref_time']}s swaps={sol.swaps} margin={df['margin']}"
 
 
