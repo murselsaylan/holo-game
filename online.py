@@ -173,7 +173,7 @@ class OnlineClient:
         return bool(self.save.settings.get("online", True))
 
     def register(self):
-        if not self.enabled:
+        if not self.enabled or _CFG.get("no_register"):     # CI simulator runs: read the live ranking, never join it
             return
         self._submit_jobs.put(("register", None))
 
