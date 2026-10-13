@@ -36,8 +36,8 @@
 [1m[90m[DEBUG][39m[0m:   	> Task :parseReleaseLocalResources
 [1m[90m[DEBUG][39m[0m:   	> Task :extractReleaseVersionControlInfo
 [1m[90m[DEBUG][39m[0m:   	> Task :processReleaseManifestForPackage
-[1m[90m[DEBUG][39m[0m:   	> Task :javaPreCompileRelease
 [1m[90m[DEBUG][39m[0m:   	> Task :checkReleaseDuplicateClasses
+[1m[90m[DEBUG][39m[0m:   	> Task :javaPreCompileRelease
 [1m[90m[DEBUG][39m[0m:   	> Task :desugarReleaseFileDependencies
 [1m[90m[DEBUG][39m[0m:   	> Task :mergeReleaseStartupProfile
 [1m[90m[DEBUG][39m[0m:   	> Task :processReleaseResources
@@ -60,9 +60,9 @@
 [1m[90m[DEBUG][39m[0m:   	> Task :mergeReleaseNativeLibs
 [1m[90m[DEBUG][39m[0m:   	> Task :mergeReleaseArtProfile
 [1m[90m[DEBUG][39m[0m:   	> Task :collectReleaseDependencies
-[1m[90m[DEBUG][39m[0m:   	> Task :mergeReleaseJavaResource
 [1m[90m[DEBUG][39m[0m:   	> Task :configureReleaseDependencies
 [1m[90m[DEBUG][39m[0m:   	> Task :extractProguardFiles
+[1m[90m[DEBUG][39m[0m:   	> Task :mergeReleaseJavaResource
 [1m[90m[DEBUG][39m[0m:   	
 [1m[90m[DEBUG][39m[0m:   	> Task :stripReleaseDebugSymbols
 [1m[90m[DEBUG][39m[0m:   	Unable to strip the following libraries, packaging them as they are: libSDL2.so, libSDL2_image.so, libSDL2_mixer.so, libSDL2_ttf.so, libcrypto.so, libffi.so, libmain.so, libpng16.so, libpybundle.so, libpython3.11.so, libpythonbin.so, libsqlite3.so, libssl.so. Run with --info option to learn more.
@@ -91,14 +91,14 @@
 [1m[90m[DEBUG][39m[0m:   	
 [1m[90m[DEBUG][39m[0m:   	For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 [1m[90m[DEBUG][39m[0m:   	
-[1m[90m[DEBUG][39m[0m:   	BUILD SUCCESSFUL in 2m 9s
+[1m[90m[DEBUG][39m[0m:   	BUILD SUCCESSFUL in 2m 3s
 [1m[90m[DEBUG][39m[0m:   	50 actionable tasks: 49 executed, 1 up-to-date
 [1m[INFO][0m:    [36m<- directory context /home/runner/work/_temp/holo/.buildozer/android/platform/python-for-android[39m
-[1m[90m[DEBUG][39m[0m:   All possible dists: [<Distribution: name holo with recipes (hostpython3, jpeg, libffi, openssl, png, sdl2_image, sdl2_mixer, sdl2_ttf, sqlite3, python3, sdl2, pyjnius, setuptools, pygame, six, certifi)>]
-[1m[90m[DEBUG][39m[0m:   Dist matching name and arch: [<Distribution: name holo with recipes (hostpython3, jpeg, libffi, openssl, png, sdl2_image, sdl2_mixer, sdl2_ttf, sqlite3, python3, sdl2, pyjnius, setuptools, pygame, six, certifi)>]
-[1m[90m[DEBUG][39m[0m:   Dist matching ndk_api and recipe: [<Distribution: name holo with recipes (hostpython3, jpeg, libffi, openssl, png, sdl2_image, sdl2_mixer, sdl2_ttf, sqlite3, python3, sdl2, pyjnius, setuptools, pygame, six, certifi)>]
+[1m[90m[DEBUG][39m[0m:   All possible dists: [<Distribution: name holo with recipes (hostpython3, jpeg, libffi, openssl, png, sdl2_image, sdl2_mixer, sdl2_ttf, sqlite3, python3, sdl2, pyjnius, setuptools, pygame, certifi, six)>]
+[1m[90m[DEBUG][39m[0m:   Dist matching name and arch: [<Distribution: name holo with recipes (hostpython3, jpeg, libffi, openssl, png, sdl2_image, sdl2_mixer, sdl2_ttf, sqlite3, python3, sdl2, pyjnius, setuptools, pygame, certifi, six)>]
+[1m[90m[DEBUG][39m[0m:   Dist matching ndk_api and recipe: [<Distribution: name holo with recipes (hostpython3, jpeg, libffi, openssl, png, sdl2_image, sdl2_mixer, sdl2_ttf, sqlite3, python3, sdl2, pyjnius, setuptools, pygame, certifi, six)>]
 [1m[INFO][0m:    Of the existing distributions, the following meet the given requirements:
-[1m[INFO][0m:    	[32m[1mholo[0m: min API 24, includes recipes ([32mhostpython3, jpeg, libffi, openssl, png, sdl2_image, sdl2_mixer, sdl2_ttf, sqlite3, python3, sdl2, pyjnius, setuptools, pygame, six, certifi[0m), built for archs ([34marm64-v8a, armeabi-v7a[0m)
+[1m[INFO][0m:    	[32m[1mholo[0m: min API 24, includes recipes ([32mhostpython3, jpeg, libffi, openssl, png, sdl2_image, sdl2_mixer, sdl2_ttf, sqlite3, python3, sdl2, pyjnius, setuptools, pygame, certifi, six[0m), built for archs ([34marm64-v8a, armeabi-v7a[0m)
 [1m[INFO][0m:    [1m[94mholo has compatible recipes, using this one[0m
 [1m[INFO][0m:    [1m[32m# Copying android package to current directory[0m[39m
 [1m[INFO][0m:    [1m[32m# Android package filename not found in build output. Guessing...[0m[39m
