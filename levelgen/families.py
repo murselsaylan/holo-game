@@ -254,7 +254,10 @@ def arena(ctx, rows=6, kinds=ARENA_KINDS, start_bottom=True):
     L.rect(0, 0, ARENA_W, ctx.H)
     st = getattr(ctx, "style", {})
     top, bot = 330.0, ctx.H - 330.0
-    rows = max(2, min(rows, int((ctx.H - 660) // 430) + 1))          # rows >= 430 px apart: the pair needs a safe pause between them
+    # rows far enough apart for a safe pause between them: 430 px on easy levels down to 320 px on the tightest
+    # (1.0.8: open fields came out far easier than walled levels of the same number)
+    spacing = lerp(430.0, 320.0, ctx.tight)
+    rows = max(2, min(int(rows * lerp(1.0, 1.6, ctx.tight)), int((ctx.H - 660) // spacing) + 1))
     ys = [top + (bot - top) * k / (rows - 1) for k in range(rows)]
     if start_bottom:
         ys = ys[::-1]
@@ -266,7 +269,7 @@ def arena(ctx, rows=6, kinds=ARENA_KINDS, start_bottom=True):
         k = rng.choice([x for x in kinds if x != prev] or kinds)
         prev = k
         seq.append(k)
-        g = lerp(300.0, 215.0, ctx.tight)
+        g = lerp(290.0, 190.0, ctx.tight)                      # the gap a row leaves open
         ph = rng.uniform(0, 6.28)
         if k == "slider":
             sp = lerp(0.6, 1.1, ctx.tight) * st.get("sp", 1.0)
