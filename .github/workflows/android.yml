@@ -53,13 +53,14 @@ jobs:
         run: |
           if [ -z "$KS_B64" ] || [ -z "$KS_PW" ]; then echo "keystore secrets missing"; exit 1; fi
           echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/holo-upload.jks"
+          unset KS_B64                       # buildozer dumps its environment into the (published) log on failure
           export P4A_RELEASE_KEYSTORE="$RUNNER_TEMP/holo-upload.jks" P4A_RELEASE_KEYALIAS=holo
           export P4A_RELEASE_KEYSTORE_PASSWD="$KS_PW" P4A_RELEASE_KEYALIAS_PASSWD="$KS_PW"
           for attempt in 1 2 3; do
             find .buildozer -path "*/build/venv" -type d -prune -exec rm -rf {} + 2>/dev/null || true
             echo "=== attempt $attempt"
             yes | buildozer -v android release > "$RUNNER_TEMP/build.log" 2>&1 || true
-            tail -c 3000 "$RUNNER_TEMP/build.log" | grep -v -i "passw" || true
+            tail -c 3000 "$RUNNER_TEMP/build.log" | grep -v -i -E "passw|keystore|KS_|[A-Za-z0-9+/=]{100,}" || true
             ls bin/*.aab 2>/dev/null && break
           done
           rm -f "$RUNNER_TEMP/holo-upload.jks"
@@ -78,8 +79,9 @@ jobs:
             git add "aab/holo-$V.aab" && git commit -qm "AAB $V (run $GITHUB_RUN_NUMBER) [skip ci]" && git push -qf origin HEAD:builds
             git checkout -q -f "$GITHUB_SHA"
           fi
-          # the log is published: drop every line naming a password and blank the password itself wherever it appears
-          tail -c 20000 "$RUNNER_TEMP/build.log" 2>/dev/null | grep -v -i "passw"             | python -c "import os,sys;p=os.environ.get('KS_PW','');t=sys.stdin.read();sys.stdout.write(t.replace(p,'***') if p else t)"             > /tmp/android.log || echo "no log" > /tmp/android.log
+          # the log is published (public repo): only gradle's error and the tail without the environment dump; every
+          # line naming a password / keystore / KS_ variable or holding a long base64 run is dropped, the password blanked
+          { grep -A30 "What went wrong" "$RUNNER_TEMP/build.log" 2>/dev/null | head -80; echo "-----";             tail -c 20000 "$RUNNER_TEMP/build.log" 2>/dev/null | grep -v -E "^#     |^export "; }             | grep -v -i -E "passw|keystore|KS_|[A-Za-z0-9+/=]{100,}"             | python -c "import os,sys;p=os.environ.get('KS_PW','');t=sys.stdin.read();sys.stdout.write(t.replace(p,'***') if p else t)"             > /tmp/android.log || echo "no log" > /tmp/android.log
           git fetch origin ci-logs 2>/dev/null && git checkout -B ci-logs FETCH_HEAD || git checkout --orphan ci-logs
           git rm -rq --cached . 2>/dev/null || true
           cp /tmp/android.log "android-$GITHUB_RUN_NUMBER.log"
