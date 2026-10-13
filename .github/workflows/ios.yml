@@ -5,11 +5,12 @@ name: Build HOLO iOS
 #   holo-ios-simulator   HOLO.app for the iOS simulator (zip)
 #   holo-ios-screens     simulator screenshots + the app's log (did it start, any Python error)
 # A build for real iPhones / TestFlight needs an Apple Developer account (signing) - not set up yet.
+# Runs only when asked (Run workflow, or a tag ios-test-N): every push used to start it, and macOS minutes count
+# 10x against the private repo's monthly Actions quota - it ran out on 2026-10-13.
 on:
   workflow_dispatch:
   push:
-    branches: [main]
-    paths: ['**.py', 'assets/**', 'levels/**', 'config.json', '.github/workflows/ios.yml']
+    tags: ['ios-test-*']
 
 permissions:
   contents: write                     # the tour's logs / crash reports go to the ci-logs branch
