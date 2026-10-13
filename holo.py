@@ -1901,7 +1901,7 @@ class HoloGame:
             olo.draw_peek(f, w // 2, f.get_height())
         if olo.blip:                                    # his voice while a line types: the letter picks the pitch
             ch, olo.blip = olo.blip, None
-            self.audio.play_sfx(f"sfx_olo_{1 + ord(ch.lower()) % 5}", volume=0.5)
+            self.audio.play_sfx(f"sfx_olo_{1 + ord(ch.lower()[:1] or ch[:1] or ' ') % 5}", volume=0.5)  # 'İ'.lower() is 2 chars
 
     def _draw_scene(self, f, st, in_play):
         if st == "intro":
