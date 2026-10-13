@@ -19,7 +19,7 @@ import os
 
 from sim import ARENA_W, LevelData, Sim, LEVELS_DIR, MAX_LEVELS, SPAWN_GRACE, SIM_DT
 
-ENDLESS_VERSION = 3            # v3 (1.0.7): the climb starts faster (speed floor 1.10); the server also takes v2
+ENDLESS_VERSION = 4            # v4 (1.0.8): stages from the 1.0.8 maps; v3 (1.0.7): speed floor 1.10; server takes v2-v4
 Y_BASE = 10_000_000.0          # bottom of stage 0 (the climb goes towards y = 0)
 GAP = 640.0                    # connector chamber between two stages (roomy: the pair crosses it sideways)
 TUNNEL = 340.0                 # width of the tunnels cut into a stage's start / exit rooms

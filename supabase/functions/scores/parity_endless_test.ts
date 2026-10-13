@@ -4,12 +4,14 @@ import { readFileSync } from "node:fs";
 import { poolDigest, replayEndless } from "./endless.ts";
 import { ENDLESS_POOL } from "./endless_data.ts";
 
-const golden = JSON.parse(readFileSync(new URL("./endless_golden.json", import.meta.url), "utf-8"));
+// v4 climbs (1.0.8 maps) and v3 climbs of 1.0.7 games on the maps they shipped with (tools/endless_golden.py --legacy)
+const golden = JSON.parse(readFileSync(new URL("./endless_golden.json", import.meta.url), "utf-8"))
+  .concat(JSON.parse(readFileSync(new URL("./endless_golden_v3.json", import.meta.url), "utf-8")));
 let bad = 0, maxDiff = 0, stages = 0;
 const t0 = Date.now();
 if (poolDigest() !== ENDLESS_POOL.digest) { console.log(`pool digest ts=${poolDigest()} py=${ENDLESS_POOL.digest}`); bad++; }
 for (const g of golden) {
-  const run = replayEndless(g.seed, g.taps, g.end, undefined, g.assists ?? []);
+  const run = replayEndless(g.seed, g.taps, g.end, undefined, g.assists ?? [], g.v ?? 3);
   const p = g.py, probs: string[] = [];
   for (const [k, a, b] of [["n", run.n, p.n], ["dead", run.dead, p.dead], ["metres", run.metres, p.metres], ["stars", run.stars, p.stars],
                            ["points", run.points, p.points], ["w0", run.w0, p.w0],

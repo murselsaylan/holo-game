@@ -46,8 +46,8 @@ WEIGHTS = {                     # points per unit of each raw measure
     "quick": 0.35,              # per tap within 0.4 s of the previous one
     "wall_close": 35.0,         # x share of the path within 25 px of a wall
     "wall_depth": 25.0,         # x mean of (60 - clearance) / 60 under 60 px
-    "haz_rate": 6.0,            # per close pass per 10 s
-    "haz_close": 30.0,          # x share of the path within 45 px of a moving hazard
+    "haz_rate": 1.5,            # per close pass per 10 s (a quarter since 2026-10-13: hazards count less)
+    "haz_close": 7.5,           # x share of the path within 45 px of a moving hazard (a quarter, as haz_rate)
     "spacing": 2.0,             # per close pass with less than 1 s of rest before it
     "precision": 45.0,          # x mean share of a tap's +-6 frame window that dies
     "razor": 0.8,               # per tap whose window is +-1 frame or less

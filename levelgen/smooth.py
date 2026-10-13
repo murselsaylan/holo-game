@@ -101,11 +101,27 @@ def outliers(lo=FIRST, hi=100):
     return out
 
 
+HAZARDS = ("moving_walls", "lasers", "spinners", "circles", "reverse_walls")
+
+
+def hazard_count(d):
+    return sum(len(d.get(k, [])) for k in HAZARDS)
+
+
+def shipped_hazards(i):
+    """Hazards in the version of level i that released games carry (levelgen/legacy_levels, else the current file)."""
+    p = os.path.join(LEGACY, f"level{i}.json")
+    if not os.path.exists(p):
+        p = os.path.join(LEVELS, f"level{i}.json")
+    return hazard_count(json.load(open(p, encoding="utf-8")))
+
+
 def _work(job):
     i, var, off = job[:3]
     roamers = job[3] if len(job) > 3 else 0
     os.environ["HOLO_TIGHT_OFFSET"] = str(off)
     os.environ["HOLO_NO_HARDEN"] = "1" if off < 0 else "0"
+    os.environ["HOLO_NO_STRIP"] = "1"                    # a level is never emptied of hazards to make it solvable
     from levelgen import plan as P
     P.VARIANT[i] = var                                    # a different layout roll of the same plan
     from levelgen import gen as G
@@ -142,6 +158,10 @@ def fix(ids, n_variants=3, force=(), n_offsets=3):
                 print(f"L{i} v{var} off {off:+.2f} FAILED {str(rep)[:120]}", flush=True)
                 continue
             r = rep["score"] / curve(i)
+            need = max(int(0.7 * shipped_hazards(i)), P.plan(i)["count"] // 2)
+            if hazard_count(d) < need:                        # far emptier than the level players know: reject
+                print(f"L{i} v{var} off {off:+.2f}: rejected - {hazard_count(d)} hazards, needs {need}", flush=True)
+                continue
             print(f"L{i} v{var} off {off:+.2f}: F/curve {r:.2f}  W={d['difficulty']['corridor']} margin={d['difficulty']['margin']} "
                   f"swaps={d['difficulty']['swaps']} t={d['difficulty']['ref_time']}", flush=True)
             if i not in best or abs(r - 1.0) < abs(best[i][0] - 1.0):

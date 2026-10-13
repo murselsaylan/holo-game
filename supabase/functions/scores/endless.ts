@@ -1,12 +1,17 @@
 // Endless climb, mirror of endless.py (keep them identical: parity_endless_test.ts replays Python's golden runs).
 // The server rebuilds the run's world from its seed (week + the run's nonce), replays the taps and measures the height.
 import { ARENA_W, LevelData, Sim } from "./sim.ts";
-import { LEVELS } from "./levels_data.ts";
+import { LEGACY, LEVELS } from "./levels_data.ts";
 import { ENDLESS_POOL } from "./endless_data.ts";
 
-export const ENDLESS_VERSION = 3;
-/** Versions the server still replays: v2 clients (1.0.6) start at 0.95, v3 (1.0.7+) at the 1.10 floor. */
-export const ENDLESS_VERSIONS = [2, 3];
+export const ENDLESS_VERSION = 4;
+/** Versions the server still replays: v2 clients (1.0.6) start at 0.95, v3 (1.0.7) at the 1.10 floor, v4 (1.0.8+) the
+ *  same climb built from the 1.0.8 campaign maps (slower, small spinners). v2 / v3 games carry the maps they shipped
+ *  with: their stages are built from those (LEGACY, one shipped version per changed level). */
+export const ENDLESS_VERSIONS = [2, 3, 4];
+// deno-lint-ignore no-explicit-any
+const SHIPPED: Record<string, any> = {};
+for (const e of Object.values(LEGACY)) SHIPPED[String(e.level)] = e.data;
 export const Y_BASE = 10_000_000.0;
 export const GAP = 640.0;
 export const TUNNEL = 340.0;
@@ -170,8 +175,8 @@ function flip(d: any) {
 }
 
 // deno-lint-ignore no-explicit-any
-export function buildStage(levelId: number, tier: number, first = false): any {
-  const d = structuredClone(LEVELS[String(levelId)]);
+export function buildStage(levelId: number, tier: number, first = false, v = ENDLESS_VERSION): any {
+  const d = structuredClone((v < 4 && SHIPPED[String(levelId)]) || LEVELS[String(levelId)]);
   for (const [key, t] of FAMILY_TIER) {
     if (tier < t) {
       if (key === "barriers" && d.barriers && d.barriers.length) {
@@ -218,7 +223,7 @@ class Stage {
     this.k = k;
     this.level = levelId;
     this.tier = tierOf(k);
-    const local = buildStage(levelId, this.tier, k === 0);
+    const local = buildStage(levelId, this.tier, k === 0, v);
     this.height = Number(local.height);
     this.bottom = bottom;
     this.top = bottom - this.height;

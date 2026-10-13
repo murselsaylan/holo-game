@@ -107,7 +107,10 @@ def make(i, seed=0, beam=48, verbose=False, roamers=0):
     log = []
     base_tight = tight
     budget = 360.0                        # seconds of tuning per level before falling back to fewer hazards
-    for count_delta in (0, -2, -99):
+    no_strip = os.environ.get("HOLO_NO_STRIP") == "1"       # 1.0.8: never empty a level to make it solvable
+    if no_strip:
+        budget = 900.0
+    for count_delta in ((0,) if no_strip else (0, -2, -99)):
         # a layout can be geometrically unsolvable at its full hazard count no matter the tightness (a bad placement,
         # not too many hazards); try a couple of alternate seeds - different route/hazard positions, same plan - before
         # giving up and stripping hazards down to count_delta -2/-99, which is what used to leave levels feeling empty.

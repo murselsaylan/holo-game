@@ -361,6 +361,28 @@ def apply(L, ctx, kit, count, rng):
     return placed
 
 
+ROAM_X, ROAM_Y = 240.0, 320.0      # a two-axis wall's reach from its centre (px)
+
+
+def tidy_roamers(d):
+    """1.0.8: every two-axis wall runs one clean oval loop - the y axis at the x axis's pace, a quarter turn behind
+    (the old mismatched frequencies wandered unpredictably over up to 1800 px), its reach capped at ROAM_X / ROAM_Y.
+    The game draws the loop. Idempotent."""
+    out = []
+    for m in d.get("moving_walls", []):
+        m = list(m)
+        if len(m) > 8 and m[4] > 0 and m[5] > 0:
+            turn = 1.0 if m[8] * m[6] >= 0 else -1.0
+            m[4] = round(min(m[4], ROAM_X), 2)
+            m[5] = round(min(m[5], ROAM_Y), 2)
+            m[8] = round(abs(m[6]) * turn * (1.0 if m[6] >= 0 else -1.0), 4)
+            m[9] = round(m[7] + math.pi / 2.0, 4)
+        out.append(m)
+    if "moving_walls" in d:
+        d["moving_walls"] = out
+    return d
+
+
 def add_roamers(L, ctx, count, rng):
     """Wall fragments that drift across most of the level's height (not pinned to one row) along a
     Lissajous-ish path - the x and y axes get their own, deliberately mismatched frequency (sim v9's 10-field
@@ -380,9 +402,10 @@ def add_roamers(L, ctx, count, rng):
         rng_x = rng.uniform(150.0, 280.0)
         speed_x = rng.uniform(0.24, 0.38)
         phase_x = rng.uniform(0.0, 6.28)
-        ratio = rng.uniform(1.35, 2.15) * rng.choice((1.0, -1.0))    # off-integer & signed: no short repeat, either turn
-        speed_y = speed_x * ratio
-        phase_y = rng.uniform(0.0, 6.28)
+        turn = rng.choice((1.0, -1.0))                                # 1.0.8: one clean oval loop, either way round
+        speed_y = speed_x * turn
+        phase_y = phase_x + math.pi / 2.0
+        rng_y = min(rng_y, ROAM_Y)
         L.add("moving_walls", [cx - w / 2.0, cy - h / 2.0, w, h, rng_x, rng_y, speed_x, phase_x, speed_y, phase_y])
         n += 1
     return n

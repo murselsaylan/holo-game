@@ -27,6 +27,8 @@ from levelgen.gen import pick, save  # noqa: E402
 
 LEVELS = os.path.join(ROOT, "levels")
 BEAM = int(os.environ.get("RESPEED_BEAM", "48"))      # a wider search for levels the default one gives up on
+KW = {"max_delay": int(os.environ.get("RESPEED_MAXDELAY", "175")),      # longer waits between taps (slow levels)
+      "max_layers": int(os.environ.get("RESPEED_LAYERS", "320"))}
 LEGACY = os.path.join(ROOT, "levelgen", "legacy_levels")
 SHIPPED = "a412c5b"           # the commit whose levels/ every released game (1.0.6, 1.0.7) carries
 
@@ -41,26 +43,47 @@ def jitter_rate(lvl, taps, trials=8, spread=2):
     return win / float(trials)
 
 
+def dilate(d, k):
+    """The whole level slowed down by k (< 1): moving walls, lasers, spinners and chasers run at the pair's new pace,
+    so the same layout plays exactly as before, only slower (for levels whose hazards no longer line up otherwise)."""
+    if d.get("moving_walls"):
+        d["moving_walls"] = [list(m[:6]) + [round(m[6] * k, 4), m[7]] + ([round(m[8] * k, 4), m[9]] if len(m) > 8 else [])
+                             for m in d["moving_walls"]]
+    out = []
+    for l in d.get("lasers", []):
+        l = list(l) + [3.0, 0.4, 0.0][len(l) - 4:]
+        out.append(l[:4] + [round(l[4] / k, 3), l[5], round(l[6] / k, 3)])
+    if d.get("lasers"):
+        d["lasers"] = out
+    d["spinners"] = [list(s[:3]) + [round(s[3] * k, 4)] + list(s[4:]) for s in d.get("spinners", [])]
+    if d.get("chasers"):
+        d["chasers"] = [list(c[:4]) + [round(c[4] * k, 2), round(c[5] * k, 2)] + list(c[6:]) for c in d.get("chasers", [])]
+    return d
+
+
 def respeed(i):
     d = json.load(open(os.path.join(LEVELS, f"level{i}.json"), encoding="utf-8"))
     H.small_spinners(d)
+    H.tidy_roamers(d)
+    if os.environ.get("RESPEED_DILATE") == "1":
+        dilate(d, P.speed_of(i) / d["speed"])
     d["speed"] = P.speed_of(i)
     lvl = LevelData(d)
-    m = S.max_margin(lvl, hi=64.0, iters=4, beam=BEAM, max_layers=320)
+    m = S.max_margin(lvl, hi=64.0, iters=4, beam=BEAM, **KW)
     if m < 0:
         return i, None, "unsolvable at the new speed"
     gate_shield = bool(d.get("barriers"))                  # the energy-barrier gate: pop timing shifts with a margin
     use = 0.0 if gate_shield else min(m, 20.0) * 0.9
-    sol = S.solve(lvl, margin=use, beam=2 * BEAM, max_layers=320)
+    sol = S.solve(lvl, margin=use, beam=2 * BEAM, **KW)
     if not sol.solved:
-        sol = S.solve(lvl, margin=0.0, beam=3 * BEAM, max_layers=320)
+        sol = S.solve(lvl, margin=0.0, beam=3 * BEAM, **KW)
     if not sol.solved:
         return i, None, "no reference solution"
     if not gate_shield:
         best = jitter_rate(lvl, sol.taps)
         if best < 0.75:
             for um, bm in ((min(m, 28.0), 96), (m * 0.95, 144)):
-                s2 = S.solve(lvl, margin=um, beam=bm, max_layers=320)
+                s2 = S.solve(lvl, margin=um, beam=bm, **KW)
                 if s2.solved:
                     r2 = jitter_rate(lvl, s2.taps)
                     if r2 > best:
@@ -86,7 +109,7 @@ def respeed(i):
     s0 = None
     for cand in (sol, "plain"):
         if cand == "plain":
-            s0 = S.solve(lvl, margin=0.0, beam=2 * BEAM, max_layers=320)
+            s0 = S.solve(lvl, margin=0.0, beam=2 * BEAM, **KW)
             if not s0.solved:
                 break
             cand = s0

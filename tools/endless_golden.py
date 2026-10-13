@@ -1,6 +1,7 @@
 """Golden endless runs for the server parity test (supabase/functions/scores/parity_endless_test.ts).
 
     python tools/endless_golden.py [seconds]     random runs + bot runs that climb through several stages
+    python tools/endless_golden.py --legacy      v3 runs (1.0.7 games) on the maps they shipped with -> endless_golden_v3.json
 """
 import json
 import os
@@ -19,13 +20,22 @@ OUT = os.path.join(ROOT, "supabase", "functions", "scores", "endless_golden.json
 def record(seed, taps, end=None, assists=None):
     run = E.replay(seed, taps, end, assists=assists)
     s = run.sim
-    return {"seed": seed, "taps": list(taps), "end": end, "assists": assists or [],
+    return {"seed": seed, "v": E.ENDLESS_VERSION, "taps": list(taps), "end": end, "assists": assists or [],
             "py": {"n": run.n, "dead": run.dead, "metres": run.metres, "stars": run.stars, "points": run.points,
                    "w0": run.w0, "stage": run.stage,
                    "orbs": [s.orbs[0].x, s.orbs[0].y, s.orbs[1].x, s.orbs[1].y]}}
 
 
 def main():
+    global OUT
+    if "--legacy" in sys.argv:                            # a 1.0.7 game: v3 seeds, the shipped campaign maps
+        sys.argv.remove("--legacy")
+        E.ENDLESS_VERSION = 3
+        leg = os.path.join(ROOT, "levelgen", "legacy_levels")
+        for name in os.listdir(leg):
+            if name.startswith("level") and name.endswith(".json"):
+                E._RAW[int(name[5:-5])] = json.load(open(os.path.join(leg, name), encoding="utf-8"))
+        OUT = OUT.replace("endless_golden.json", "endless_golden_v3.json")
     secs = float(sys.argv[1]) if len(sys.argv) > 1 else 240
     rng = random.Random(77)
     cases = []

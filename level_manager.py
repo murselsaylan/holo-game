@@ -184,14 +184,13 @@ class Level:
         for m in d.moving_walls:
             x, y, w, h = m[0], m[1], m[2], m[3]
             two_axis = len(m) > 8 and m[4] > 0 and m[5] > 0
-            if two_axis:
-                area = pygame.Rect(int(x - m[4]), int(y - m[5]), int(w + 2 * m[4]), int(h + 2 * m[5]))
-                for k in range(0, area.w, 24):
-                    pygame.draw.line(fg, rail, (area.x + k, area.y), (min(area.right, area.x + k + 12), area.y), 2)
-                    pygame.draw.line(fg, rail, (area.x + k, area.bottom), (min(area.right, area.x + k + 12), area.bottom), 2)
-                for k in range(0, area.h, 24):
-                    pygame.draw.line(fg, rail, (area.x, area.y + k), (area.x, min(area.bottom, area.y + k + 12)), 2)
-                    pygame.draw.line(fg, rail, (area.right, area.y + k), (area.right, min(area.bottom, area.y + k + 12)), 2)
+            if two_axis:                     # the loop its centre runs along (1.0.8 levels: one clean oval), dashed
+                per = 2.0 * math.pi / max(0.05, abs(m[6]))
+                pts = [(x + w / 2 + math.sin(t * m[6] + m[7]) * m[4], y + h / 2 + math.sin(t * m[8] + m[9]) * m[5])
+                       for t in (per * k / 72.0 for k in range(73))]
+                for k in range(0, 72, 2):
+                    pygame.draw.line(fg, rail, pts[k], pts[k + 1], 4)
+                pygame.draw.circle(fg, stop, (int(x + w / 2), int(y + h / 2)), 6)
                 continue
             if m[4] > 0:
                 a, b, cy = x - m[4], x + w + m[4], y + h / 2
