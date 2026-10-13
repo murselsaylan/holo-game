@@ -76,7 +76,7 @@ jobs:
           if [ -n "$AAB" ]; then
             cp "$AAB" /tmp/holo.aab
             git checkout --orphan builds-tmp && git rm -rq --cached . && mkdir -p aab && cp /tmp/holo.aab "aab/holo-$V.aab"
-            git add "aab/holo-$V.aab" && git commit -qm "AAB $V (run $GITHUB_RUN_NUMBER) [skip ci]" && git push -qf origin HEAD:builds
+            git add -f "aab/holo-$V.aab" && git commit -qm "AAB $V (run $GITHUB_RUN_NUMBER) [skip ci]" && git push -qf origin HEAD:builds
             git checkout -q -f "$GITHUB_SHA"
           fi
           # the log is published (public repo): only gradle's error and the tail without the environment dump; every
