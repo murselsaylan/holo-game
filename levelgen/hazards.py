@@ -410,9 +410,14 @@ def _fit_loop(d, m):
     Hh = float(d.get("height", 1600))
     w, h = m[2], m[3]
 
+    keep = [tuple(d[k]) for k in ("start", "end") if k in d]      # the loop stays 190 px clear of the start and the goal
+
     def free(x0, y0, x1, y1):
         if x0 < 20 or y0 < 20 or x1 > ARENA_W - 20 or y1 > Hh - 20:
             return False
+        for (px, py) in keep:
+            if math.hypot(px - min(max(px, x0), x1), py - min(max(py, y0), y1)) < 190.0:
+                return False
         return not any(x0 < wx + ww and x1 > wx and y0 < wy + wh and y1 > wy for (wx, wy, ww, wh) in walls)
 
     def grow(cx, cy):
@@ -445,8 +450,11 @@ def _fit_loop(d, m):
     rx, ry = round((x1 - x0 - w) / 2.0, 2), round((y1 - y0 - h) / 2.0, 2)
     bx, by = round((x0 + x1) / 2.0 - w / 2.0, 2), round((y0 + y1) / 2.0 - h / 2.0, 2)
     spd = float(d.get("speed", 1.0))
-    if rx < 120 or ry < 120:                                 # a corridor too tight to hold the loop and leave a lane:
-        return m                                             # it keeps its old loop (through the walls, as shipped)
+    ox0, oy0, ox1, oy1 = m[0] - m[4], m[1] - m[5], m[0] + w + m[4], m[1] + h + m[5]
+    near = any(math.hypot(px - min(max(px, ox0), ox1), py - min(max(py, oy0), oy1)) < 190.0 for (px, py) in keep)
+    if (rx < 120 or ry < 120) and not (near and rx >= 60 and ry >= 60):
+        return m          # a corridor too tight to hold the loop and leave a lane: its old loop stays (as shipped) -
+                          # unless that loop runs round the start / goal: then even a small one elsewhere is better
     om = ROAM_PACE * spd * 2.0 * math.pi / (4.0 * (rx + ry))
     return [bx, by, w, h, rx, ry, round(om, 4), m[7], m[8], 0.0, 1.0]
 
