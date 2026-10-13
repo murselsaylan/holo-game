@@ -1,0 +1,139 @@
+[1m[90m[DEBUG][39m[0m:   	* What went wrong:
+[1m[90m[DEBUG][39m[0m:   	Execution failed for task ':compileReleaseJavaWithJavac'.
+[1m[90m[DEBUG][39m[0m:   	> Compilation failed; see the compiler output below.
+[1m[90m[DEBUG][39m[0m:   	  Note: Recompile with -Xlint:deprecation for details.
+[1m[90m[DEBUG][39m[0m:   	  /home/runner/work/_temp/holo/android_src/org/holo/notify/NotifyWorker.java:28: error: cannot access ListenableFuture
+[1m[90m[DEBUG][39m[0m:   	  public class NotifyWorker extends Worker {
+[1m[90m[DEBUG][39m[0m:   	         ^
+[1m[90m[DEBUG][39m[0m:   	    class file for com.google.common.util.concurrent.ListenableFuture not found
+[1m[90m[DEBUG][39m[0m:   	  Note: Some input files use or override a deprecated API.
+[1m[90m[DEBUG][39m[0m:   	  1 error
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	* Try:
+[1m[90m[DEBUG][39m[0m:   	> Check your code and dependencies to fix the compilation error(s)
+[1m[90m[DEBUG][39m[0m:   	> Run with --scan to get full insights.
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	BUILD FAILED in 6s
+[1m[90m[DEBUG][39m[0m:   	25 actionable tasks: 24 executed, 1 up-to-date
+Exception in thread background thread for pid 108938:
+Traceback (most recent call last):
+  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/threading.py", line 1045, in _bootstrap_inner
+    self.run()
+  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/threading.py", line 982, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/runner/.local/lib/python3.11/site-packages/sh/__init__.py", line 1709, in wrap
+    fn(*rgs, **kwargs)
+--
+* What went wrong:
+Execution failed for task ':compileReleaseJavaWithJavac'.
+> Compilation failed; see the compiler output below.
+  Note: Recompile with -Xlint:deprecation for details.
+  /home/runner/work/_temp/holo/android_src/org/holo/notify/NotifyWorker.java:28: error: cannot access ListenableFuture
+  public class NotifyWorker extends Worker {
+         ^
+    class file for com.google.common.util.concurrent.ListenableFuture not found
+  Note: Some input files use or override a deprecated API.
+  1 error
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 6s
+25 actionable tasks: 24 executed, 1 up-to-date
+
+
+  STDERR:
+
+[1m[INFO][0m:    STDOUT (last 20 lines of 71):
+[33m	  Note: Recompile with -Xlint:deprecation for details.	
+  /home/runner/work/_temp/holo/android_src/org/holo/notify/NotifyWorker.java:28: error: cannot access ListenableFuture	
+  public class NotifyWorker extends Worker {	
+-----
+build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileReleaseJavaWithJavac'.
+> Compilation failed; see the compiler output below.
+  Note: Recompile with -Xlint:deprecation for details.
+  /home/runner/work/_temp/holo/android_src/org/holo/notify/NotifyWorker.java:28: error: cannot access ListenableFuture
+  public class NotifyWorker extends Worker {
+         ^
+    class file for com.google.common.util.concurrent.ListenableFuture not found
+  Note: Some input files use or override a deprecated API.
+  1 error
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 6s
+25 actionable tasks: 24 executed, 1 up-to-date
+
+
+  STDERR:
+
+[1m[INFO][0m:    STDOUT (last 20 lines of 71):
+[33m	  Note: Recompile with -Xlint:deprecation for details.	
+  /home/runner/work/_temp/holo/android_src/org/holo/notify/NotifyWorker.java:28: error: cannot access ListenableFuture	
+  public class NotifyWorker extends Worker {	
+         ^	
+    class file for com.google.common.util.concurrent.ListenableFuture not found	
+  Note: Some input files use or override a deprecated API.	
+  1 error	
+	
+* Try:	
+> Check your code and dependencies to fix the compilation error(s)	
+> Run with --scan to get full insights.	
+	
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.	
+	
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.	
+	
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.	
+	
+BUILD FAILED in 6s	
+25 actionable tasks: 24 executed, 1 up-to-date[39m
+[1m[INFO][0m:    STDERR:
+[31m	[39m
+[1m[INFO][0m:    [33mENV:[39m
+
+[1m[INFO][0m:    [33mCOMMAND:[39m
+cd /home/runner/work/_temp/holo/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/dists/holo && /home/runner/work/_temp/holo/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/dists/holo/gradlew clean bundleRelease
+
+[1m[31m[WARNING][39m[0m: [31mERROR: /home/runner/work/_temp/holo/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/dists/holo/gradlew failed![39m
+No setup.py/pyproject.toml used, copying full private data into .apk.
+Applying Java source code patches...
+Applying patch: src/patches/SDLActivity.java.patch
+Warning: failed to apply patch (exit code 1), assuming it is already applied:  src/patches/SDLActivity.java.patch
+Applying patch: src/patches/SDLSurface.java.patch
+Warning: failed to apply patch (exit code 1), assuming it is already applied:  src/patches/SDLSurface.java.patch
+# Command failed: ('/opt/hostedtoolcache/Python/3.11.17/x64/bin/python', '-m', 'pythonforandroid.toolchain', 'aab', '--bootstrap', 'sdl2', '--dist_name', 'holo', '--name', 'HOLO', '--version', '1.0.8', '--package', 'com.hologame.holo', '--minsdk', '24', '--ndk-api', '24', '--private', '/home/runner/work/_temp/holo/.buildozer/android/app', '--permission', 'INTERNET', '--permission', 'VIBRATE', '--permission', 'POST_NOTIFICATIONS', '--android-entrypoint', 'org.kivy.android.PythonActivity', '--android-apptheme', '@android:style/Theme.NoTitleBar', '--meta-data', 'com.google.android.gms.ads.APPLICATION_ID=ca-app-pub-2665053543428530~7934980621', '--presplash', '/home/runner/work/_temp/holo/./assets/presplash.png', '--icon', '/home/runner/work/_temp/holo/./assets/icon.png', '--icon-fg', '/home/runner/work/_temp/holo/./assets/icon_fg.png', '--icon-bg', '/home/runner/work/_temp/holo/./assets/icon_bg.png', '--orientation', 'portrait', '--enable-androidx', '--numeric-version', '102450109', '--backup-rules', '/home/runner/work/_temp/holo/backup_rules.xml', '--release', '--sign', '--presplash-color', '#0a0c12', '--copy-libs', '--local-recipes', '/home/runner/work/_temp/holo/android_recipes', '--add-source', '/home/runner/work/_temp/holo/android_src', '--depend', 'com.android.billingclient:billing:8.3.0', '--depend', 'androidx.credentials:credentials:1.3.0', '--depend', 'androidx.credentials:credentials-play-services-auth:1.3.0', '--depend', 'com.google.android.libraries.identity.googleid:googleid:1.1.1', '--depend', 'androidx.work:work-runtime:2.10.0', '--depend', 'com.google.android.gms:play-services-ads:24.4.0', '--depend', 'com.google.android.ump:user-messaging-platform:3.1.0', '--arch', 'arm64-v8a', '--arch', 'armeabi-v7a', '--color=always', '--storage-dir=/home/runner/work/_temp/holo/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a', '--ndk-api=24', '--ignore-setup-py', '--debug')
+# Error code: 1
+# ENVIRONMENT:
+# 
+# Buildozer failed to execute the last command
+# The error might be hidden in the log above this error
+# Please read the full log, and search for it before
+# raising an issue with buildozer itself.
+# In case of a bug report, please add a full log with log_level = 2
