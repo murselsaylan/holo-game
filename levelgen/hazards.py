@@ -399,8 +399,56 @@ def tidy_roamers(d):
             m = m[:4] + [rx, ry, round(om, 4), m[7], way, 0.0, 1.0]
         out.append(m)
     if "moving_walls" in d:
-        d["moving_walls"] = out
+        d["moving_walls"] = [_fit_loop(d, m) if len(m) > 10 and m[10] == 1.0 else m for m in out]
     return d
+
+
+def _fit_loop(d, m):
+    """A rectangle-loop wall stays in open space: its loop is the largest free box around its centre (up to the
+    reach it had) - there it never slides through a static wall. Where no such box holds a loop it is left alone."""
+    walls = [tuple(w) for w in d.get("walls", [])]
+    Hh = float(d.get("height", 1600))
+    w, h = m[2], m[3]
+
+    def free(x0, y0, x1, y1):
+        if x0 < 20 or y0 < 20 or x1 > ARENA_W - 20 or y1 > Hh - 20:
+            return False
+        return not any(x0 < wx + ww and x1 > wx and y0 < wy + wh and y1 > wy for (wx, wy, ww, wh) in walls)
+
+    def grow(cx, cy):
+        x0, x1, y0, y1 = cx - w / 2, cx + w / 2, cy - h / 2, cy + h / 2
+        if not free(x0, y0, x1, y1):
+            return None
+        mw, mh = w + 2 * min(ROAM_X, m[4]), h + 2 * min(ROAM_Y, m[5])   # never a bigger loop than it had
+        moved = True
+        while moved:
+            moved = False
+            for dx0, dy0, dx1, dy1 in ((-8, 0, 0, 0), (0, 0, 8, 0), (0, -8, 0, 0), (0, 0, 0, 8)):
+                nx0, ny0, nx1, ny1 = x0 + dx0, y0 + dy0, x1 + dx1, y1 + dy1
+                if nx1 - nx0 <= mw and ny1 - ny0 <= mh and free(nx0, ny0, nx1, ny1):
+                    x0, y0, x1, y1, moved = nx0, ny0, nx1, ny1, True
+        return x0, y0, x1, y1
+
+    cx, cy = m[0] + w / 2, m[1] + h / 2
+    best = None
+    for r in range(0, 361, 40):                              # the centre itself, else the nearest spot with room
+        ring = [(cx, cy)] if r == 0 else [(cx + dx, cy + dy) for dx in (-r, 0, r) for dy in (-r, 0, r) if (dx, dy) != (0, 0)]
+        for (px, py) in ring:
+            box = grow(px, py)
+            if box and (best is None or (box[2] - box[0]) * (box[3] - box[1]) > (best[2] - best[0]) * (best[3] - best[1])):
+                best = box
+        if best and (best[2] - best[0] - w) >= 120 and (best[3] - best[1] - h) >= 120:
+            break
+    if best is None:
+        return m
+    x0, y0, x1, y1 = best
+    rx, ry = round((x1 - x0 - w) / 2.0, 2), round((y1 - y0 - h) / 2.0, 2)
+    bx, by = round((x0 + x1) / 2.0 - w / 2.0, 2), round((y0 + y1) / 2.0 - h / 2.0, 2)
+    spd = float(d.get("speed", 1.0))
+    if rx < 120 or ry < 120:                                 # a corridor too tight to hold the loop and leave a lane:
+        return m                                             # it keeps its old loop (through the walls, as shipped)
+    om = ROAM_PACE * spd * 2.0 * math.pi / (4.0 * (rx + ry))
+    return [bx, by, w, h, rx, ry, round(om, 4), m[7], m[8], 0.0, 1.0]
 
 
 def add_roamers(L, ctx, count, rng):

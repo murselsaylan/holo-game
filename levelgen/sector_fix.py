@@ -67,8 +67,10 @@ def _line(d):
     return lvl, [(p["px"], p["py"]) for p in pts[::3]]
 
 
-def _blocked(d, rect, pad=0.0):
-    """Does rect (x, y, w, h) touch something that must stay free: start, goal, gates, hazards' reach, pillars?"""
+def _blocked(d, rect, pad=0.0, soft=False):
+    """Does rect (x, y, w, h) touch something that must stay free: start, goal, gates, hazards' reach, pillars?
+    soft (a wall growing inward): a spinner only blocks where its (corridor-halved) arm reaches, and one-axis
+    pistons do not block at all - narrow() moves them to the new wall."""
     x, y, w, h = rect
     def hit(cx, cy, r):
         px = min(max(cx, x), x + w)
@@ -84,11 +86,14 @@ def _blocked(d, rect, pad=0.0):
         if hit(c[0], c[1], c[2] + 30):
             return True
     for s in d.get("spinners", []):
-        if hit(s[0], s[1], s[2] + 40):
+        if hit(s[0], s[1], (s[2] * 0.5 + 12) if soft else (s[2] + 40)):
             return True
     for m in d.get("moving_walls", []):
-        bx, by = m[0] - m[4] - 10, m[1] - m[5] - 10
-        if not (bx > x + w or bx + m[2] + 2 * m[4] + 20 < x or by > y + h or by + m[3] + 2 * m[5] + 20 < y):
+        if soft and len(m) <= 8:
+            continue
+        rx_, ry_ = abs(m[4]), abs(m[5])
+        bx, by = m[0] - rx_ - 10, m[1] - ry_ - 10
+        if not (bx > x + w or bx + m[2] + 2 * rx_ + 20 < x or by > y + h or by + m[3] + 2 * ry_ + 20 < y):
             return True
     for k in ("breakables", "barriers"):
         for b in d.get(k, []):
@@ -104,12 +109,13 @@ def _blocked(d, rect, pad=0.0):
 def narrow(d, max_w):
     """Walls grow inward where the corridor along the line is wider than max_w (+30 slack). Returns the slabs."""
     lvl, line = _line(d)
-    seen, slabs = set(), []
+    seen, slabs, moved = set(), [], set()
+    d["moving_walls"] = [list(m) for m in d.get("moving_walls", [])]
     for (x, y) in line:
         l, r, u, dn = _edges(lvl, x, y)
         hor = l + r <= u + dn                              # corridor runs up/down: its width is left + right
         width = l + r if hor else u + dn
-        if width <= max_w + 30 or width > 700:             # in range, or an open chamber (not a corridor)
+        if width <= max_w + 30 or width > max_w + 220:     # in range, or a chamber / open field (not a corridor)
             continue
         a, b = (x - l, x + r) if hor else (y - u, y + dn)
         key = (round(a), round(b), hor)
@@ -133,22 +139,52 @@ def narrow(d, max_w):
             else:
                 hi = t
         lo, hi = lo + 40, hi - 40                          # clear of the junctions at both ends
-        if hi - lo < 140:
+        if hi - lo < 400:                                  # only long straight runs (a turn chamber is no corridor)
             continue
         cut = (width - max_w) / 2.0
-        for side in (a, b - cut):
-            rect = (side, lo, cut, hi - lo) if hor else (lo, side, hi - lo, cut)
-            if _blocked(d, rect):
-                break
-        else:
-            for side in (a, b - cut):
-                rect = (side, lo, cut, hi - lo) if hor else (lo, side, hi - lo, cut)
-                slabs.append([round(v, 1) for v in rect])
-            # lasers across this corridor end at the new walls
-            for l_ in d.get("lasers", []):
-                if hor and abs(l_[1] - l_[3]) < 1 and lo <= l_[1] <= hi:
+
+        def pair(t0, t1):
+            return [((side, t0, cut, t1 - t0) if hor else (t0, side, t1 - t0, cut)) for side in (a, b - cut)]
+        # the run in 40 px steps: slabs only where nothing (hazard, gate, start, goal) is in their way
+        segs, t, cur = [], lo, None
+        while t < hi:
+            t1 = min(hi, t + 40)
+            if any(_blocked(d, rc, soft=True) for rc in pair(t, t1)):
+                if cur:
+                    segs.append(cur)
+                cur = None
+            else:
+                cur = [cur[0], t1] if cur else [t, t1]
+            t = t1
+        if cur:
+            segs.append(cur)
+        for (t0, t1) in segs:
+            if t1 - t0 < 160:
+                continue
+            slabs += [[round(v, 1) for v in rc] for rc in pair(t0, t1)]
+            # pistons across this stretch move with the walls: a door steps inward, a centred one swings less
+            mid = (a + b) / 2.0
+            for m in d.get("moving_walls", []):
+                if len(m) > 8 or id(m) in moved:
+                    continue
+                ax, al = (0, 1) if hor else (1, 0)             # across / along the corridor
+                c_al = m[al] + m[2 + al] / 2.0
+                if not (t0 <= c_al <= t1) or m[4 + ax] == 0:
+                    continue
+                lo_, hi_ = m[ax] - abs(m[4 + ax]), m[ax] + m[2 + ax] + abs(m[4 + ax])
+                if hi_ < a + cut and lo_ > b - cut:
+                    continue
+                moved.add(id(m))
+                if lo_ <= a + cut + 2 and hi_ >= b - cut - 2 and a + 20 < m[ax] and m[ax] + m[2 + ax] < b - 20:
+                    m[4 + ax] = round(math.copysign(max(10.0, abs(m[4 + ax]) - cut), m[4 + ax]), 2)   # centred
+                elif m[ax] + m[2 + ax] / 2.0 < mid:
+                    m[ax] = round(m[ax] + cut, 2)                                                    # a door on the low side
+                else:
+                    m[ax] = round(m[ax] - cut, 2)
+            for l_ in d.get("lasers", []):               # lasers across this stretch end at the new walls
+                if hor and abs(l_[1] - l_[3]) < 1 and t0 <= l_[1] <= t1:
                     l_[0], l_[2] = max(min(l_[0], l_[2]), a + cut), min(max(l_[0], l_[2]), b - cut)
-                elif not hor and abs(l_[0] - l_[2]) < 1 and lo <= l_[0] <= hi:
+                elif not hor and abs(l_[0] - l_[2]) < 1 and t0 <= l_[0] <= t1:
                     l_[1], l_[3] = max(min(l_[1], l_[3]), a + cut), min(max(l_[1], l_[3]), b - cut)
     d["walls"] = d.get("walls", []) + slabs
     return slabs
@@ -192,6 +228,11 @@ def add_hazards(d, n, seed):
                 m = [round(cx - pw / 2, 2), round(cy - 23, 2), round(pw, 2), 46.0, round(rngx, 2), 0.0, om, round(rng.uniform(0, 6.28), 2)]
             else:
                 m = [round(cx - 23, 2), round(cy - pw / 2, 2), 46.0, round(pw, 2), 0.0, round(rngx, 2), om, round(rng.uniform(0, 6.28), 2)]
+            # never resting in, or sliding into, a wall
+            sweep = (m[0] - m[4], m[1] - m[5], m[2] + 2 * m[4], m[3] + 2 * m[5])
+            if any(sweep[0] < w_[0] + w_[2] - 2 and sweep[0] + sweep[2] > w_[0] + 2 and sweep[1] < w_[1] + w_[3] - 2
+                   and sweep[1] + sweep[3] > w_[1] + 2 for w_ in d.get("walls", [])):
+                continue
             d.setdefault("moving_walls", []).append(m)
         taken.append((cx, cy))
         added += 1
@@ -271,7 +312,7 @@ def main():
     jobs = []
     for i, r in todo:
         sec = rep[i][2]
-        if r >= sec["band"][0] and rep[i][1] >= sec["min_haz"]:   # in range: only its corridor width
+        if "--narrow-only" in sys.argv or (r >= sec["band"][0] and rep[i][1] >= sec["min_haz"]):   # only its corridor width
             jobs.append((i, 0, 0, True))
             continue
         need = max(0, sec["min_haz"] - rep[i][1])
@@ -298,7 +339,7 @@ def main():
                 best[i] = (key, nd, ratio, msg)
     for i, _ in todo:
         hi = rep[i][2]["band"][1]
-        if i in best and rep[i][0] - 0.02 < best[i][2] <= max(hi, rep[i][0] + 0.05):   # never pushed over the band
+        if i in best and rep[i][0] - (0.15 if "--narrow-only" in sys.argv else 0.02) < best[i][2] <= max(hi, rep[i][0] + (0.15 if "--narrow-only" in sys.argv else 0.05)):   # never pushed over the band
             save(best[i][1])
             print(f"L{i}: {rep[i][0]:.2f} -> {best[i][2]:.2f}  saved ({best[i][3]})", flush=True)
         else:
