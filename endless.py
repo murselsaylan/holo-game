@@ -29,8 +29,8 @@ PX_PER_M = 10.0
 MAX_STEPS = 60 * 60 * 25       # a run is cut after 25 minutes
 POINTS_PER_M = 10               # climb score: 10 points per metre ...
 POINTS_PER_STAR = 100           # ... and 100 per star collected
-DIAMOND_EVERY_M = 500          # 1 diamond per 500 m of a run (server side, capped per day)
-DIAMONDS_PER_DAY = 20
+DIAMOND_EVERY_M = 100          # 1.0.8: 1 diamond per 100 m of a run (was 500; server side, capped per day)
+DIAMONDS_PER_DAY = 60
 UNLOCK_LEVEL = 10              # the mode opens once this campaign level is cleared
 SPAWN_GRACE_STEPS = int(SPAWN_GRACE / SIM_DT)
 
@@ -256,7 +256,10 @@ def _flip(d):
     for m in d.get("moving_walls", []):
         m = list(m) + [0.0] * (8 - len(m)) if len(m) < 8 else list(m)
         q = rc(m)
-        if len(q) > 8:
+        if len(q) > 10 and q[10] == 1.0:                   # rectangle loop mirrored: the other way round, from P(c - s)
+            q[7] = q[7] - q[8] * 6.283185307179586 * (4.0 * q[4] + 2.0 * q[5]) / (4.0 * (q[4] + q[5]))
+            q[8] = -q[8]
+        elif len(q) > 8:
             q[9] = q[9] + 3.141592653589793                 # y swing mirrored: half a period later
         else:
             q = q[:8] + [q[6], q[7] + 3.141592653589793]      # own y frequency (= the shared one), mirrored phase

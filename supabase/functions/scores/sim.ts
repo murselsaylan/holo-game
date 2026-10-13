@@ -253,6 +253,17 @@ export class LevelData {
   }
 
   movingRect(m: number[], t: number): number[] {
+    if (m.length > 10 && m[10] === 1.0) {        // 1.0.8: round a rectangle at a steady pace (m[8] = +-1 way round)
+      const rx = m[4], ry = m[5];
+      const u = m[8] * (t * m[6] + m[7]) / TWO_PI;
+      const s = (u - Math.floor(u)) * 4.0 * (rx + ry);
+      let ox: number, oy: number;
+      if (s < 2.0 * rx) { ox = s - rx; oy = -ry; }
+      else if (s < 2.0 * rx + 2.0 * ry) { ox = rx; oy = s - 2.0 * rx - ry; }
+      else if (s < 4.0 * rx + 2.0 * ry) { ox = 3.0 * rx + 2.0 * ry - s; oy = ry; }
+      else { ox = -rx; oy = 4.0 * rx + 3.0 * ry - s; }
+      return [m[0] + ox, m[1] + oy, m[2], m[3]];
+    }
     if (m.length > 8) {                        // sim v9: independent x/y frequency (Lissajous drift)
       const offx = Math.sin(t * m[6] + m[7]);
       const offy = Math.sin(t * m[8] + m[9]);

@@ -78,12 +78,28 @@ export function dailyReward(missionId: string): number | null {
   return Number(picks[Number(m[2])][3]);
 }
 
-export function spendPrice(item: string): number | null {
+/** Today's deal (1.0.8): one diamond skin a (UTC) day at DEAL_OFF off - the same pick on the game (shop.daily_deal). */
+export const DEAL_OFF = 0.3;
+export function dailyDeal(nowMs: number): { skin: string; price: number; full: number } {
+  const pool = Object.keys(SKIN_COST).filter((k) => !k.includes("prestige")).sort();
+  const day = Math.floor(nowMs / DAY_MS);
+  const skin = pool[(day * 7919) % pool.length];
+  const full = (SKIN_COST as Record<string, number>)[skin];
+  return { skin, price: Math.round(full * (1 - DEAL_OFF) / 5) * 5, full };
+}
+
+export function spendPrice(item: string, nowMs = 0): number | null {
   if (item === "revive") return REVIVE_COST;
   if (item === "shield") return SHIELD_COST;
   if (item.startsWith("skin:")) {
     const c = (SKIN_COST as Record<string, number>)[item.slice(5)];
-    return typeof c === "number" && c > 0 ? c : null;
+    if (typeof c !== "number" || c <= 0) return null;
+    // today's deal - or the one that just ended (10 minutes of grace for a purchase made just before midnight)
+    for (const t of [nowMs, nowMs - 600_000]) {
+      const d = dailyDeal(t);
+      if (nowMs && d.skin === item.slice(5)) return d.price;
+    }
+    return c;
   }
   return null;
 }

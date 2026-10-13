@@ -2,8 +2,8 @@
 import { LevelData, replay, SIM_VERSION, MAX_LEVELS } from "./sim.ts";
 import type { Assist, Result } from "./sim.ts";
 import { LEVELS, DIGESTS, LEGACY } from "./levels_data.ts";
-import { DIAMOND_EVERY_M, DIAMONDS_PER_DAY, ENDLESS_VERSIONS, MAX_STEPS as ENDLESS_MAX_STEPS, poolDigest, replayEndless, seedOf, weekOf, weekStart, assistDigest, MAX_REVIVES as ENDLESS_MAX_REVIVES } from "./endless.ts";
-import { accountTag, earnClaim, IMPORT_CAP, productValue, spendPrice } from "./wallet.ts";
+import { WEEK_PRIZES, DIAMOND_EVERY_M, DIAMONDS_PER_DAY, ENDLESS_VERSIONS, MAX_STEPS as ENDLESS_MAX_STEPS, poolDigest, replayEndless, seedOf, weekOf, weekStart, assistDigest, MAX_REVIVES as ENDLESS_MAX_REVIVES } from "./endless.ts";
+import { accountTag, dailyDeal, earnClaim, IMPORT_CAP, productValue, spendPrice } from "./wallet.ts";
 import { devPurchases, googleVerifier } from "./play.ts";
 import { googleConfigured, maskEmail, verifyGoogleIdToken } from "./google_id.ts";
 import type { Verifier } from "./play.ts";
@@ -48,6 +48,12 @@ export interface Store extends WalletStore {
   ranks(pid: string): Promise<Ranks | null>;
   /** The best clean (no paid help) verified run of a level - its taps are the ghost every player can race. */
   ghost(level: number): Promise<Ghost | null>;
+  /** The best clean runs of a level, best first (the ghost endpoint keeps the first that wins on the asker's version). */
+  ghosts?(level: number, n: number): Promise<Ghost[]>;
+  /** Diamond packs this account has bought (the first one pays double, 1.0.8). */
+  packPurchases?(pid: string): Promise<number>;
+  /** The player's place among last week's climbs (that week's own rows), or null. */
+  weekRank?(pid: string, week: string): Promise<number | null>;
   /** A crash report from a player's device (kind "fault" = native crash stack, "crash" = Python traceback). */
   report(pid: string, kind: string, platform: string, version: string, text: string, now: number): Promise<void>;
   board(scope: string, country: string, offset: number, limit: number): Promise<{ rows: Row[]; total: number }>;
@@ -144,6 +150,35 @@ function getLevel(n: number): LevelData | null {
   return levelCache.get(n) ?? null;
 }
 
+/** The level version a game plays: its digest if the server knows it, else (games before 1.0.8 send none) the shipped one. */
+const SHIPPED_DIGEST: Record<string, string> = {};
+for (const [dg, e] of Object.entries(LEGACY)) SHIPPED_DIGEST[String(e.level)] = dg;
+function versionFor(level: number, digest: string): LevelData | null {
+  const cur = getLevel(level);
+  if (!cur) return null;
+  if (digest === cur.digest) return cur;
+  const dg = digest || SHIPPED_DIGEST[String(level)] || "";
+  return (dg && getLegacyLevel(level, dg)) || cur;
+}
+
+/** The ghost a game races: the best clean run that actually wins on that game's version of the level (a run made on
+ *  another version would fly into walls). Cached for 10 minutes per level version. */
+const ghostCache = new Map<string, { at: number; g: Ghost | null }>();
+async function ghostFor(store: Store, level: number, digest: string, nowMs: number): Promise<Ghost | null> {
+  const lvl = versionFor(level, digest);
+  if (!lvl) return null;
+  const key = `${level}|${lvl.digest}`;
+  const hit = ghostCache.get(key);
+  if (hit && nowMs - hit.at < 600_000) return hit.g;
+  const cands = store.ghosts ? await store.ghosts(level, 12) : [await store.ghost(level)].filter((g): g is Ghost => !!g);
+  let found: Ghost | null = null;
+  for (const g of cands) {
+    if (replay(lvl, g.taps, 400.0).result) { found = g; break; }
+  }
+  ghostCache.set(key, { at: nowMs, g: found });
+  return found;
+}
+
 /** A rebuilt level's previous version (by its digest): games not updated yet are still replayed on what they played. */
 const legacyCache = new Map<string, LevelData>();
 function getLegacyLevel(n: number, digest: string): LevelData | null {
@@ -193,7 +228,7 @@ export async function handle(store: Store, method: string, path: string, query: 
       if (limited(`gh|${ip}`, 120, nowMs)) return R(429, { error: "slow down" });
       const level = Math.trunc(Number(query.get("level")));
       if (!Number.isFinite(level) || level < 1 || level > 10_000) return R(400, { error: "bad level" });
-      const g = await store.ghost(level);
+      const g = await ghostFor(store, level, String(query.get("lvl") ?? ""), nowMs);
       return R(200, g ? { level, ...g } : { level });
     }
     if (route === "/api/endless/board") {
@@ -461,8 +496,18 @@ async function wallet(store: Store, d: Record<string, unknown>, ip: string, nowM
   if (op === "sync") {
     const local = Math.max(0, Math.trunc(Number(d.local ?? 0)) || 0);
     const w = await store.walletOpen(pl.id, local, IMPORT_CAP, now);
-    return R(200, { ok: true, balance: w.balance, gift: w.gift, imported: w.imported, skins: await store.walletSkins(pl.id),
-                    account: await accountTag(pl.id) });
+    // last week's climb prize (top 10), paid once - the wallet log's (reason, ref) keeps it single
+    let prize: { week: string; rank: number; diamonds: number } | null = null, balance = w.balance;
+    const lastWeek = weekOf(now - 7 * 86400);
+    const rk = store.weekRank ? await store.weekRank(pl.id, lastWeek) : null;
+    if (rk !== null && rk >= 1 && rk <= WEEK_PRIZES.length) {
+      const r = await store.walletChange(pl.id, WEEK_PRIZES[rk - 1], "endless_prize", lastWeek, now);
+      if (r.ok) balance = r.balance;
+      if (r.ok && !r.dup) prize = { week: lastWeek, rank: rk, diamonds: WEEK_PRIZES[rk - 1] };
+    }
+    const first = store.packPurchases ? (await store.packPurchases(pl.id)) === 0 : false;
+    return R(200, { ok: true, balance, gift: w.gift, imported: w.imported, skins: await store.walletSkins(pl.id),
+                    account: await accountTag(pl.id), first_bonus: first, deal: dailyDeal(nowMs), prize });
   }
   const bal = await store.walletBalance(pl.id);
   if (bal === null) return R(409, { error: "sync first" });
@@ -476,7 +521,7 @@ async function wallet(store: Store, d: Record<string, unknown>, ip: string, nowM
     return R(200, { ok: true, balance: r.balance, added: r.dup ? 0 : c.amount });
   }
   if (op === "spend") {
-    const price = spendPrice(key);
+    const price = spendPrice(key, nowMs);
     if (price === null) return R(400, { error: "unknown item", balance: bal });
     if (!/^[0-9a-f]{16,32}$/.test(ref)) return R(400, { error: "bad ref", balance: bal });
     const r = await store.walletChange(pl.id, -price, "spend:" + key, ref, now);
@@ -504,8 +549,11 @@ async function purchase(store: Store, pid: string, product: string, token: strin
     if (p.account && p.account !== await accountTag(pid)) return R(403, { error: "other account", balance: bal });
     orderId = p.orderId;
   }
-  const r = await store.walletPurchase(pid, ref, product, orderId, value.diamonds, now);
+  // the first diamond pack an account buys pays double (1.0.8)
+  const first = value.diamonds > 0 && store.packPurchases ? (await store.packPurchases(pid)) === 0 : false;
+  const diamonds = first ? value.diamonds * 2 : value.diamonds;
+  const r = await store.walletPurchase(pid, ref, product, orderId, diamonds, now);
   if (r.status === "other_player") return R(409, { error: "token used by another account", balance: bal });
-  return R(200, { ok: true, balance: r.balance, dup: r.status === "dup", diamonds: value.diamonds, skin: value.skin,
-                  noads: value.noads === true });
+  return R(200, { ok: true, balance: r.balance, dup: r.status === "dup", diamonds, skin: value.skin,
+                  noads: value.noads === true, first_bonus: first && r.status !== "dup" });
 }

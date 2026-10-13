@@ -2785,6 +2785,15 @@ class ShopScreen:
                 img.blit(cockpit_surface(pill.w, pill.h, (24, 60, 96), (12, 30, 54), (0, 220, 255), 17), pill.topleft)
                 draw_diamond_icon(img, pill.centerx - 34, pill.centery, 10, (0, 230, 255))
                 draw_text(img, f"{self.shop.diamond_cost(sid)}", 23, (230, 248, 255), (pill.centerx + 10, pill.centery))
+                deal = self.shop.daily_deal()
+                if sid == deal[0]:                      # today's deal: a red ribbon and the old price struck through
+                    rib = pygame.Rect(r.right - 150, r.y + 10, 140, 26)
+                    pygame.draw.rect(img, (225, 60, 80), rib, border_radius=12)
+                    draw_text(img, t("deal_tag"), 14, (255, 255, 255), rib.center, max_w=132)
+                    old = pygame.Rect(0, 0, 70, 20)
+                    old.center = (pill.right + 34, pill.centery)
+                    draw_text(img, str(deal[2]), 18, (170, 180, 200), old.center, bold=False)
+                    pygame.draw.line(img, (225, 60, 80), (old.x + 12, old.centery), (old.right - 12, old.centery), 2)
         gy = self._grid_h()
         if self.pack_buttons:
             draw_diamond_icon(img, VW // 2 - 150, gy + 36, 14, (0, 230, 255))
@@ -2797,6 +2806,11 @@ class ShopScreen:
             draw_diamond_icon(img, b.rect.centerx, b.rect.y + 24, 14, (0, 230, 255))
             draw_text(img, f"{amt} {t('diamonds').upper()}", 24, (255, 255, 255), (b.rect.centerx, b.rect.y + 46))
             draw_text(img, price, 22, (255, 215, 120), (b.rect.centerx, b.rect.y + 68), bold=False)
+            if getattr(self.shop, "first_bonus", False):    # 1.0.8: the account's first pack pays double
+                tag = pygame.Rect(0, 0, min(b.rect.w - 8, 170), 24)
+                tag.midbottom = (b.rect.centerx, b.rect.y + 4)
+                pygame.draw.rect(img, (255, 170, 40), tag, border_radius=11)
+                draw_text(img, t("first_bonus_tag"), 14, (40, 20, 0), tag.center, max_w=tag.w - 10)
         full = sm.shield_stock >= sm.SHIELD_STOCK_MAX
         sb = self.btn_shield
         sb.text = t("shield_buy_btn", n=sm.shield_stock, cost=shop_mod.SHIELD_COST)

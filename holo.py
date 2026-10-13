@@ -832,7 +832,7 @@ class HoloGame:
         self.tut_shown = 0
         print(f"[mem] level {level_id} loaded: {memstat.footprint()} MB")
         if hasattr(self.online, "fetch_ghost") and self.settings.get("ghost_race", True):
-            self.online.fetch_ghost(level_id)
+            self.online.fetch_ghost(level_id, lvl.data.digest)
         self.restart_level(count_attempt=False)
         if level_id == 1 and not self.save_mgr.data.get("howto_seen"):
             self.howto_ui.reset()
@@ -1527,6 +1527,12 @@ class HoloGame:
             self.toasts.append([t("gift_title", n=self.online.gift_notice), t("gift_sub"), 4.5])
             self.online.gift_notice = 0
             self.audio.play_sfx("sfx_coin")
+        if getattr(self.online, "prize_notice", None) and self.state not in ("intro", "playing", "dying"):
+            n_, rk_ = self.online.prize_notice
+            self.toasts.append([t("endless_prize_title", n=n_), t("endless_prize_sub", rank=rk_), 5.0])
+            self.online.prize_notice = None
+            self.audio.play_sfx("sfx_coin")
+        self.shop.first_bonus = bool(getattr(self.online, "first_bonus", False))
         if self.ui_time >= self._wallet_next and self.state not in ("playing", "dying"):
             self._wallet_next = self.ui_time + 180.0      # picks up gifts and retries earnings that were offline
             self.online.wallet_sync()

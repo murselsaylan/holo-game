@@ -41,7 +41,7 @@ BREATH = 1.0                    # seconds between two close passes that still co
 WINDOW = 6                      # each tap is tried up to 6 frames (100 ms) early / late
 
 WEIGHTS = {                     # points per unit of each raw measure
-    "time": 0.45,               # per second
+    "time": 0.225,              # per second (halved 2026-10-13: length counts less, hazards fill short-of-curve levels)
     "tempo": 9.0,               # per tap per second
     "quick": 0.35,              # per tap within 0.4 s of the previous one
     "wall_close": 35.0,         # x share of the path within 25 px of a wall

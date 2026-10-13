@@ -252,6 +252,19 @@ class LevelData:
 
     # ---- time based hazards -------------------------------------------------
     def moving_rect(self, m, t):
+        if len(m) > 10 and m[10] == 1.0:                 # 1.0.8: round a rectangle at a steady pace (m[8] = +-1 way round)
+            rx, ry = m[4], m[5]
+            u = m[8] * (t * m[6] + m[7]) / _TWO_PI
+            s = (u - math.floor(u)) * 4.0 * (rx + ry)
+            if s < 2.0 * rx:
+                ox, oy = s - rx, -ry
+            elif s < 2.0 * rx + 2.0 * ry:
+                ox, oy = rx, s - 2.0 * rx - ry
+            elif s < 4.0 * rx + 2.0 * ry:
+                ox, oy = 3.0 * rx + 2.0 * ry - s, ry
+            else:
+                ox, oy = -rx, 4.0 * rx + 3.0 * ry - s
+            return (m[0] + ox, m[1] + oy, m[2], m[3])
         if len(m) > 8:                                   # sim v9: independent x/y frequency (Lissajous drift)
             offx = math.sin(t * m[6] + m[7])
             offy = math.sin(t * m[8] + m[9])

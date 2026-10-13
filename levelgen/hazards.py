@@ -69,16 +69,36 @@ def laser(L, ctx, x, y, horiz, span, phase=0.0):
     return period
 
 
+SPIN_ROOM = 115.0                # px a pair needs between a spinner's tip and the nearest wall to slip past it
+
+
+def _spin_room(lvl, s):
+    """Free room (px) between a spinner's sweep and the nearest static wall, pillar or arena edge."""
+    x, y = s[0], s[1]
+    best = min(x - 15.0, ARENA_W - 15.0 - x)
+    for (wx, wy, ww, wh) in lvl.walls + lvl.reverse_walls:
+        px = min(max(x, wx), wx + ww)
+        py = min(max(y, wy), wy + wh)
+        best = min(best, math.hypot(x - px, y - py))
+    for (cx, cy, cr) in lvl.circles:
+        best = min(best, math.hypot(x - cx, y - cy) - cr)
+    return best - s[2] - 5.0
+
+
 def small_spinners(d):
-    """Every spinner as short as the ones in narrow corridors: the game halves a spinner in a corridor narrower than
-    380 px (sim.LevelData), so one in open space is halved here, in the level data - they all look and play alike."""
+    """1.0.8: a spinner in open space keeps its full length unless it leaves under SPIN_ROOM px beside it (then it is
+    halved like the ones in narrow corridors, which the game halves itself - sim.LevelData). Open fields (no walls to
+    squeeze past) keep them all full size."""
     from sim import LevelData
+    from levelgen.plan import ARENA_LEVELS
     lvl = LevelData(dict(d))
     out = []
     for s in d.get("spinners", []):
-        if lvl._corridor_span(s[0], s[1]) > 380.0:
-            s = [s[0], s[1], round(s[2] * 0.5, 2)] + list(s[3:])
-        out.append(list(s))
+        s = list(s)
+        if (d.get("id") not in ARENA_LEVELS and lvl._corridor_span(s[0], s[1]) > 380.0
+                and _spin_room(lvl, s) < SPIN_ROOM):
+            s = [s[0], s[1], round(s[2] * 0.5, 2)] + s[3:]
+        out.append(s)
     d["spinners"] = out
     return d
 
@@ -362,21 +382,21 @@ def apply(L, ctx, kit, count, rng):
 
 
 ROAM_X, ROAM_Y = 240.0, 320.0      # a two-axis wall's reach from its centre (px)
+ROAM_PACE = 140.0                  # px/s a rectangle-loop wall travels at level speed 1.0
 
 
 def tidy_roamers(d):
-    """1.0.8: every two-axis wall runs one clean oval loop - the y axis at the x axis's pace, a quarter turn behind
-    (the old mismatched frequencies wandered unpredictably over up to 1800 px), its reach capped at ROAM_X / ROAM_Y.
-    The game draws the loop. Idempotent."""
+    """1.0.8: every two-axis wall goes round a rectangle at a steady pace (11-field form: ..., speed, phase, +-1 way
+    round, 0, 1) - the old mismatched sine frequencies wandered unpredictably over up to 1800 px. Reach capped at
+    ROAM_X / ROAM_Y; it moves at ROAM_PACE px/s x the level speed. The game draws the rectangle. Idempotent."""
     out = []
     for m in d.get("moving_walls", []):
         m = list(m)
         if len(m) > 8 and m[4] > 0 and m[5] > 0:
-            turn = 1.0 if m[8] * m[6] >= 0 else -1.0
-            m[4] = round(min(m[4], ROAM_X), 2)
-            m[5] = round(min(m[5], ROAM_Y), 2)
-            m[8] = round(abs(m[6]) * turn * (1.0 if m[6] >= 0 else -1.0), 4)
-            m[9] = round(m[7] + math.pi / 2.0, 4)
+            rx, ry = round(min(m[4], ROAM_X), 2), round(min(m[5], ROAM_Y), 2)
+            way = 1.0 if (m[8] if len(m) > 10 else m[8] * m[6]) >= 0 else -1.0
+            om = ROAM_PACE * float(d.get("speed", 1.0)) * 2.0 * math.pi / (4.0 * (rx + ry))
+            m = m[:4] + [rx, ry, round(om, 4), m[7], way, 0.0, 1.0]
         out.append(m)
     if "moving_walls" in d:
         d["moving_walls"] = out
@@ -402,11 +422,10 @@ def add_roamers(L, ctx, count, rng):
         rng_x = rng.uniform(150.0, 280.0)
         speed_x = rng.uniform(0.24, 0.38)
         phase_x = rng.uniform(0.0, 6.28)
-        turn = rng.choice((1.0, -1.0))                                # 1.0.8: one clean oval loop, either way round
-        speed_y = speed_x * turn
-        phase_y = phase_x + math.pi / 2.0
-        rng_y = min(rng_y, ROAM_Y)
-        L.add("moving_walls", [cx - w / 2.0, cy - h / 2.0, w, h, rng_x, rng_y, speed_x, phase_x, speed_y, phase_y])
+        turn = rng.choice((1.0, -1.0))                                # 1.0.8: round a rectangle, either way round
+        rng_x, rng_y = min(rng_x, ROAM_X), min(rng_y, ROAM_Y)
+        speed_x = ROAM_PACE * ctx.speed * 2.0 * math.pi / (4.0 * (rng_x + rng_y)) if hasattr(ctx, "speed") else speed_x
+        L.add("moving_walls", [cx - w / 2.0, cy - h / 2.0, w, h, rng_x, rng_y, speed_x, phase_x, turn, 0.0, 1.0])
         n += 1
     return n
 

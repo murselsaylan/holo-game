@@ -136,6 +136,30 @@ export class PgStore implements Store {
     return { id: String(g[0].player_id), name: String(g[0].name), score: Number(g[0].score), taps };
   }
 
+  async packPurchases(pid: string): Promise<number> {
+    const r = await this.sql`SELECT COUNT(*)::int AS n FROM purchases WHERE player_id = ${pid} AND diamonds > 0`;
+    return Number(r[0].n);
+  }
+
+  async weekRank(pid: string, week: string): Promise<number | null> {
+    const r = await this.sql`SELECT (SELECT COUNT(*) + 1 FROM endless_bests q WHERE q.week = ${week}
+          AND (q.metres > e.metres OR (q.metres = e.metres AND q.updated < e.updated)))::int AS rk
+        FROM endless_bests e WHERE e.week = ${week} AND e.player_id = ${pid} AND e.metres >= 100`;
+    return r.length ? Number(r[0].rk) : null;
+  }
+
+  async ghosts(level: number, n: number): Promise<Ghost[]> {
+    const rows = await this.sql`SELECT b.player_id, p.name, b.score, b.taps FROM bests b JOIN players p ON p.id = b.player_id
+      WHERE b.level = ${level} AND COALESCE(b.assists, '') = '' AND b.taps LIKE '[%' ORDER BY b.score DESC, b.updated LIMIT ${n}`;
+    const out: Ghost[] = [];
+    for (const g of rows) {
+      let taps: number[];
+      try { taps = JSON.parse(g.taps); } catch { continue; }
+      if (Array.isArray(taps) && taps.length) out.push({ id: String(g.player_id), name: String(g.name), score: Number(g.score), taps });
+    }
+    return out;
+  }
+
   async report(pid: string, kind: string, platform: string, version: string, text: string, now: number): Promise<void> {
     await this.sql`INSERT INTO reports(player_id, kind, platform, version, body, created)
                    VALUES(${pid}, ${kind}, ${platform}, ${version}, ${text}, ${now})`;

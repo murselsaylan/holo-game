@@ -47,7 +47,8 @@ def dilate(d, k):
     """The whole level slowed down by k (< 1): moving walls, lasers, spinners and chasers run at the pair's new pace,
     so the same layout plays exactly as before, only slower (for levels whose hazards no longer line up otherwise)."""
     if d.get("moving_walls"):
-        d["moving_walls"] = [list(m[:6]) + [round(m[6] * k, 4), m[7]] + ([round(m[8] * k, 4), m[9]] if len(m) > 8 else [])
+        d["moving_walls"] = [list(m) if len(m) > 10 else      # rectangle loops are paced by tidy_roamers
+                             list(m[:6]) + [round(m[6] * k, 4), m[7]] + ([round(m[8] * k, 4), m[9]] if len(m) > 8 else [])
                              for m in d["moving_walls"]]
     out = []
     for l in d.get("lasers", []):
@@ -64,10 +65,10 @@ def dilate(d, k):
 def respeed(i):
     d = json.load(open(os.path.join(LEVELS, f"level{i}.json"), encoding="utf-8"))
     H.small_spinners(d)
-    H.tidy_roamers(d)
     if os.environ.get("RESPEED_DILATE") == "1":
         dilate(d, P.speed_of(i) / d["speed"])
     d["speed"] = P.speed_of(i)
+    H.tidy_roamers(d)                                     # rectangle loops, paced by the new speed
     lvl = LevelData(d)
     m = S.max_margin(lvl, hi=64.0, iters=4, beam=BEAM, **KW)
     if m < 0:

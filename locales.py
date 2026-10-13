@@ -291,7 +291,7 @@ _TR_NEW = {
     "col_height": "PUAN",
     "endless_week_short": "En iyin",
     "endless_week": "HAFTA {n}",
-    "endless_card_sub": "Yıldız topla, rekorunu geç • her 500 m bir elmas",
+    "endless_card_sub": "Yıldız topla, rekorunu geç • her 100 m bir elmas",
     "endless_loading": "Harita hazırlanıyor…",
     "goals_title": "GÖREVLER",
     "daily_section": "GÜNLÜK",
@@ -559,7 +559,7 @@ _EN_NEW = {
     "col_height": "POINTS",
     "endless_week_short": "Your best",
     "endless_week": "WEEK {n}",
-    "endless_card_sub": "Grab stars, beat your record • a diamond every 500 m",
+    "endless_card_sub": "Grab stars, beat your record • a diamond every 100 m",
     "endless_loading": "Preparing the map…",
     "goals_title": "MISSIONS",
     "daily_section": "DAILY",
@@ -838,7 +838,7 @@ _DE = {
     "col_height": "PUNKTE",
     "endless_week_short": "Dein Bestes",
     "endless_week": "WOCHE {n}",
-    "endless_card_sub": "Sterne sammeln, Rekord brechen • alle 500 m ein Diamant",
+    "endless_card_sub": "Sterne sammeln, Rekord brechen • alle 100 m ein Diamant",
     "endless_loading": "Karte wird vorbereitet…",
     "goals_title": "MISSIONEN",
     "daily_section": "TÄGLICH",
@@ -1012,7 +1012,7 @@ _ES = {
     "col_height": "PUNTOS",
     "endless_week_short": "Tu mejor",
     "endless_week": "SEMANA {n}",
-    "endless_card_sub": "Atrapa estrellas, bate tu récord • un diamante cada 500 m",
+    "endless_card_sub": "Atrapa estrellas, bate tu récord • un diamante cada 100 m",
     "endless_loading": "Preparando el mapa…",
     "goals_title": "MISIONES",
     "daily_section": "DIARIAS",
@@ -1156,6 +1156,17 @@ for _lang, (_need, _gift, _gsub) in {
     STRINGS[_lang]["need_online"] = _need
     STRINGS[_lang]["gift_title"] = _gift
     STRINGS[_lang]["gift_sub"] = _gsub
+
+# 1.0.8 economy: today's deal, the first pack pays double, last week's climb prize
+for _lang, (_deal, _first, _pt, _ps) in {
+        "tr": ("GÜNÜN İNDİRİMİ", "İLK ALIMDA 2 KAT", "TIRMANIŞ ÖDÜLÜ: +{n} ELMAS", "Geçen hafta tırmanışta {rank}. oldun!"),
+        "en": ("TODAY'S DEAL", "2X ON FIRST BUY", "CLIMB PRIZE: +{n} DIAMONDS", "You came {rank}. in last week's climb!"),
+        "de": ("ANGEBOT DES TAGES", "1. KAUF: DOPPELT", "KLETTERPREIS: +{n} DIAMANTEN", "Platz {rank} beim Klettern letzte Woche!"),
+        "es": ("OFERTA DEL DÍA", "1.ª COMPRA: X2", "PREMIO DE ESCALADA: +{n} DIAMANTES", "¡Puesto {rank} en la escalada de la semana pasada!")}.items():
+    STRINGS[_lang]["deal_tag"] = _deal
+    STRINGS[_lang]["first_bonus_tag"] = _first
+    STRINGS[_lang]["endless_prize_title"] = _pt
+    STRINGS[_lang]["endless_prize_sub"] = _ps
 
 for _lang, (_v, _p, _f) in {
         "tr": ("Ödeme onaylanıyor...", "Ödeme bekleniyor - onaylanınca hesabına geçecek", "Satın alma doğrulanamadı"),

@@ -44,11 +44,11 @@ CAMPAIGN = 200                  # the campaign is planned for ~200 levels (2026-
 
 
 def speed_of(i):
-    """Pair speed by level (1.0.8): slow early, rising later over the planned 200 levels - level 75 runs at ~75 % of the
-    old 100-level curve (0.92 + 0.62 x^0.85), level 100 at 1.12, level 200 at the 1.45 ceiling it keeps afterwards.
+    """Pair speed by level (1.0.8): slow early, rising later over the planned 200 levels - level 75 runs at ~85 % of the
+    old 100-level curve (0.92 + 0.62 x^0.85; 75 % felt too slow), level 100 at 1.33, then up to a 1.65 ceiling (~150).
     levelgen/respeed.py re-times existing levels to it."""
     x = min(1.0, (i - 1) / float(CAMPAIGN - 1))
-    return round(0.92 + 0.53 * x ** 1.394, 3)
+    return round(min(1.65, 0.92 + 1.084 * x ** 1.394), 3)
 
 
 def ramp_of(i):

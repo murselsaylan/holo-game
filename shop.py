@@ -283,7 +283,23 @@ class Shop:
     def price_label(self, skin_id):
         return self.billing.price(skin_product(skin_id), SKIN_PRICE.get(skin_id, "$0.99"))
 
+    first_bonus = False                                # 1.0.8: set from the server - the first pack pays double
+
+    @staticmethod
+    def daily_deal(now=None):
+        """(skin, price, full price) of today's deal - one diamond skin a UTC day at 30 % off. The same pick as the
+        server (wallet.ts dailyDeal), which charges that price."""
+        import time as _time
+        pool = sorted(k for k in SKIN_DIAMOND_COST if "prestige" not in k)
+        day = int((now if now is not None else _time.time()) // 86400)
+        skin = pool[(day * 7919) % len(pool)]
+        full = SKIN_DIAMOND_COST[skin]
+        return skin, int(round(full * 0.7 / 5.0)) * 5, full
+
     def diamond_cost(self, skin_id):
+        deal = self.daily_deal()
+        if skin_id == deal[0]:
+            return deal[1]
         return SKIN_DIAMOND_COST.get(skin_id, 200)
 
     @staticmethod

@@ -158,6 +158,8 @@ class OnlineClient:
         self._wallet_queued = False
         self._wallet_open = False       # synced once in this session (only touched by the submit worker)
         self.gift_notice = 0            # diamonds gifted by the developer, for the game to announce
+        self.first_bonus = False        # 1.0.8: this account's first diamond pack pays double (server says so)
+        self.prize_notice = None        # (diamonds, rank) of last week's climb prize, for the game to announce
         self.on_purchase = None         # shop.purchase_result(product, token, "ok"|"rejected"|"wait", body)
         self.endless_result = None      # server answer for the endless climb just finished (result screen)
         self.google = None              # {"state": "wait"|"ok"|"fail", ...} of the last Google link / restore
@@ -279,11 +281,13 @@ class OnlineClient:
         if not waiting:
             self._fetch_jobs.put(("fetch", scope))
 
-    def fetch_ghost(self, level):
-        """The world's best clean run of `level`, raced as the ghost (once per session per level)."""
+    def fetch_ghost(self, level, digest=""):
+        """The world's best clean run of `level`, raced as the ghost (once per session per level). `digest` is this
+        game's version of the level: the server only sends a run that wins on it (1.0.8 - levels change between
+        versions, and a run made on another version crashes into walls)."""
         if self.enabled and level not in self.ghosts:
             self.ghosts[level] = None                   # asked
-            self._fetch_jobs.put(("ghost", level))
+            self._fetch_jobs.put(("ghost", (level, digest)))
 
     def is_loading(self, scope):
         """A fresh copy of this board is on its way (a cached one, if any, stays on screen meanwhile)."""
@@ -364,8 +368,14 @@ class OnlineClient:
                 self.save.set_server_skins(payload.get("skins"), payload.get("account", ""))
                 if payload.get("gift"):
                     self.gift_notice += int(payload["gift"])
+                self.first_bonus = bool(payload.get("first_bonus"))
+                pr = payload.get("prize")
+                if isinstance(pr, dict) and int(pr.get("diamonds") or 0) > 0:
+                    self.prize_notice = (int(pr["diamonds"]), int(pr.get("rank") or 0))
             elif kind == "purchase":
                 product, token, status, body = payload
+                if status == "ok" and body and body.get("diamonds"):
+                    self.first_bonus = False
                 if status in ("ok", "rejected"):
                     self.save.drop_iap(token)
                 if body and body.get("balance") is not None:
@@ -419,7 +429,8 @@ class OnlineClient:
                 elif kind == "endless":
                     self._do_endless(conn)
                 elif kind == "ghost":
-                    r = conn.request("GET", "/api/ghost?" + urllib.parse.urlencode({"level": arg}))
+                    arg, digest = arg if isinstance(arg, tuple) else (arg, "")
+                    r = conn.request("GET", "/api/ghost?" + urllib.parse.urlencode({"level": arg, "lvl": digest}))
                     taps = r.get("taps")
                     ok = isinstance(taps, list) and taps and all(isinstance(x, int) for x in taps)
                     self._results.put(("ghost", (arg, {"id": str(r.get("id", "")), "name": str(r.get("name", ""))[:16],
@@ -533,7 +544,8 @@ class OnlineClient:
                 r = self._wallet_req(conn, "sync", str(local), "", {"local": local})
                 self._wallet_open = True
                 self._results.put(("wallet", {"balance": r["balance"], "gift": r.get("gift", 0),
-                                              "skins": r.get("skins", []), "account": r.get("account", "")}))
+                                              "skins": r.get("skins", []), "account": r.get("account", ""),
+                                              "first_bonus": bool(r.get("first_bonus")), "prize": r.get("prize")}))
             for op in list(s.data.get("wallet_ops", [])):
                 kind, ref = op.get("kind", ""), op.get("ref", "")
                 try:

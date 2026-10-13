@@ -21,8 +21,10 @@ export const PX_PER_M = 10.0;
 export const MAX_STEPS = 60 * 60 * 25;
 export const POINTS_PER_M = 10;
 export const POINTS_PER_STAR = 100;
-export const DIAMOND_EVERY_M = 500;
-export const DIAMONDS_PER_DAY = 20;
+export const DIAMOND_EVERY_M = 100;               // 1.0.8: a diamond every 100 m (was 500), up to 60 a day (was 20)
+export const DIAMONDS_PER_DAY = 60;
+/** Weekly climb prize (1.0.8): the top 10 of last week's climbs, paid once on the next wallet sync. */
+export const WEEK_PRIZES = [150, 120, 100, 50, 50, 50, 50, 50, 50, 50];
 
 // the same insertion order as endless.py FAMILY_TIER (the barrier walls go with "barriers")
 const FAMILY_TIER: [string, number][] = [
@@ -161,7 +163,10 @@ function flip(d: any) {
   d.moving_walls = (d.moving_walls ?? []).map((m0: number[]) => {
     const m = m0.length < 8 ? m0.concat(new Array(8 - m0.length).fill(0.0)) : m0.slice();
     let q = rc(m);
-    if (q.length > 8) q[9] = q[9] + PI;
+    if (q.length > 10 && q[10] === 1.0) {        // rectangle loop mirrored: the other way round, from P(c - s)
+      q[7] = q[7] - q[8] * 6.283185307179586 * (4.0 * q[4] + 2.0 * q[5]) / (4.0 * (q[4] + q[5]));
+      q[8] = -q[8];
+    } else if (q.length > 8) q[9] = q[9] + PI;
     else q = [...q.slice(0, 8), q[6], q[7] + PI];
     return q;
   });
