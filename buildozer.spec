@@ -14,7 +14,7 @@ version.regex = __version__ = ["'](.*)["']
 version.filename = %(source.dir)s/version.py
 # Play only needs the build number (versionCode) to keep rising; 5.1.0/5.1.1 went up as 102450100/102450101.
 # The name users see restarts at 1.x - bump both for every Play upload.
-android.numeric_version = 102450109
+android.numeric_version = 102450110
 requirements = python3==3.11.9,hostpython3==3.11.9,pygame==2.6.1,pyjnius,certifi
 
 icon.filename = %(source.dir)s/assets/icon.png
@@ -27,7 +27,7 @@ android.presplash_color = #0a0c12
 
 orientation = portrait
 fullscreen = 1
-android.permissions = INTERNET,VIBRATE,POST_NOTIFICATIONS
+android.permissions = INTERNET,VIBRATE,POST_NOTIFICATIONS,com.google.android.gms.permission.AD_ID
 android.api = 36
 android.minapi = 24
 android.ndk = 28c

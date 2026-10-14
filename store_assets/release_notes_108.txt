@@ -1,32 +1,32 @@
 <tr-TR>
-Yeni: Olo! Yandığında, kazandığında, her fırsatta seninle dalga geçen bir uzaylı (Ayarlar'dan kapatılabilir).
-Reklam izleyerek elmas kazan ve yandığında reklamla devam et.
-"Reklamları Kaldır" ile bölüm aralarındaki reklamlara tek seferde veda et.
-Mağazaya elmas paketleri ve efsanevi skinler eklendi.
-Skin açıklamaları artık her dilde.
-Kararlılık iyileştirmeleri.
+Yeni: Olo! Yandığında, kazandığında seninle dalga geçen bir uzaylı (Ayarlar'dan kapatılabilir).
+Hız ve zorluk yeniden dengelendi; büyük lazerler ve hareketli duvarlar düzenlendi.
+Sonsuz modda her 100 m'de bir elmas, haftanın ilk 10'una ödül.
+Her gün bir skin %30 indirimli, ilk elmas paketinde 2 kat elmas.
+Reklam izleyerek elmas kazan ya da yandığında devam et; "Reklamları Kaldır" seçeneği.
+Daha adil yeniden canlanma ve kararlılık iyileştirmeleri.
 </tr-TR>
 <en-US>
-New: Olo! An alien who mocks you when you crash, when you win, whenever he can (can be turned off in Settings).
-Watch an ad to earn diamonds, or to keep going after a crash.
-"Remove Ads" turns off the ads between levels for good.
-Diamond packs and legendary skins are now in the shop.
-Skin descriptions in every language.
-Stability improvements.
+New: Olo! An alien who mocks you when you crash and when you win (can be turned off in Settings).
+Speed and difficulty rebalanced; big spinners and moving walls reworked.
+Endless: a diamond every 100 m, prizes for the week's top 10.
+A skin 30 % off every day, and double diamonds on your first pack.
+Watch an ad to earn diamonds or keep going after a crash; "Remove Ads" option.
+Fairer revives and stability improvements.
 </en-US>
 <de-DE>
-Neu: Olo! Ein Alien, der dich bei jedem Absturz, jedem Sieg, bei jeder Gelegenheit verspottet (in den Einstellungen abschaltbar).
-Sieh dir eine Werbung an, um Diamanten zu verdienen oder nach einem Absturz weiterzuspielen.
-„Werbung entfernen" schaltet die Werbung zwischen den Levels dauerhaft ab.
-Diamantpakete und legendäre Skins sind jetzt im Shop.
-Skin-Beschreibungen in jeder Sprache.
-Stabilitätsverbesserungen.
+Neu: Olo! Ein Alien, das dich bei Absturz und Sieg verspottet (in den Einstellungen abschaltbar).
+Tempo und Schwierigkeit neu abgestimmt; große Rotoren und bewegliche Wände überarbeitet.
+Endlos: alle 100 m ein Diamant, Preise für die Top 10 der Woche.
+Täglich ein Skin 30 % günstiger, doppelte Diamanten beim ersten Paket.
+Werbung ansehen für Diamanten oder um nach einem Absturz weiterzuspielen; „Werbung entfernen".
+Fairere Wiederbelebung und Stabilitätsverbesserungen.
 </de-DE>
 <es-ES>
-Nuevo: ¡Olo! Un alien que se burla de ti cuando chocas, cuando ganas, siempre que puede (se puede desactivar en Ajustes).
-Mira un anuncio para ganar diamantes o para seguir tras chocar.
-"Quitar anuncios" elimina para siempre los anuncios entre niveles.
-Paquetes de diamantes y skins legendarias ya en la tienda.
-Descripciones de skins en todos los idiomas.
-Mejoras de estabilidad.
+Nuevo: ¡Olo! Un alien que se burla de ti cuando chocas y cuando ganas (se puede desactivar en Ajustes).
+Velocidad y dificultad reequilibradas; rotores grandes y muros móviles renovados.
+Infinito: un diamante cada 100 m y premios para el top 10 de la semana.
+Una skin al 30 % cada día y diamantes dobles en tu primer paquete.
+Mira un anuncio para ganar diamantes o seguir tras chocar; opción "Quitar anuncios".
+Reapariciones más justas y mejoras de estabilidad.
 </es-ES>
