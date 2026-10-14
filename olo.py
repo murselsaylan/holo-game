@@ -11,6 +11,7 @@ On with config "olo" (since 1.0.8) or HOLO_OLO=1, and the player's setting "olo"
 import math
 import os
 import random
+import threading
 import time
 import zlib
 
@@ -27,6 +28,8 @@ BEAT_S = 3.0                      # one pose + line
 TYPE_CPS = 32                     # letters per second
 HIDE = 46                         # how much of him is behind the window's top edge
 EDGE = (0, 214, 255)
+SIZES = (250, 230)                # the sticker heights used (failure / victory windows, the menu peek)
+SQUASH = ((1.12, 0.84), (0.93, 1.10), (1.02, 0.98))    # the hop onto a new pose, pre-made (no per-frame transform)
 
 
 def enabled(save_mgr):
@@ -62,6 +65,14 @@ class Olo:
         self._letters = 0
         self._beat_i = -1
         self._used = {}
+        self._lock = threading.Lock()
+        self._conv = set()
+        self._loading = set()
+        self._wraps = {}                  # (font, line, width) -> wrapped lines
+        self._pane = None                 # (key, surface): the talk box with its text, redrawn only when it changes
+        self._tag = None
+        self.bob = 0
+        self._prep = 0
 
     def react(self, attempts, pct, best_pct, alive_s):
         """The failure screen: the kind of crash picks the lines."""
@@ -100,6 +111,8 @@ class Olo:
         fmt = dict(n=0, pct=0, m=0, lvl=1, d=0, name="", h=0)
         fmt.update(vals)
         self.beats = [(st, (txt.get(lang) or txt["en"]).format(**fmt)) for st, txt in pick]
+        self._load([st for st, _ in self.beats])                    # ready before the window has landed
+        self._prep = 0
         self.kind, self.where, self.delay = kind, where, delay
         self._letters, self._beat_i, self.blip = 0, -1, None
         self.t = 0.0
@@ -111,20 +124,72 @@ class Olo:
     def update(self, dt):
         if self.active:
             self.t += dt
+            if self._prep < len(self.beats):                       # one line's text layout per frame, before he
+                f = get_font(28, bold=True)                         # shows: no font measuring on his first frame
+                line = self.beats[self._prep][1]
+                for w in (364, 404):
+                    self._wrap(f, line, w)
+                self._prep += 1
+
+    @staticmethod
+    def _make(name, h):
+        """The sticker at height h and its three hop variants (loaded and scaled off the main thread)."""
+        try:
+            im = pygame.image.load(os.path.join(ASSETS, name + ".png"))
+        except Exception:
+            im = pygame.Surface((10, 10), pygame.SRCALPHA)
+        k = h / im.get_height()
+        if im.get_width() * k > h * 1.5:                       # lying / sleeping poses: limit by width
+            k = h * 1.5 / im.get_width()
+        base = pygame.transform.smoothscale(im, (max(1, int(im.get_width() * k)), max(1, int(im.get_height() * k))))
+        hops = [pygame.transform.smoothscale(base, (max(1, int(base.get_width() * sx)), max(1, int(base.get_height() * sy))))
+                for sx, sy in SQUASH]
+        out = [base] + hops
+        if pygame.display.get_surface():                       # display format here too, not on the first frame
+            out = [x.convert_alpha() for x in out]
+        return out
+
+    def _load(self, names):
+        """Prepares these stickers in a thread: the first frame Olo shows no longer reads and scales a PNG (that
+        was a 60+ ms hitch on phones, again on every new pose)."""
+        todo = [(n, h) for n in names for h in SIZES if (n, h) not in self._img and (n, h) not in self._loading]
+        if not todo:
+            return
+        self._loading.update(todo)
+
+        def work():
+            for key in todo:
+                try:
+                    surfs = self._make(*key)
+                except Exception:
+                    surfs = [pygame.Surface((10, 10), pygame.SRCALPHA)] * 4
+                with self._lock:
+                    self._img[key] = surfs
+                    self._loading.discard(key)
+                    self._conv.add(key)
+        threading.Thread(target=work, daemon=True).start()
 
     def _sticker(self, name, h):
+        """[base, hop1, hop2, hop3] at height h, or None while it is still being prepared."""
+        h = SIZES[0] if h >= SIZES[0] else (SIZES[1] if h >= SIZES[1] - 5 else int(h // 10 * 10))
         key = (name, h)
-        if key not in self._img:
-            try:
-                im = pygame.image.load(os.path.join(ASSETS, name + ".png"))
-                im = im.convert_alpha() if pygame.display.get_surface() else im
-            except Exception:
-                im = pygame.Surface((10, 10), pygame.SRCALPHA)
-            k = h / im.get_height()
-            if im.get_width() * k > h * 1.5:                       # lying / sleeping poses: limit by width
-                k = h * 1.5 / im.get_width()
-            self._img[key] = pygame.transform.smoothscale(im, (max(1, int(im.get_width() * k)), max(1, int(im.get_height() * k))))
-        return self._img[key]
+        with self._lock:
+            got = self._img.get(key)
+        if got is None:
+            if key in self._loading:
+                return None
+            if h in SIZES:                                         # not asked for yet: ask now, show next frame
+                self._load([name])
+                return None
+            got = self._make(name, h)                              # an unusual size: made here (rare)
+            with self._lock:
+                self._img[key] = got
+        if key not in self._conv and pygame.display.get_surface():
+            got = [g.convert_alpha() for g in got]                 # display format once, on the main thread
+            with self._lock:
+                self._img[key] = got
+            self._conv.add(key)
+        return got
 
     def _pose(self, size):
         """The current beat: (base sticker, hopping + swaying sticker, time shown, time into the beat, line) or None."""
@@ -138,18 +203,13 @@ class Olo:
         sticker, line = self.beats[i]
         if i != self._beat_i:                                      # a new pose: its line starts typing from 0
             self._beat_i, self._letters = i, 0
-        img = self._sticker(sticker, size)
-        # hop on every new pose: squash, overshoot, settle; a slow sway keeps a still drawing alive
-        if bt < 0.07:
-            sx, sy = 1.12, 0.84
-        elif bt < 0.16:
-            sx, sy = 0.93, 1.10
-        elif bt < 0.26:
-            sx, sy = 1.02, 0.98
-        else:
-            sx, sy = 1.0, 1.0
-        im = pygame.transform.rotozoom(img, math.sin(self.t * 2.2) * 1.6, 1.0)
-        im = pygame.transform.smoothscale(im, (max(1, int(im.get_width() * sx)), max(1, int(im.get_height() * sy))))
+        surfs = self._sticker(sticker, size)
+        if surfs is None:                                          # still being prepared: he shows a frame later
+            return None
+        img = surfs[0]
+        # hop on every new pose: squash, overshoot, settle (pre-made); a slow bob keeps a still drawing alive
+        im = surfs[1] if bt < 0.07 else surfs[2] if bt < 0.16 else surfs[3] if bt < 0.26 else img
+        self.bob = int(round(math.sin(self.t * 2.2) * 3))
         return img, im, t, bt, line
 
     def draw(self, surf, window):
@@ -166,7 +226,7 @@ class Olo:
         foot = (window.x + 40 + img.get_width() // 2, window.y + HIDE + int((1 - rise) * (img.get_height() - HIDE)))
         clip = surf.get_clip()
         surf.set_clip(pygame.Rect(0, 0, surf.get_width(), window.y + 3))
-        surf.blit(im, im.get_rect(midbottom=foot))
+        surf.blit(im, im.get_rect(midbottom=(foot[0], foot[1] + self.bob)))
         surf.set_clip(clip)
         f = get_font(28, bold=True)
         bx = window.x + 40 + img.get_width() + 14
@@ -194,7 +254,7 @@ class Olo:
         foot = (cx, bottom + HIDE + int((1 - show) * (img.get_height() - HIDE)))
         clip = surf.get_clip()
         surf.set_clip(pygame.Rect(0, 0, surf.get_width(), bottom))
-        surf.blit(im, im.get_rect(midbottom=foot))
+        surf.blit(im, im.get_rect(midbottom=(foot[0], foot[1] + self.bob)))
         surf.set_clip(clip)
         if t > end:
             return
@@ -216,22 +276,36 @@ class Olo:
             if len(letters) // 2 > self._letters // 2:
                 self.blip = letters[-1]
             self._letters = len(letters)
-        pane = pygame.Surface(box.size, pygame.SRCALPHA)
-        pygame.draw.rect(pane, (10, 16, 30, 238), pane.get_rect(), border_radius=18)
-        pygame.draw.rect(pane, EDGE + (255,), pane.get_rect(), 3, border_radius=18)
-        surf.blit(pane, box.topleft)
+        key = (box.size, shown)
+        if self._pane is None or self._pane[0] != key:            # redrawn only when a letter appears
+            pane = pygame.Surface(box.size, pygame.SRCALPHA)
+            pygame.draw.rect(pane, (10, 16, 30, 238), pane.get_rect(), border_radius=18)
+            pygame.draw.rect(pane, EDGE + (255,), pane.get_rect(), 3, border_radius=18)
+            for k, l in enumerate(typed[:4]):
+                pane.blit(f.render(l, True, (235, 245, 255)), (18, 18 + k * 36))
+            self._pane = (key, pane)
+        surf.blit(self._pane[1], box.topleft)
         pygame.draw.polygon(surf, (10, 16, 30), tail)
         pygame.draw.lines(surf, EDGE, False, tail, 3)
-        tf = get_font(20, bold=True)
-        tag = tf.render("OLO", True, (8, 14, 24))
+        if self._tag is None:
+            self._tag = get_font(20, bold=True).render("OLO", True, (8, 14, 24))
+        tag = self._tag
         tr = pygame.Rect(box.x + 16, box.y - 14, tag.get_width() + 22, 28)
         pygame.draw.rect(surf, EDGE, tr, border_radius=14)
         surf.blit(tag, tag.get_rect(center=tr.center))
-        for k, l in enumerate(typed[:4]):
-            surf.blit(f.render(l, True, (235, 245, 255)), (box.x + 18, box.y + 18 + k * 36))
+
+    def _wrap(self, f, text, width):
+        key = (id(f), text, width)
+        got = self._wraps.get(key)
+        if got is not None:
+            return got
+        if len(self._wraps) > 256:
+            self._wraps.clear()
+        self._wraps[key] = got = self._wrap_now(f, text, width)
+        return got
 
     @staticmethod
-    def _wrap(f, text, width):
+    def _wrap_now(f, text, width):
         words, lines, cur = text.split(" "), [], ""
         for w in words:
             nxt = (cur + " " + w).strip()
