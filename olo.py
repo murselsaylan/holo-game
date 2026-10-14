@@ -18,6 +18,7 @@ import zlib
 import pygame
 
 import config
+import perfstat
 import paths
 from fonts import get_font
 from locales import get_language
@@ -158,6 +159,13 @@ class Olo:
         self._loading.update(todo)
 
         def work():
+            perfstat.busy("olo", True)
+            try:
+                _work()
+            finally:
+                perfstat.busy("olo", False)
+
+        def _work():
             for key in todo:
                 try:
                     surfs = self._make(*key)

@@ -30,6 +30,7 @@ from level_manager import Level
 import endless as E
 import ads as ads_mod
 import memstat
+import perfstat
 import olo as olo_mod
 from endless_view import EndlessLevel, sector_for_stage
 import arena as A
@@ -1677,6 +1678,7 @@ class HoloGame:
             SurfaceCache.clear_all()                    # glows, texts, orb effects: all made again on demand
             gc.collect()
             print("low memory warning: caches emptied, now", memstat.footprint(), "MB")
+            perfstat.mark("low memory")
             self._write_crumb()
             return
         if event.type == getattr(pygame, "APP_TERMINATING", -1):
@@ -1852,30 +1854,40 @@ class HoloGame:
                 else:
                     f.blit(frozen[1], (0, 0))
                     ui.set_dim_mode("replay")
+                    t0 = time.perf_counter()
                     try:
                         modal.draw(f)
                     finally:
                         ui.set_dim_mode(None)
+                    _phase("modal", t0)
                     if sig is not None:
                         surf = cached[1] if cached is not None and cached[1].get_size() == f.get_size() else f.copy()
                         if surf is not f:
                             surf.blit(f, (0, 0))
                         self._modal_frame = ((freeze_key, sig), surf)
-                self._draw_olo(f, st)
-                self._draw_toasts(f)
-                self._present()
+                self._draw_tail(f, st)
                 return
             ui.set_dim_mode("capture")
+        t0 = time.perf_counter()
         try:
             self._draw_scene(f, st, in_play)
         finally:
             snap = ui.take_dim_snapshot()
             ui.set_dim_mode(None)
+        _phase("scene", t0)
         if freeze_key is not None and snap is not None:
             self._frozen_bg = (freeze_key, snap)
+        self._draw_tail(f, st)
+
+    def _draw_tail(self, f, st):
+        """Olo, the toasts and the frame to the screen (each timed: a slow part shows up in the perf report)."""
+        t0 = time.perf_counter()
         self._draw_olo(f, st)
+        t1 = _phase("olo", t0)
         self._draw_toasts(f)
+        t2 = _phase("toasts", t1)
         self._present()
+        _phase("present", t2)
 
     def _olo_tick(self, dt, st):
         """Olo's clock, and his one hello per session on the main menu (first meeting / back after days away)."""
@@ -2370,8 +2382,8 @@ class HoloGame:
     # ------------------------------------------------------------------ main loop
     def run(self):
         probe = _PerfProbe(self) if config.get("perf_log", False) else None
-        import perfstat
         pstat = perfstat.PerfStat()
+        perfstat.watch_gc()
         self._flip_ms = 0.0
         # With vsync the flip itself paces the loop; an extra 60 fps cap on top of it fights the refresh and makes
         # frames alternate between one and two refreshes. If vsync turns out not to block (>240 fps), cap again.
@@ -2399,6 +2411,7 @@ class HoloGame:
                     pygame.time.wait(100)
                     continue
             t_loop = time.perf_counter()
+            c_loop = perfstat.cpu_ms()
             v_mouse = self.to_virtual(pygame.mouse.get_pos())
             for event in pygame.event.get():
                 self.handle_event(event)
@@ -2433,7 +2446,7 @@ class HoloGame:
                 perfstat.mark("screen change")
             t_end = time.perf_counter()
             pstat.frame(self.state, getattr(self, "level_id", 0), (t_upd - t_loop) * 1000.0, (t_end - t_upd) * 1000.0,
-                        self._flip_ms, dt)
+                        self._flip_ms, dt, perfstat.cpu_ms() - c_loop)
             if pstat.due():
                 self.online.send_perf(pstat.report(perfstat.device_info()))
             if probe:
@@ -2473,6 +2486,15 @@ class HoloGame:
             os.replace(path + ".tmp", path)
         except Exception as e:
             print("crumb not written:", e)
+
+
+def _phase(name, t0, at_least_ms=4.0):
+    """Marks a drawing step that took long (perf report); returns now."""
+    t = time.perf_counter()
+    ms = (t - t0) * 1000.0
+    if ms >= at_least_ms:
+        perfstat.mark(name, ms)
+    return t
 
 
 def _smooth(k):

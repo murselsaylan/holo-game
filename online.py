@@ -22,6 +22,8 @@ import urllib.parse
 import ssl
 import secrets
 
+import perfstat
+
 
 def _config():
     try:
@@ -413,6 +415,7 @@ class OnlineClient:
             kind, arg = jobs.get()
             t0 = time.time()
             print(f"[net] {kind} {arg if kind in ('fetch', 'ghost') else ''} ...")
+            perfstat.busy("net:" + kind, True)
             try:
                 if kind == "register":
                     self._do_register(conn)
@@ -464,6 +467,7 @@ class OnlineClient:
                 print("online worker error:", e)
                 conn.close()
                 self._results.put(("offline", None))
+            perfstat.busy("net:" + kind, False)
             print(f"[net] {kind} done {time.time() - t0:.1f}s")
 
     def _do_account(self, conn, kind, arg):

@@ -1,6 +1,8 @@
 """Byte-bounded LRU for reusable, read-only pygame surfaces."""
 from collections import OrderedDict
 
+import perfstat
+
 
 class SurfaceCache:
     ALL = []                                   # every cache, so a low-memory warning can empty them all
@@ -27,6 +29,7 @@ class SurfaceCache:
         return surface
 
     def put(self, key, surface):
+        perfstat.built()
         old = self.items.pop(key, None)
         if old is not None:
             self.bytes_used -= old.get_pitch() * old.get_height()
