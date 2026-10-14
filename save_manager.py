@@ -126,6 +126,7 @@ class SaveManager:
 
     def save(self):
         self.rev += 1
+        t0 = time.perf_counter()
         try:
             with self._lock:
                 tmp = SAVE_FILE + ".tmp"
@@ -133,6 +134,11 @@ class SaveManager:
                     json.dump(self.data, f, indent=1, ensure_ascii=False)
                 os.replace(tmp, SAVE_FILE)
             self.cloud_dirty = True
+            try:
+                import perfstat
+                perfstat.mark("save", (time.perf_counter() - t0) * 1000.0)
+            except Exception:
+                pass
         except Exception as e:
             print("Save file write error:", e)
 

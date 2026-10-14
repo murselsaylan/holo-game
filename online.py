@@ -204,6 +204,11 @@ class OnlineClient:
         self._submit_jobs.put(("grestore", str(id_token)))
 
     # ---- endless climb
+    def send_perf(self, text):
+        """Frame-time diagnostics (perfstat.py) to the developer: kind "perf" on the reports endpoint."""
+        if self.enabled:
+            self._submit_jobs.put(("perf", text))
+
     def report_name(self, target_id, name):
         """A viewer flags another pilot's name (sent with the crash reports' endpoint, kind "name")."""
         self._submit_jobs.put(("namerep", (str(target_id)[:64], str(name)[:32])))
@@ -411,6 +416,13 @@ class OnlineClient:
             try:
                 if kind == "register":
                     self._do_register(conn)
+                elif kind == "perf":
+                    import paths as _paths
+                    import sys as _sys
+                    from version import __version__
+                    plat = "ios" if _paths.is_ios() else ("android" if _paths.is_android() else _sys.platform)
+                    conn.request("POST", "/api/report", {"player_id": self.save.player_id, "kind": "perf",
+                                                         "platform": plat, "version": __version__, "text": arg})
                 elif kind == "flush":
                     self._do_flush(conn)
                 elif kind in ("cloud_save", "code", "restore"):

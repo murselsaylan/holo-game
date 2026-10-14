@@ -266,6 +266,13 @@ class HoloGame:
             return False
 
     def _flip(self):
+        t0 = time.perf_counter()
+        try:
+            self._flip_now()
+        finally:
+            self._flip_ms = (time.perf_counter() - t0) * 1000.0
+
+    def _flip_now(self):
         if self._gpu is not None:
             win, ren, tex = self._gpu
             tex.update(self.window)
@@ -2356,6 +2363,9 @@ class HoloGame:
     # ------------------------------------------------------------------ main loop
     def run(self):
         probe = _PerfProbe(self) if config.get("perf_log", False) else None
+        import perfstat
+        pstat = perfstat.PerfStat()
+        self._flip_ms = 0.0
         # With vsync the flip itself paces the loop; an extra 60 fps cap on top of it fights the refresh and makes
         # frames alternate between one and two refreshes. If vsync turns out not to block (>240 fps), cap again.
         cap = 0 if self.vsync else 60
@@ -2381,6 +2391,7 @@ class HoloGame:
                 if self._bg:
                     pygame.time.wait(100)
                     continue
+            t_loop = time.perf_counter()
             v_mouse = self.to_virtual(pygame.mouse.get_pos())
             for event in pygame.event.get():
                 self.handle_event(event)
@@ -2404,6 +2415,7 @@ class HoloGame:
                     print(f"[alive] {self.state} mem {memstat.footprint()} MB fps {self.clock.get_fps():.0f}")
             if probe:
                 probe.mid()
+            t_upd = time.perf_counter()
             first = self.state != getattr(self, "_drawn_state", None)
             if first:
                 print(f"[draw] first frame of {self.state} ...")
@@ -2411,6 +2423,12 @@ class HoloGame:
             if first:
                 print(f"[draw] {self.state} ok")
                 self._drawn_state = self.state
+                perfstat.mark("screen change")
+            t_end = time.perf_counter()
+            pstat.frame(self.state, getattr(self, "level_id", 0), (t_upd - t_loop) * 1000.0, (t_end - t_upd) * 1000.0,
+                        self._flip_ms, dt)
+            if pstat.due():
+                self.online.send_perf(pstat.report(perfstat.device_info()))
             if probe:
                 probe.end()
         self.save_mgr.save()

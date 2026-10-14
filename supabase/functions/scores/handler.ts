@@ -254,7 +254,7 @@ export async function handle(store: Store, method: string, path: string, query: 
       if (limited(`rp|${ip}`, 6, nowMs)) return R(429, { error: "slow down" });
       const pid = String(d.player_id ?? "").slice(0, 64), kind = String(d.kind ?? "").slice(0, 16);
       const text = String(d.text ?? "");
-      if (!/^[0-9a-f]{16,64}$/.test(pid) || !["fault", "crash", "name"].includes(kind) || !text || text.length > 12000) {
+      if (!/^[0-9a-f]{16,64}$/.test(pid) || !["fault", "crash", "name", "perf"].includes(kind) || !text || text.length > 12000) {
         return R(400, { error: "bad report" });
       }
       await store.report(pid, kind, String(d.platform ?? "").slice(0, 16), String(d.version ?? "").slice(0, 16), text,
