@@ -5,10 +5,10 @@ import { ACH_IDS, DAILY, EVENTS, LOGIN_REWARDS, PACKS, PREMIUM_SKINS, SHIELD_COS
 export const REVIVE_COST = 20;
 export const WELCOME_GIFT = 30;
 export const ACH_REWARD = 5;
-export const AD_REWARD = 10;                 // 1.0.8: a long rewarded video is worth more, fewer per day
-export const AD_MAX_PER_DAY = 5;
+export const AD_REWARD = 50;                 // 1.0.8: the developer's choice - 50 a video, watch as many as you like
+export const AD_MAX_PER_DAY = 30;             // only a safety cap: the claim comes from the game, a forged one cannot mint more
 export const ADREVIVE_MAX_PER_DAY = 10;       // "watch an ad to continue": pays one revive (REVIVE_COST), then spent
-export const AD_MIN_GAP_S = 30;
+export const AD_MIN_GAP_S = 15;               // no video is shorter
 /** The old local balance moves into the wallet on the first sync as it is (no limit, by the developer's choice);
  *  only clamped far below the INTEGER range so later additions can never overflow. WALLET_IMPORT_CAP overrides. */
 export const IMPORT_CAP = Number((globalThis as any).Deno?.env?.get?.("WALLET_IMPORT_CAP") ?? 1_000_000_000) || 1_000_000_000;

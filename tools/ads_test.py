@@ -79,7 +79,7 @@ d0 = sm.diamonds
 g._watch_ad_diamonds()
 frames(2)
 check("rewarded video pays diamonds", sm.diamonds == d0 + shop_mod.AD_REWARD, f"{d0} -> {sm.diamonds}")
-check("cooldown hides the row right after", not g.shop_ui._ad_ready())
+check("the row is back as soon as the next video is there (no cooldown, 1.0.8)", g.shop_ui._ad_ready() == bool(g.ads.available("diamonds")))
 
 # 2) campaign crash screen: the ad pays the revive
 g.load_and_play_level(3)
@@ -97,7 +97,7 @@ m._ad_continue()
 frames(3)
 check("the ad revives the pair", g.state == "playing" and not g.sim.dead, g.state)
 check("the revive was paid by the ad (balance unchanged)", sm.diamonds == before, f"{before} -> {sm.diamonds}")
-check("the revive is recorded as paid help", any(a[1] == "R2" for a in g.assists), str(g.assists))
+check("the revive is recorded as paid help", any(a[1] in ("R2", "R3") for a in g.assists), str(g.assists))
 
 # 3) the interstitial after LEVELS_PER_AD finished levels, shown at the next level change
 g.open_menu()

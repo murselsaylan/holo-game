@@ -36,9 +36,9 @@ DIAMOND_PACKS = [
 SHIELD_COST = 10                     # diamonds for one shield (max 5 in stock)
 REMOVE_ADS = "remove_ads"            # one-time purchase: no interstitials between levels
 REMOVE_ADS_PRICE = "$2.99"
-AD_REWARD = 10                       # diamonds for one rewarded video (the server pays it: wallet kind "ad")
-AD_PER_DAY = 5
-AD_GAP_S = 30
+AD_REWARD = 50                       # diamonds for one rewarded video (the server pays it: wallet kind "ad")
+AD_PER_DAY = 30                      # 1.0.8: no limit a player meets - only the server's safety cap against forged claims
+AD_GAP_S = 0                         # the button comes back as soon as the next video has loaded
 
 
 def skin_product(skin_id):

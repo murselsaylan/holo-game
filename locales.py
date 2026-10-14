@@ -1218,19 +1218,19 @@ for _lang, _d in _ARENA.items():
 
 # ads (1.0.8): rewarded diamonds, "watch an ad to continue", remove ads
 _ADS = {
-    "tr": {"ad_watch_btn": "REKLAM İZLE  +{n} ELMAS  (bugün {left} hak)", "ad_continue_btn": "REKLAM İZLE  •  DEVAM ET",
+    "tr": {"ad_watch_btn": "REKLAM İZLE  +{n} ELMAS", "ad_continue_btn": "REKLAM İZLE  •  DEVAM ET",
            "noads_btn": "REKLAMLARI KALDIR  {price}", "noads_owned": "REKLAMSIZ  -  SATIN ALINDI",
            "noads_thanks": "Bölüm arası reklamlar kaldırıldı, teşekkürler!", "ad_reward_msg": "Elmaslar yolda!",
            "privacy_options": "REKLAM GİZLİLİK AYARLARI"},
-    "en": {"ad_watch_btn": "WATCH AN AD  +{n} DIAMONDS  ({left} left today)", "ad_continue_btn": "WATCH AN AD  •  CONTINUE",
+    "en": {"ad_watch_btn": "WATCH AN AD  +{n} DIAMONDS", "ad_continue_btn": "WATCH AN AD  •  CONTINUE",
            "noads_btn": "REMOVE ADS  {price}", "noads_owned": "AD-FREE  -  PURCHASED",
            "noads_thanks": "Ads between levels removed - thank you!", "ad_reward_msg": "Diamonds on the way!",
            "privacy_options": "AD PRIVACY SETTINGS"},
-    "de": {"ad_watch_btn": "WERBUNG ANSEHEN  +{n} DIAMANTEN  (heute noch {left})", "ad_continue_btn": "WERBUNG ANSEHEN  •  WEITER",
+    "de": {"ad_watch_btn": "WERBUNG ANSEHEN  +{n} DIAMANTEN", "ad_continue_btn": "WERBUNG ANSEHEN  •  WEITER",
            "noads_btn": "WERBUNG ENTFERNEN  {price}", "noads_owned": "WERBEFREI  -  GEKAUFT",
            "noads_thanks": "Werbung zwischen Levels entfernt - danke!", "ad_reward_msg": "Diamanten sind unterwegs!",
            "privacy_options": "WERBE-DATENSCHUTZ"},
-    "es": {"ad_watch_btn": "VER ANUNCIO  +{n} DIAMANTES  (quedan {left} hoy)", "ad_continue_btn": "VER ANUNCIO  •  CONTINUAR",
+    "es": {"ad_watch_btn": "VER ANUNCIO  +{n} DIAMANTES", "ad_continue_btn": "VER ANUNCIO  •  CONTINUAR",
            "noads_btn": "QUITAR ANUNCIOS  {price}", "noads_owned": "SIN ANUNCIOS  -  COMPRADO",
            "noads_thanks": "Anuncios entre niveles eliminados, ¡gracias!", "ad_reward_msg": "¡Diamantes en camino!",
            "privacy_options": "PRIVACIDAD DE ANUNCIOS"},
