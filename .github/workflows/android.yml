@@ -70,7 +70,7 @@ jobs:
         env:
           KS_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
-          V=$(python -c "import re;print(re.search(r'\"(.*)\"', open('version.py').read()).group(1))")
+          V=$(python -c "import re;print(re.search(r'__version__ = \"(.*)\"', open('version.py').read()).group(1))")
           git config user.name "ci"; git config user.email "ci@users.noreply.github.com"
           AAB=$(ls "$RUNNER_TEMP"/holo/bin/*.aab 2>/dev/null | head -1)
           if [ -n "$AAB" ]; then
