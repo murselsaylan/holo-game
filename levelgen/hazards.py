@@ -91,15 +91,19 @@ def small_spinners(d):
     squeeze past) keep them all full size."""
     from sim import LevelData
     from levelgen.plan import ARENA_LEVELS
+    if d.get("difficulty", {}).get("sized"):                # done once per level: halving again and again shrank
+        d["spinners"] = [list(s) for s in d.get("spinners", [])]   # added spinners to a few px (81: 35 -> 9)
+        return d
     lvl = LevelData(dict(d))
     out = []
     for s in d.get("spinners", []):
         s = list(s)
-        if (d.get("id") not in ARENA_LEVELS and lvl._corridor_span(s[0], s[1]) > 380.0
+        if (d.get("id") not in ARENA_LEVELS and d.get("walls") and lvl._corridor_span(s[0], s[1]) > 380.0
                 and _spin_room(lvl, s) < SPIN_ROOM):
             s = [s[0], s[1], round(s[2] * 0.5, 2)] + s[3:]
         out.append(s)
     d["spinners"] = out
+    d.setdefault("difficulty", {})["sized"] = 1
     return d
 
 

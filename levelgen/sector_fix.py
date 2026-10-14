@@ -190,7 +190,194 @@ def narrow(d, max_w):
     return slabs
 
 
-def add_hazards(d, n, seed):
+def _near_ends(d, rect, dist=220.0):
+    """Is rect (x, y, w, h) - a hazard's whole sweep - within dist px of the start or the goal?"""
+    x, y, w, h = rect
+    for k in ("start", "end"):
+        px, py = d[k]
+        if math.hypot(px - min(max(px, x), x + w), py - min(max(py, y), y + h)) < dist:
+            return True
+    return False
+
+
+def fill_field(d, rows, seed, kinds=("door", "spin"), half=80.0):
+    """Open fields (no corridors): `rows` new rows in the widest empty bands between the existing ones - by turns a
+    pair of doors closing on a gap, and a pair of full-size spinners turning against each other."""
+    from sim import ARENA_W
+    rng = random.Random(seed * 104729 + d["id"])
+    ys = [d["start"][1], d["end"][1]]
+    ys += [m[1] + m[3] / 2 for m in d.get("moving_walls", [])] + [s[1] for s in d.get("spinners", [])]
+    ys += [c[1] for c in d.get("circles", [])] + [r[1] + r[3] / 2 for r in d.get("reverse_walls", [])]
+    ys += [(l[1] + l[3]) / 2 for l in d.get("lasers", [])]
+    for k in ZONES:
+        ys += [z[1] for z in d.get(k, [])]
+    spd = float(d.get("speed", 1.0))
+    added, kind = 0, rng.randrange(len(kinds))
+    for _ in range(rows):
+        srt = sorted(set(round(v) for v in ys))
+        gaps = sorted(((b - a, (a + b) / 2.0) for a, b in zip(srt, srt[1:])), reverse=True)
+        if not gaps or gaps[0][0] < 300:
+            break
+        y = gaps[0][1]
+        if _near_ends(d, (0, y - 60, ARENA_W, 120), 240.0):
+            ys.append(y)
+            continue
+        if kinds[kind] == "door":                          # two doors closing on a gap (as the arena rows do)
+            gx = rng.uniform(240.0, ARENA_W - 240.0)       # the gap: 2 x half at rest, +- 110 as the doors swing
+            om = round(rng.uniform(0.8, 1.05) * spd / 1.2, 3)
+            ph = round(rng.uniform(0, 6.28), 2)
+            d.setdefault("moving_walls", []).append([-20.0, round(y - 23, 2), round(gx - half + 20, 2), 46.0, 55.0, 0.0, om, ph])
+            d["moving_walls"].append([round(gx + half, 2), round(y - 23, 2), round(ARENA_W - gx - half + 20, 2), 46.0, -55.0, 0.0, om, ph])
+        else:                                              # two big spinners, turning against each other
+            hl = rng.uniform(46.0, 54.0)
+            om = round(rng.uniform(0.6, 0.8), 2)
+            ph = round(rng.uniform(0, 6.28), 2)
+            x0 = rng.uniform(250.0, 330.0)
+            d.setdefault("spinners", []).append([round(x0, 2), round(y, 2), round(hl, 2), om, ph, 10.0])
+            d["spinners"].append([round(ARENA_W - x0, 2), round(y, 2), round(hl, 2), -om, round(ph + 1.7, 2), 10.0])
+        ys.append(y)
+        kind = (kind + 1) % len(kinds)
+        added += 1
+    return added
+
+
+REACH = 260.0                    # an element is "met" when the line passes within this many px of it
+SPINNER_FROM = 61                # the first level of the shipped game with a spinner: none is added before it
+                                 # (a hazard kind is never added before the level that introduces it)
+
+
+def _clean(lvl, x, y):
+    """Is (x, y) on a plain stretch - the same two walls for 120 px both ways along the corridor? A hazard next to a
+    step or a bump of the wall looks wrong."""
+    l, r, u, dn = _edges(lvl, x, y)
+    hor = l + r <= u + dn
+    a, b = (x - l, x + r) if hor else (y - u, y + dn)
+    for off in (-120, -60, 60, 120):
+        e = _edges(lvl, x, y + off) if hor else _edges(lvl, x + off, y)
+        ea, eb = (x - e[0], x + e[1]) if hor else (y - e[2], y + e[3])
+        if abs(ea - a) > 3 or abs(eb - b) > 3:
+            return False
+    return True
+
+
+def _elements(d):
+    """Boxes (x0, y0, x1, y1) of everything a player has to deal with - hazards with their whole sweep, pillars,
+    bumpers, gates, power fields."""
+    el = []
+    for m in d.get("moving_walls", []):
+        el.append((m[0] - abs(m[4]), m[1] - abs(m[5]), m[0] + m[2] + abs(m[4]), m[1] + m[3] + abs(m[5])))
+    for s in d.get("spinners", []):
+        el.append((s[0] - s[2], s[1] - s[2], s[0] + s[2], s[1] + s[2]))
+    for l in d.get("lasers", []):
+        el.append((min(l[0], l[2]), min(l[1], l[3]), max(l[0], l[2]), max(l[1], l[3])))
+    for c in d.get("circles", []):
+        el.append((c[0] - c[2], c[1] - c[2], c[0] + c[2], c[1] + c[2]))
+    for k in ("reverse_walls", "breakables", "barriers"):
+        for r in d.get(k, []):
+            el.append((r[0], r[1], r[0] + r[2], r[1] + r[3]))
+    for c in d.get("chasers", []):
+        el.append((c[0], c[1], c[0] + c[2], c[1] + c[3]))
+    for k in ZONES:
+        for z in d.get(k, []):
+            el.append((z[0] - 30, z[1] - 30, z[0] + 30, z[1] + 30))
+    return el
+
+
+def stretches(d, lvl=None, line=None):
+    """Empty stretches of the reference line - nothing within REACH and no pinch under 200 px - as
+    [(length px, first index, last index)], longest first; plus the line's length."""
+    if line is None:
+        lvl, line = _line(d)
+    el = _elements(d)
+    def met(x, y):
+        for (x0, y0, x1, y1) in el:
+            if math.hypot(x - min(max(x, x0), x1), y - min(max(y, y0), y1)) < REACH:
+                return True
+        return lvl._corridor_span(x, y) < 200.0
+    out, total, run, start = [], 0.0, 0.0, None
+    for k in range(1, len(line)):
+        seg = math.hypot(line[k][0] - line[k - 1][0], line[k][1] - line[k - 1][1])
+        total += seg
+        if met(*line[k]):
+            if start is not None:
+                out.append((run, start, k - 1))
+            run, start = 0.0, None
+        else:
+            if start is None:
+                start = k
+            run += seg
+    if start is not None:
+        out.append((run, start, len(line) - 1))
+    return sorted(out, reverse=True), total
+
+
+def emptiness(d, lvl=None, line=None):
+    """(longest empty stretch px, share of the line that is empty, its index range)."""
+    st, total = stretches(d, lvl, line)
+    if not st:
+        return 0.0, 0.0, None
+    return st[0][0], sum(x[0] for x in st) / max(1.0, total), (st[0][1], st[0][2])
+
+
+def fill_gaps(d, seed, max_empty=600.0, soft=False, limit=7):
+    """A hazard in the middle of the longest empty stretch of the line, again and again until no stretch is longer
+    than max_empty (a stretch with no plain spot for one is left and the next longest tried). soft (a level already
+    hard enough): easy ones - a short piston, a small spinner - that give the stretch something to do without making
+    the level much harder. Rules: only on plain straight walls (_clean), no spinner before SPINNER_FROM, nothing by
+    the start or the goal, never touching a wall."""
+    rng = random.Random(seed * 15485863 + d["id"])
+    lvl, line = _line(d)
+    spd = float(d.get("speed", 1.0))
+    added, tried, dead = 0, set(), set()
+    while added < limit:
+        todo = [x for x in stretches(d, lvl, line)[0] if x[0] > max_empty and (x[1], x[2]) not in dead]
+        if not todo:
+            break
+        _, a_, b_ = todo[0]
+        placed = False
+        order = sorted(range(a_, b_ + 1), key=lambda k: abs(k - (a_ + b_) / 2.0))      # the middle first
+        for k in order:
+            if k in tried:
+                continue
+            tried.add(k)
+            x, y = line[k]
+            l, r, u, dn = _edges(lvl, x, y)
+            hor = l + r <= u + dn
+            width = l + r if hor else u + dn
+            if width < 150 or _blocked(d, (x - 60, y - 60, 120, 120), pad=30) or (d.get("walls") and not _clean(lvl, x, y)):
+                continue
+            cx, cy = (x - l + width / 2, y) if hor else (x, y - u + width / 2)
+            if d.get("walls") and not _clean(lvl, cx, cy):     # where the hazard itself sits, not only where the line runs
+                continue
+            if d["id"] >= SPINNER_FROM and width > 230 and rng.random() < (0.6 if soft else 0.45):
+                hl = rng.uniform(24.0, 30.0) if soft else rng.uniform(32.0, 40.0)
+                sp = [round(cx, 2), round(cy, 2), round(hl, 2), round(rng.choice((1, -1)) * rng.uniform(0.6, 0.85), 2),
+                      round(rng.uniform(0, 6.28), 2), 10.0]
+                if _near_ends(d, (sp[0] - hl, sp[1] - hl, 2 * hl, 2 * hl)):
+                    continue
+                d.setdefault("spinners", []).append(sp)
+            else:
+                pw = max(44.0, width * (0.22 if soft else 0.30))
+                rngx = max(30.0, ((width - pw) / 2.0 - 8.0) * (0.6 if soft else 1.0))
+                om = round(rng.uniform(0.75, 1.0 if soft else 1.25) * spd / 1.2, 3)
+                if hor:
+                    m = [round(cx - pw / 2, 2), round(cy - 23, 2), round(pw, 2), 46.0, round(rngx, 2), 0.0, om, round(rng.uniform(0, 6.28), 2)]
+                else:
+                    m = [round(cx - 23, 2), round(cy - pw / 2, 2), 46.0, round(pw, 2), 0.0, round(rngx, 2), om, round(rng.uniform(0, 6.28), 2)]
+                sweep = (m[0] - m[4], m[1] - m[5], m[2] + 2 * m[4], m[3] + 2 * m[5])
+                if any(sweep[0] < w_[0] + w_[2] - 2 and sweep[0] + sweep[2] > w_[0] + 2 and sweep[1] < w_[1] + w_[3] - 2
+                       and sweep[1] + sweep[3] > w_[1] + 2 for w_ in d.get("walls", [])) or _near_ends(d, sweep):
+                    continue
+                d.setdefault("moving_walls", []).append(m)
+            added += 1
+            placed = True
+            break
+        if not placed:
+            dead.add((a_, b_))                             # no plain spot in this stretch: on to the next
+    return added
+
+
+def add_hazards(d, n, seed, min_gap=300.0):
     """n hazards on the reference line, evenly spread through the gaps between the existing ones."""
     rng = random.Random(seed * 7919 + d["id"])
     lvl, line = _line(d)
@@ -207,15 +394,17 @@ def add_hazards(d, n, seed):
         x, y = line[k]
         if not (0.06 < k / len(line) < 0.94):
             continue
-        if any(math.hypot(x - tx, y - ty) < 300 for tx, ty in taken):
+        if any(math.hypot(x - tx, y - ty) < min_gap for tx, ty in taken):
             continue
         l, r, u, dn = _edges(lvl, x, y)
         hor = l + r <= u + dn
         width = l + r if hor else u + dn
-        if width < 150 or _blocked(d, (x - 60, y - 60, 120, 120), pad=30):
+        if width < 150 or _blocked(d, (x - 60, y - 60, 120, 120), pad=30) or (d.get("walls") and not _clean(lvl, x, y)):
             continue
         cx, cy = (x - l + width / 2, y) if hor else (x, y - u + width / 2)
-        if width > 230 and rng.random() < 0.5:             # a spinner in the middle of the corridor
+        if d.get("walls") and not _clean(lvl, cx, cy):
+            continue
+        if d["id"] >= SPINNER_FROM and width > 230 and rng.random() < 0.5:   # a spinner in the middle of the corridor
             hl = rng.uniform(30.0, 38.0)
             d.setdefault("spinners", []).append([round(cx, 2), round(cy, 2), round(hl, 2),
                                                  round(rng.choice((1, -1)) * rng.uniform(0.65, 0.9), 2),
@@ -231,7 +420,7 @@ def add_hazards(d, n, seed):
             # never resting in, or sliding into, a wall
             sweep = (m[0] - m[4], m[1] - m[5], m[2] + 2 * m[4], m[3] + 2 * m[5])
             if any(sweep[0] < w_[0] + w_[2] - 2 and sweep[0] + sweep[2] > w_[0] + 2 and sweep[1] < w_[1] + w_[3] - 2
-                   and sweep[1] + sweep[3] > w_[1] + 2 for w_ in d.get("walls", [])):
+                   and sweep[1] + sweep[3] > w_[1] + 2 for w_ in d.get("walls", [])) or _near_ends(d, sweep):
                 continue
             d.setdefault("moving_walls", []).append(m)
         taken.append((cx, cy))
