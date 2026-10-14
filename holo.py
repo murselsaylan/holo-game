@@ -1656,12 +1656,19 @@ class HoloGame:
             if st == "playing":
                 self.state = "paused"
             if not self._bg:
+                print(f"[app] to background (state {st})")
                 self._bg = True
+                if paths.is_ios():
+                    self.audio.suspend()
                 self._write_crumb(bg=True)
                 self.save_mgr.save()
                 self._sync_cloud(now=True)              # the app may be closed from the background
             return
         if event.type in (getattr(pygame, "APP_WILLENTERFOREGROUND", -1), getattr(pygame, "APP_DIDENTERFOREGROUND", -1)):
+            if self._bg:
+                print(f"[app] back in front (state {self.state})")
+                if paths.is_ios():
+                    self.audio.resume()
             self._bg = False
             self.accum = 0.0
             return

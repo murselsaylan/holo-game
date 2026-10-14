@@ -448,6 +448,33 @@ class AudioManager:
                 except Exception as e:
                     print(f"Failed to load {name}:", e)
 
+    def suspend(self):
+        """iOS, going to the background: close the audio device. SDL does not pause it there by itself, and the
+        system may take the audio queue away while the app sleeps - the first sound after coming back then waited
+        for a dead audio thread and the system ended the frozen app (1.0.7: tap after returning = app closed)."""
+        if not self.initialized:
+            return
+        self._resume_track = self.current_track
+        try:
+            pygame.mixer.music.stop()
+            pygame.mixer.stop()
+            pygame.mixer.quit()
+        except Exception as e:
+            print("audio suspend:", e)
+        self.sounds = {}
+        self.current_track = None
+        self.initialized = False
+
+    def resume(self):
+        """Back in front: open the audio device again, reload the effects and restart the music that played."""
+        if self.initialized:
+            return
+        self._init_pygame_audio()
+        self._load_sounds()
+        track = getattr(self, "_resume_track", None)
+        if track:
+            self.play_music(track, fade_ms=300)
+
     def play_sfx(self, name, volume=None):
         if not self.initialized or self.muted or self.sfx_volume <= 0.01:
             return
