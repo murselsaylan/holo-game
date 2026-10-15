@@ -1,0 +1,116 @@
+-----
+................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+[1m[90m[DEBUG][39m[0m:   	Unzipping /home/runner/.gradle/wrapper/dists/gradle-8.14.3-all/h9bud5ffjflfoe91ghcb596uv/gradle-8.14.3-all.zip to /home/runner/.gradle/wrapper/dists/gradle-8.14.3-all/h9bud5ffjflfoe91ghcb596uv
+[1m[90m[DEBUG][39m[0m:   	Set executable permissions for: /home/runner/.gradle/wrapper/dists/gradle-8.14.3-all/h9bud5ffjflfoe91ghcb596uv/gradle-8.14.3/bin/gradle
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	Welcome to Gradle 8.14.3!
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	Here are the highlights of this release:
+[1m[90m[DEBUG][39m[0m:   	 - Java 24 support
+[1m[90m[DEBUG][39m[0m:   	 - GraalVM Native Image toolchain selection
+[1m[90m[DEBUG][39m[0m:   	 - Enhancements to test reporting
+[1m[90m[DEBUG][39m[0m:   	 - Build Authoring improvements
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	For more details see https://docs.gradle.org/8.14.3/release-notes.html
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	Starting a Gradle Daemon (subsequent builds will be faster)
+[1m[90m[DEBUG][39m[0m:   	> Task :clean UP-TO-DATE
+[1m[90m[DEBUG][39m[0m:   	> Task :preBuild UP-TO-DATE
+[1m[90m[DEBUG][39m[0m:   	> Task :preReleaseBuild UP-TO-DATE
+[1m[90m[DEBUG][39m[0m:   	> Task :generateReleaseResValues
+[1m[90m[DEBUG][39m[0m:   	> Task :mapReleaseSourceSetPaths
+[1m[90m[DEBUG][39m[0m:   	> Task :generateReleaseResources
+[1m[90m[DEBUG][39m[0m:   	> Task :createReleaseCompatibleScreenManifests
+[1m[90m[DEBUG][39m[0m:   	> Task :extractDeepLinksRelease
+[1m[90m[DEBUG][39m[0m:   	> Task :mergeReleaseResources
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	> Task :processReleaseMainManifest
+[1m[90m[DEBUG][39m[0m:   	/home/runner/work/_temp/holo/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/dists/holo/src/main/AndroidManifest.xml:61:18-50 Warning:
+[1m[90m[DEBUG][39m[0m:   		android:extractNativeLibs should not be specified in this source AndroidManifest.xml file. See https://d.android.com/guide/topics/manifest/application-element#extractNativeLibs for more information.
+[1m[90m[DEBUG][39m[0m:   	The AGP Upgrade Assistant can remove the attribute from the AndroidManifest.xml file and update the build file accordingly. See https://d.android.com/studio/build/agp-upgrade-assistant for more information.
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	> Task :processReleaseManifest
+[1m[90m[DEBUG][39m[0m:   	> Task :processApplicationManifestReleaseForBundle
+[1m[90m[DEBUG][39m[0m:   	> Task :checkReleaseAarMetadata
+[1m[90m[DEBUG][39m[0m:   	> Task :packageReleaseResources
+[1m[90m[DEBUG][39m[0m:   	> Task :parseReleaseLocalResources
+[1m[90m[DEBUG][39m[0m:   	> Task :extractReleaseVersionControlInfo
+[1m[90m[DEBUG][39m[0m:   	> Task :javaPreCompileRelease
+[1m[90m[DEBUG][39m[0m:   	> Task :desugarReleaseFileDependencies
+[1m[90m[DEBUG][39m[0m:   	> Task :mergeReleaseStartupProfile
+[1m[90m[DEBUG][39m[0m:   	> Task :processReleaseManifestForPackage
+[1m[90m[DEBUG][39m[0m:   	> Task :checkReleaseDuplicateClasses
+[1m[90m[DEBUG][39m[0m:   	> Task :processReleaseResources
+[1m[90m[DEBUG][39m[0m:   	> Task :mergeExtDexRelease
+[1m[90m[DEBUG][39m[0m:   	> Task :bundleReleaseResources
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	> Task :compileReleaseJavaWithJavac
+[1m[90m[DEBUG][39m[0m:   	Note: Some input files use or override a deprecated API.
+[1m[90m[DEBUG][39m[0m:   	Note: Recompile with -Xlint:deprecation for details.
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	> Task :dexBuilderRelease
+[1m[90m[DEBUG][39m[0m:   	> Task :mergeReleaseShaders
+[1m[90m[DEBUG][39m[0m:   	> Task :compileReleaseShaders NO-SOURCE
+[1m[90m[DEBUG][39m[0m:   	> Task :generateReleaseAssets UP-TO-DATE
+[1m[90m[DEBUG][39m[0m:   	> Task :mergeReleaseAssets
+[1m[90m[DEBUG][39m[0m:   	> Task :processReleaseJavaRes NO-SOURCE
+[1m[90m[DEBUG][39m[0m:   	> Task :mergeReleaseGlobalSynthetics
+[1m[90m[DEBUG][39m[0m:   	> Task :mergeReleaseJniLibFolders
+[1m[90m[DEBUG][39m[0m:   	> Task :writeReleaseAppMetadata
+[1m[90m[DEBUG][39m[0m:   	> Task :mergeReleaseArtProfile
+[1m[90m[DEBUG][39m[0m:   	> Task :collectReleaseDependencies
+[1m[90m[DEBUG][39m[0m:   	> Task :configureReleaseDependencies
+[1m[90m[DEBUG][39m[0m:   	> Task :mergeReleaseNativeLibs
+[1m[90m[DEBUG][39m[0m:   	> Task :extractProguardFiles
+[1m[90m[DEBUG][39m[0m:   	> Task :mergeReleaseJavaResource
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	> Task :stripReleaseDebugSymbols
+[1m[90m[DEBUG][39m[0m:   	Unable to strip the following libraries, packaging them as they are: libSDL2.so, libSDL2_image.so, libSDL2_mixer.so, libSDL2_ttf.so, libcrypto.so, libffi.so, libmain.so, libpng16.so, libpybundle.so, libpython3.11.so, libpythonbin.so, libsqlite3.so, libssl.so. Run with --info option to learn more.
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	> Task :generateReleaseLintVitalReportModel
+[1m[90m[DEBUG][39m[0m:   	> Task :extractReleaseNativeSymbolTables
+[1m[90m[DEBUG][39m[0m:   	> Task :mergeDexRelease
+[1m[90m[DEBUG][39m[0m:   	> Task :buildReleasePreBundle
+[1m[90m[DEBUG][39m[0m:   	> Task :validateSigningRelease
+[1m[90m[DEBUG][39m[0m:   	> Task :parseReleaseIntegrityConfig
+[1m[90m[DEBUG][39m[0m:   	> Task :compileReleaseArtProfile
+[1m[90m[DEBUG][39m[0m:   	> Task :lintVitalAnalyzeRelease
+[1m[90m[DEBUG][39m[0m:   	> Task :lintVitalReportRelease
+[1m[90m[DEBUG][39m[0m:   	> Task :lintVitalRelease
+[1m[90m[DEBUG][39m[0m:   	> Task :packageReleaseBundle
+[1m[90m[DEBUG][39m[0m:   	> Task :signReleaseBundle
+[1m[90m[DEBUG][39m[0m:   	> Task :produceReleaseBundleIdeListingFile
+[1m[90m[DEBUG][39m[0m:   	> Task :createReleaseBundleListingFileRedirect
+[1m[90m[DEBUG][39m[0m:   	> Task :bundleRelease
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	[Incubating] Problems report is available at: file:///home/runner/work/_temp/holo/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/dists/holo/build/reports/problems/problems-report.html
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+[1m[90m[DEBUG][39m[0m:   	
+[1m[90m[DEBUG][39m[0m:   	BUILD SUCCESSFUL in 1m 34s
+[1m[90m[DEBUG][39m[0m:   	50 actionable tasks: 49 executed, 1 up-to-date
+[1m[INFO][0m:    [36m<- directory context /home/runner/work/_temp/holo/.buildozer/android/platform/python-for-android[39m
+[1m[90m[DEBUG][39m[0m:   All possible dists: [<Distribution: name holo with recipes (hostpython3, jpeg, libffi, openssl, png, sdl2_image, sdl2_mixer, sdl2_ttf, sqlite3, python3, sdl2, pyjnius, setuptools, pygame, certifi, six)>]
+[1m[90m[DEBUG][39m[0m:   Dist matching name and arch: [<Distribution: name holo with recipes (hostpython3, jpeg, libffi, openssl, png, sdl2_image, sdl2_mixer, sdl2_ttf, sqlite3, python3, sdl2, pyjnius, setuptools, pygame, certifi, six)>]
+[1m[90m[DEBUG][39m[0m:   Dist matching ndk_api and recipe: [<Distribution: name holo with recipes (hostpython3, jpeg, libffi, openssl, png, sdl2_image, sdl2_mixer, sdl2_ttf, sqlite3, python3, sdl2, pyjnius, setuptools, pygame, certifi, six)>]
+[1m[INFO][0m:    Of the existing distributions, the following meet the given requirements:
+[1m[INFO][0m:    	[32m[1mholo[0m: min API 24, includes recipes ([32mhostpython3, jpeg, libffi, openssl, png, sdl2_image, sdl2_mixer, sdl2_ttf, sqlite3, python3, sdl2, pyjnius, setuptools, pygame, certifi, six[0m), built for archs ([34marm64-v8a, armeabi-v7a[0m)
+[1m[INFO][0m:    [1m[94mholo has compatible recipes, using this one[0m
+[1m[INFO][0m:    [1m[32m# Copying android package to current directory[0m[39m
+[1m[INFO][0m:    [1m[32m# Android package filename not found in build output. Guessing...[0m[39m
+[1m[INFO][0m:    [1m[32m# Found android package file: /home/runner/work/_temp/holo/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/dists/holo/build/outputs/bundle/release/holo-release.aab[0m[39m
+[1m[INFO][0m:    # Add version number to android package
+[1m[INFO][0m:    # Android package renamed to holo-release-1.0.8.aab
+stty: 'standard input': Inappropriate ioctl for device
+[1m[90m[DEBUG][39m[0m:   [90m->[0m running cp /home/runner/work/_temp/holo/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/dists/holo/build/outputs/bundle/release/holo-release.aab holo-release-1.0.8.aab[0m
+No setup.py/pyproject.toml used, copying full private data into .apk.
+Applying Java source code patches...
+Applying patch: src/patches/SDLActivity.java.patch
+Applying patch: src/patches/SDLSurface.java.patch
+# Copy /home/runner/work/_temp/holo/.buildozer/android/platform/build-arm64-v8a_armeabi-v7a/dists/holo/build/outputs/bundle/release/holo-release.aab to /home/runner/work/_temp/holo/bin/holo-1.0.8-arm64-v8a_armeabi-v7a-release.aab
+# Android packaging done!
+# APK holo-1.0.8-arm64-v8a_armeabi-v7a-release.aab available in the bin directory
