@@ -1855,7 +1855,9 @@ class HoloGame:
         modal = self._modal_for(st, in_play)
         freeze_key = None
         # the scene behind keeps moving for a moment (victory warp 1.6 s, the last death particles) before it freezes
-        settle = 1.8 if st == "victory" else (0.5 if st == "failed" else 0.0)
+        # Phones freeze at once: behind the 80 % veil the moving scene is barely visible, and redrawing scene + veil +
+        # modal every frame ran the win / fail screens at 3-9 fps on mid-range phones (perf reports, 1.0.8).
+        settle = 0.0 if paths.is_mobile() else (1.8 if st == "victory" else (0.5 if st == "failed" else 0.0))
         if modal is not None and self.ui_time - self._state_t0 >= settle:
             freeze_key = (self._state_serial, id(modal), ui.get_language(), self.prev_state, self.prev_profile_state)
             frozen = getattr(self, "_frozen_bg", None)
@@ -1893,6 +1895,11 @@ class HoloGame:
         if freeze_key is not None and snap is not None:
             self._frozen_bg = (freeze_key, snap)
         self._draw_tail(f, st)
+
+    def _menu_under_modal(self, f, skin):
+        """The menu behind a modal (login calendar, profile, settings ...): the cached menu plate - one copy - instead
+        of drawing the whole menu again (a 1.2 s frame on a phone); the modal's veil darkens it anyway."""
+        f.blit(self.menu_ui.plate(skin, self.menu_bg), (0, 0))
 
     def _draw_tail(self, f, st):
         """Olo, the toasts and the frame to the screen (each timed: a slow part shows up in the perf report)."""
@@ -2003,25 +2010,25 @@ class HoloGame:
             if self.prev_profile_state == "leaderboard":
                 self.leaderboard_ui.draw(f)
             else:
-                self.menu_ui.draw(f, skin, backdrop=self.menu_bg_dark)
+                self._menu_under_modal(f, skin)
             if self.profile_modal:
                 self.profile_modal.draw(f)
         elif st == "login":
-            self.menu_ui.draw(f, skin, backdrop=self.menu_bg_dark)
+            self._menu_under_modal(f, skin)
             if self.login_modal:
                 self.login_modal.draw(f)
         elif st == "recovery":
             if self.prev_profile_state == "leaderboard":
                 self.leaderboard_ui.draw(f)
             else:
-                self.menu_ui.draw(f, skin, backdrop=self.menu_bg_dark)
+                self._menu_under_modal(f, skin)
             if self.recovery_modal:
                 self.recovery_modal.draw(f)
         if st == "settings":
             if self.prev_state == "paused" and self.level and self.sim:
                 self._draw_gameplay(f, skin)
             else:
-                self.menu_ui.draw(f, skin, backdrop=self.menu_bg_dark)
+                self._menu_under_modal(f, skin)
             self.settings_modal.draw(f)
 
     def _list_screens(self):
@@ -2399,6 +2406,9 @@ class HoloGame:
         probe = _PerfProbe(self) if config.get("perf_log", False) else None
         pstat = perfstat.PerfStat()
         perfstat.watch_gc()
+        on_phone = paths.is_mobile() and not self.headless
+        bench = perfstat.bench(self.frame) if on_phone else None     # once: ~0.1-0.5 s on a phone, before the intro
+        prof = perfstat.Profiler() if on_phone or config.get("perf_profile", False) else None
         self._flip_ms = 0.0
         # With vsync the flip itself paces the loop; an extra 60 fps cap on top of it fights the refresh and makes
         # frames alternate between one and two refreshes. If vsync turns out not to block (>240 fps), cap again.
@@ -2426,6 +2436,8 @@ class HoloGame:
                     pygame.time.wait(100)
                     continue
             t_loop = time.perf_counter()
+            if prof is not None:
+                prof.frame_start(self.state)
             c_loop = perfstat.cpu_ms()
             v_mouse = self.to_virtual(pygame.mouse.get_pos())
             for event in pygame.event.get():
@@ -2460,10 +2472,17 @@ class HoloGame:
                 self._drawn_state = self.state
                 perfstat.mark("screen change")
             t_end = time.perf_counter()
+            if prof is not None:
+                prof.frame_end()
             pstat.frame(self.state, getattr(self, "level_id", 0), (t_upd - t_loop) * 1000.0, (t_end - t_upd) * 1000.0,
                         self._flip_ms, dt, perfstat.cpu_ms() - c_loop)
             if pstat.due():
-                self.online.send_perf(pstat.report(perfstat.device_info()))
+                extra = {"profile": prof.top() if prof is not None else []}
+                if bench:
+                    extra["bench"], bench = bench, None                  # the start-up timings go with the first report
+                self.online.send_perf(pstat.report(perfstat.device_info(), extra))
+                if prof is not None:
+                    prof.stats = None
             if probe:
                 probe.end()
         self.save_mgr.save()

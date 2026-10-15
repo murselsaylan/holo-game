@@ -61,6 +61,101 @@ def watch_gc():
         gc.callbacks.append(_gc_cb)
 
 
+def bench(frame):
+    """One-time timings of the drawing operations the game leans on (ms), measured on the player's phone at start-up:
+    the perf report then shows which operation is slow on that phone compared with the PC (PC values in comments)."""
+    import pygame
+    out = {}
+
+    def run(name, fn, n=1):
+        t0 = time.perf_counter()
+        for _ in range(n):
+            fn()
+        out[name] = round((time.perf_counter() - t0) * 1000.0 / n, 2)
+
+    try:
+        w, h = frame.get_size()
+        work = frame.copy()
+        opaque = frame.copy()
+        veil = pygame.Surface((w, h))
+        veil.fill((5, 8, 15))
+        veil.set_alpha(215)
+        alpha = pygame.Surface((w, h), pygame.SRCALPHA)
+        alpha.fill((20, 30, 40, 120))
+        small = pygame.Surface((664, 34), pygame.SRCALPHA)
+        small.fill((40, 60, 90, 200))
+        font = pygame.font.Font(None, 40)
+        big = pygame.Surface((400, 400), pygame.SRCALPHA)
+        run("blit_full_opaque", lambda: work.blit(opaque, (0, 0)), 3)          # PC ~0.3
+        run("blit_full_veil", lambda: work.blit(veil, (0, 0)), 3)               # PC ~2.1 (surface alpha)
+        run("blit_full_srcalpha", lambda: work.blit(alpha, (0, 0)), 3)          # PC ~1.0 (per-pixel alpha)
+        run("blit_small_premul", lambda: work.blit(small, (100, 100), special_flags=pygame.BLEND_PREMULTIPLIED), 20)
+        run("blit_small_alpha", lambda: work.blit(small, (100, 100)), 20)
+        run("copy_full", lambda: frame.copy(), 3)
+        run("fill_full", lambda: work.fill((10, 12, 18)), 3)
+        run("font_render", lambda: font.render("HOLO 1234 Deneme", True, (255, 255, 255)), 10)
+        run("rect_rounded", lambda: pygame.draw.rect(work, (40, 60, 90), (50, 50, 600, 100), border_radius=26), 10)
+        run("smoothscale", lambda: pygame.transform.smoothscale(big, (200, 200)), 3)
+        run("convert_alpha", lambda: big.convert_alpha(), 3)
+        out["masks_frame"] = [hex(m) for m in frame.get_masks()]
+        out["masks_srcalpha"] = [hex(m) for m in alpha.get_masks()]
+    except Exception as e:
+        out["error"] = repr(e)[:120]
+    return out
+
+
+class Profiler:
+    """cProfile on the player's phone, a few frames of the screens that run slow there (first visits only): the
+    perf report lists where the time goes, function by function - what a PC can't show."""
+    STATES = ("failed", "victory", "login", "menu", "skins", "playing")
+    FRAMES = 30
+    VISITS = 2
+
+    def __init__(self):
+        self.prof = None
+        self.left = 0
+        self.visits = {}
+        self.stats = None
+        self.state = None
+
+    def frame_start(self, state):
+        if self.prof is None and state != self.state:
+            self.state = state
+            if state in self.STATES and self.visits.get(state, 0) < self.VISITS:
+                self.visits[state] = self.visits.get(state, 0) + 1
+                import cProfile
+                self.prof = cProfile.Profile()
+                self.left = self.FRAMES
+                self.prof.enable()
+        elif self.prof is None:
+            self.state = state
+
+    def frame_end(self):
+        if self.prof is None:
+            return
+        self.left -= 1
+        if self.left > 0:
+            return
+        self.prof.disable()
+        import pstats
+        if self.stats is None:
+            self.stats = pstats.Stats(self.prof)
+        else:
+            self.stats.add(self.prof)
+        self.prof = None
+
+    def top(self, n=24):
+        """[[file:line func, calls, own ms, total ms], ...] by own time."""
+        if self.stats is None:
+            return []
+        rows = []
+        for (fn, line, name), (cc, nc, tt, ct, callers) in self.stats.stats.items():
+            rows.append([f"{fn.replace(chr(92), '/').split('/')[-1]}:{line} {name}"[:60], nc, round(tt * 1000, 1),
+                         round(ct * 1000, 1)])
+        rows.sort(key=lambda r: -r[2])
+        return rows[:n]
+
+
 def cpu_ms():
     """CPU time of the calling (main) thread: a frame whose wall time is far above it was waiting, not working."""
     try:
@@ -110,7 +205,7 @@ class PerfStat:
             return self.front_s >= FIRST_AFTER
         return self.front_s - self.sent_at >= EVERY
 
-    def report(self, device):
+    def report(self, device, extra=None):
         """The report text (and the counters start over)."""
         states = {k: [v[0], round(v[1] / max(1, v[0]), 2), v[2], v[3], v[4], round(v[5], 1),
                       round(v[6] / max(1, v[0]), 2), v[7]]
@@ -120,9 +215,18 @@ class PerfStat:
                 "cols": ["frames", "avg_ms", ">20ms", ">33ms", ">50ms", "max_ms", "avg_cpu_ms", "builds"],
                 "slowest": self.slow,
                 "slow_cols": ["ms", "state", "level", "update", "draw", "flip", "marks", "cpu_ms", "builds", "bg"]}
+        if extra:
+            body.update(extra)
         self.sent_at = self.front_s
         self.states, self.slow, self.frames = {}, [], 0
-        return json.dumps(body, separators=(",", ":"))[:11500]
+        text = json.dumps(body, separators=(",", ":"))
+        while len(text) > 11500 and body.get("profile"):
+            body["profile"] = body["profile"][:-4]
+            text = json.dumps(body, separators=(",", ":"))
+        while len(text) > 11500 and body["slowest"]:
+            body["slowest"] = body["slowest"][:-2]
+            text = json.dumps(body, separators=(",", ":"))
+        return text[:11500]
 
 
 def device_info():
