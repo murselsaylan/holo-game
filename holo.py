@@ -31,6 +31,7 @@ import endless as E
 import ads as ads_mod
 import memstat
 import perfstat
+import review
 import olo as olo_mod
 from endless_view import EndlessLevel, sector_for_stage
 import arena as A
@@ -1137,6 +1138,7 @@ class HoloGame:
         haptics.buzz(25)
         self.audio.play_sfx("sfx_win")
         res = compute_result(s)
+        first_clear = self.save_mgr.get_level_stars(self.level_id) == 0
         if s.max_combo >= 4:
             self.save_mgr.data.setdefault("counters", {})["combo4"] = 1
         # the run's paid help is kept with its taps (a best the server missed can be re-sent); the ghost skips such runs
@@ -1170,9 +1172,18 @@ class HoloGame:
             on_replay=lambda: self._after_ad(lambda: (setattr(self, "attempts", 1), self.restart_level())),
             on_menu=self.open_menu, on_levels=self.open_level_select, new_best=improved, attempts=self.attempts,
             online=self.online, is_last=(nxt > MAX_LEVELS), assisted=False)   # paid help is ranked now
-        if olo_mod.enabled(self.save_mgr):
+        paid = any(a[1] != "S" for a in self.assists)
+        if self._headless_safe_review() and review.should_ask(self.save_mgr.data, lid, first_clear, paid):
+            # the store's "rate HOLO" sheet a moment after this win screen (Olo stays quiet then: one voice at a time)
+            review.mark_asked(self.save_mgr.data, lid)
+            self.save_mgr.save()
+            self._review_at = self.ui_time + review.DELAY_S
+        elif olo_mod.enabled(self.save_mgr):
             a = self.attempts
             self._olo_say("win_first" if a <= 1 else ("win_hard" if a >= 5 else "win"), where="victory", delay=1.2, n=a)
+
+    def _headless_safe_review(self):
+        return not self.headless and paths.is_mobile() and getattr(self, "_autoplay", None) is None
 
     # ------------------------------------------------------------------ frame update
     def update_gameplay(self, dt):
@@ -1527,6 +1538,10 @@ class HoloGame:
                 else:
                     self._selftest = None
                     print("[selftest] done", flush=True)
+        if getattr(self, "_review_at", None) is not None and self.ui_time >= self._review_at:
+            self._review_at = None
+            if self.state == "victory":
+                print("[review] asking the store for a rating:", review.ask())
         self.shop.poll()                              # store events (also purchases finished while in another screen)
         self._sync_music()
         self._check_achievements()
