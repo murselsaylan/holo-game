@@ -2,37 +2,39 @@ BAŞLIK (max 30 karakter)
 HOLO: İki Küre, Tek Nabız
 
 KISA AÇIKLAMA (max 80 karakter)
-Tek dokunuşla iki küreyi döndür, bölümleri aş, sonsuz tırmanışta yıldız topla!
+Tek dokunuşla oynanan zor refleks oyunu: 100 bölüm, sonsuz mod, dünya sıralaması
 
 TAM AÇIKLAMA (max 4000 karakter)
-İki küre. Tek bağ. Sonsuz uzay.
+Tek dokunuş. İki küre. Sinir bozucu derecede zor.
 
-HOLO'da birbirine bağlı iki küreyi kontrol edersin. Ekrana her dokunduğunda küreler yer değiştirir ve dönme yönü tersine döner. Tüm oyun bu tek, basit hareketin üzerine kurulu; ama basitlik aldatıcı: dar koridorlar, dönen lazerler, hareketli duvarlar ve seni kovalayan tehlikeler arasında doğru anda dokunmak gerçek bir refleks ve ritim işi.
+HOLO, tek dokunuşla oynanan bir refleks ve ritim oyunu. Birbirine bağlı iki küreyi kontrol edersin: ekrana her dokunduğunda küreler yer değiştirir ve dönüş yönü tersine döner. Kontrol bu kadar basit; ama dar koridorlar, dönen lazerler, iki eksende gezen duvarlar ve seni kovalayan tehlikeler arasında tam doğru anda dokunmak gerçek bir beceri işi.
 
-★ SONSUZ TIRMANIŞ
-Her oyunda yeni bir harita. Yükseldikçe hız artar, yeni tehlike bölgeleri açılır. Yol boyunca yıldız topla, arka arkaya toplayıp seri yap, kendi rekor çizgini geç ve her 500 metrede elmas kazan. Haftalık dünya sıralamasında en tepeye tırman!
+★ 100 BÖLÜM, ADIM ADIM ZORLAŞAN
+Kolay başlar, yavaş yavaş seni zorlar. Her bölüm aynı dokunuşu farklı bir şekilde sınar: küçülme ve büyüme bölgeleri, kalkanlar, enerji bariyerleri, hızlandırıcılar, kırılan duvarlar. Her bölümü 3 yıldızla bitirmeye çalış.
 
-★ YILDIZ AVCISI SKİNLERİ
-Sonsuz tırmanışta topladığın yıldızlarla yalnızca yıldızla alınabilen özel küre görünümlerinin kilidini aç.
+★ SONSUZ MOD
+Her denemede yeni bir harita. Yükseldikçe hız artar, yeni tehlikeler çıkar. Her 100 metrede elmas kazan, kendi rekor çizgini geç, haftalık sıralamada zirveye oyna. Haftanın ilk 10'una ödül var.
 
-★ TEK DOKUNUŞLA DERİN OYNANIŞ
-Tüm kontrol tek bir dokunuş. Her bölüm bu dokunuşu farklı şekilde sınar: küçülme ve büyüme bölgeleri, kalkanlar, enerji bariyerleri, hızlandırıcılar, kırılabilen duvarlar ve daha fazlası.
+★ OLO SENİ İZLİYOR
+Dalga geçmeyi seven küçük uzaylı Olo hep yanında. Takıldığında laf sokar, rekor kırınca şaşırır, çok zorlanınca ipucu verir. İstemezsen ayarlardan kapatırsın.
 
-★ SEKTÖR SEKTÖR BİR UZAY YOLCULUĞU
-Yakın yörüngeden derin uzayın en tehlikeli köşelerine uzanan, her biri kendi görsel kimliği ve müziğiyle gelen sektörler. Her bölümü 3 yıldızla bitirmeye çalış, geçtiğin bölümlere dönüp skorunu yükselt.
+★ HAYALET YARIŞI VE DÜNYA SIRALAMASI
+Skorların sunucuda tekrar oynatılarak doğrulanır, hile yok. Dünya, ülke ve sonsuz mod sıralamalarında yerini gör, dünya birincisinin hayaletiyle aynı bölümde yarış.
 
-★ DÜNYA SIRALAMASI
-Skorların sunucuda doğrulanır ve dünya genelindeki oyuncularla yarışır. Dünya, ülke ve sonsuz tırmanış sıralamalarında yerini gör.
+★ KÜRE KOLEKSİYONU
+Onlarca küre görünümü: bölüm ödülleri, başarımlar, efsanevi parçalar. Her gün değişen günün indirimini kaçırma.
 
-★ KOZMİK KÜRE KOLEKSİYONU
-Onlarca küre görünümüyle stilini kişiselleştir: bölüm ödülleri, başarımlar, efsanevi koleksiyon parçaları ve öne çıkan skinler.
+★ GÜNLÜK GÖREVLER VE GİRİŞ ÖDÜLLERİ
+Her gün yeni görevler, haftalık görevler ve giriş takvimi ödülleri.
 
-★ HESABIN GÜVENDE
-Hesabını Google hesabına bağla; telefon değiştirsen bile ilerlemen seninle gelsin.
+★ İLERLEMEN GÜVENDE
+Hesabını Google hesabına bağla; telefon değiştirsen de ilerlemen seninle gelsin.
 
-★ GÖRSEL VE SESLİ BİR YOLCULUK
-Neon çizgili, karanlık camsı bir arayüz, her sektöre özel müzik ve dokunsal geri bildirimle tam bir kokpit hissi.
+★ KOKPİT HİSSİ
+Neon çizgili karanlık arayüz, her sektöre özel müzik ve titreşimli geri bildirim. Türkçe, İngilizce, Almanca ve İspanyolca.
 
-Ücretsiz oyna, istersen küre ve elmas satın al. Reklamsız, akıcı ve tamamen senin refleks ve odaklanma becerine dayalı bir deneyim.
+Ücretsiz oyna. Oyunda reklam vardır; elmas almak için reklam izlemek tamamen isteğe bağlıdır. Reklamları kaldırma, küre ve elmas paketleri uygulama içinden satın alınabilir.
 
-İki küre. Tek nabız. Ne kadar yükseğe çıkabilirsin?
+Kısa ama zor oyunları, refleks ve beceri oyunlarını, "bir daha deneyeyim" dedirten bölümleri seviyorsan HOLO tam sana göre.
+
+İki küre. Tek nabız. Kaçıncı bölümde takılacaksın?

@@ -2,47 +2,39 @@ TITLE (max 30 characters)
 HOLO: Two Orbs, One Pulse
 
 SHORT DESCRIPTION (max 80 characters)
-Swap two orbs with one tap. 100 levels of galactic precision puzzling.
+A hard one-tap reflex game: 100 levels, an endless mode and world leaderboards
 
 FULL DESCRIPTION (max 4000 characters)
-Two orbs. One tether. Endless space.
+One tap. Two orbs. Frustratingly hard.
 
-In HOLO you control two orbs bound by a single tether. Every tap swaps
-their positions and reverses their spin — that's the entire control
-scheme. Deceptively simple, endlessly demanding: across 100 levels the
-challenge escalates from careful timing to full-on rhythm mastery.
+HOLO is a one-tap reflex and rhythm game. You control two orbs bound by a tether: every tap swaps them and reverses their spin. That's the whole control scheme. Simple to learn, hard to master: threading them through tight corridors, sweeping lasers, walls that roam on two axes and hazards that chase you takes real timing.
 
-★ ONE TAP, INFINITE DEPTH
-The whole game is one tap. But every level tests it differently: tight
-corridors, sweeping lasers, moving walls, breakable barriers, and more.
+★ 100 LEVELS THAT RAMP UP STEP BY STEP
+It starts gentle and keeps pushing. Every level tests the same tap in a new way: shrink and grow zones, shields, energy barriers, boost pads, breakable walls. Go for 3 stars on each one.
 
-★ POWER-UPS THAT ACTUALLY MATTER
-Shrink and growth zones, shields, boost pads — each one is a real key
-to clearing specific levels, not a throwaway bonus. Learn to use the
-right power at the right moment.
+★ ENDLESS MODE
+A new map every run. The higher you climb, the faster it gets. Earn diamonds every 100 metres, beat your own record line and fight for the top of the weekly leaderboard. The weekly top 10 win prizes.
 
-★ 100 LEVELS ACROSS 5 SECTORS
-A journey from near orbit to the deepest, most dangerous corners of
-space. Every sector has its own look and its own soundtrack.
+★ OLO IS WATCHING
+Olo, a cheeky little alien, rides along. He teases you when you're stuck, is stunned when you set a record and drops a hint when you really struggle. You can switch him off in the settings.
 
-★ CHASE STARS AND HIGH SCORES
-Aim for 3 stars on every level, beat your best score, and freely
-replay any level you've already cleared to push for a better run —
-your progress is never locked away.
+★ GHOST RACES AND WORLD RANKINGS
+Every score is verified by replaying it on the server - no cheating. See where you stand worldwide, in your country and in endless mode, and race the ghost of the world's number one.
 
-★ GLOBAL LEADERBOARD
-Your scores compete automatically against players worldwide. Check
-your live rank and climb toward the best pilots.
+★ ORB COLLECTION
+Dozens of orb skins: level rewards, achievements, legendary pieces, and a new deal of the day every day.
 
-★ A COSMIC ORB COLLECTION
-Personalize your style with 80+ orb skins — from common looks and
-level rewards to achievement unlocks and legendary collectibles.
+★ DAILY MISSIONS AND LOGIN REWARDS
+New daily and weekly missions plus a login calendar.
 
-★ A FULL AUDIOVISUAL SPACE TRIP
-A neon-outlined, dark glass interface; procedural music unique to
-each sector; haptic feedback for a real cockpit feel.
+★ YOUR PROGRESS IS SAFE
+Link your Google account and your progress follows you to a new phone.
 
-Free to play, with optional orb and diamond purchases. No ads — just
-a clean experience built entirely around your reflexes and focus.
+★ COCKPIT FEEL
+A dark neon interface, music for every sector and haptic feedback. In English, Turkish, German and Spanish.
 
-Two orbs. One pulse. 100 levels are waiting.
+Free to play. The game contains ads; watching a video for diamonds is always optional. Remove-ads, orb skins and diamond packs are available as in-app purchases.
+
+If you like short but hard games, skill and reflex games, and levels that make you say "one more try", HOLO is for you.
+
+Two orbs. One pulse. Which level will stop you?
