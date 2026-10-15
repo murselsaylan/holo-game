@@ -1,0 +1,20 @@
+<tr-TR>
+Zafer, kaybetme ve ödül ekranları telefonlarda daha akıcı.
+Bölüm arası reklamdan sonra bölüm 3-2-1 geri sayımla başlıyor; küreler artık reklam biterken yanmıyor.
+Küçük düzeltmeler.
+</tr-TR>
+<en-US>
+Smoother win, fail and reward screens on phones.
+After a between-levels ad the level starts with a 3-2-1 countdown, so the orbs no longer crash while the ad closes.
+Small fixes.
+</en-US>
+<de-DE>
+Flüssigere Sieg-, Niederlagen- und Belohnungsbildschirme auf Handys.
+Nach einer Werbung zwischen den Levels startet das Level mit einem 3-2-1-Countdown, die Kugeln stürzen nicht mehr ab, während die Werbung schließt.
+Kleine Verbesserungen.
+</de-DE>
+<es-ES>
+Pantallas de victoria, derrota y recompensas más fluidas en los móviles.
+Tras un anuncio entre niveles, el nivel empieza con una cuenta atrás 3-2-1 y los orbes ya no chocan mientras se cierra el anuncio.
+Pequeñas mejoras.
+</es-ES>
