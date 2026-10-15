@@ -589,9 +589,20 @@ class HoloGame:
         """Run `then` (next level, retry ...) - first the interstitial if one is owed and loaded."""
         if self._ad_due and not self.save_mgr.no_ads and self.ads.available("levels"):
             self._ad_due = False
-            self.ads.show("levels", on_close=then)
+            self.ads.show("levels", on_close=lambda: self._back_from_ad(then))
         else:
             then()
+
+    def _back_from_ad(self, then):
+        """The ad says it closed a few hundred ms before the game is on screen again: a level started right away ran
+        unseen meanwhile and the player came back to a pair already crashing (1.0.8 report). Start it with the 3-2-1
+        countdown (the pair holds still), and drop touches that were meant for the ad."""
+        pygame.event.clear((pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.FINGERDOWN, pygame.FINGERUP,
+                            pygame.FINGERMOTION))
+        then()
+        if self.state == "playing":
+            self.resume_timer = 1.2
+            self.accum = 0.0
 
     def _show_loading(self, text):
         """One frame with a small card while something heavy is prepared (so the tap visibly did something)."""
