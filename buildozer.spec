@@ -14,7 +14,7 @@ version.regex = __version__ = ["'](.*)["']
 version.filename = %(source.dir)s/version.py
 # Play only needs the build number (versionCode) to keep rising; 5.1.0/5.1.1 went up as 102450100/102450101.
 # The name users see restarts at 1.x - bump both for every Play upload.
-android.numeric_version = 102450110
+android.numeric_version = 102450111
 requirements = python3==3.11.9,hostpython3==3.11.9,pygame==2.6.1,pyjnius,certifi
 
 icon.filename = %(source.dir)s/assets/icon.png
