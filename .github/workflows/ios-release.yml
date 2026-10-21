@@ -7,6 +7,11 @@ name: HOLO iOS -> TestFlight
 # The app record com.hologame.holo must exist in App Store Connect before the first upload.
 on:
   workflow_dispatch:
+    inputs:
+      upload:
+        description: 'Upload the build to TestFlight? (false = build and archive only, nothing is sent to Apple)'
+        type: boolean
+        default: true
   push:
     tags: ['ios-v*']
 
@@ -66,6 +71,7 @@ jobs:
           # Apple's privacy manifest belongs at the root of the app bundle
           cp "$GITHUB_WORKSPACE/ios/PrivacyInfo.xcprivacy" "$RUNNER_TEMP/HOLO.xcarchive/Products/Applications/pygame-ios.app/"
       - name: Upload to TestFlight
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.upload }}
         env:
           TEAM: 943GLGA58Q                 # Apple Developer Team ID (not a secret)
           ASC_KEY_ID: HU859PN88B                 # App Store Connect API key id (not a secret; the .p8 is)
