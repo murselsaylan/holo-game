@@ -20,7 +20,7 @@ OUT = os.path.join(ROOT, "supabase", "functions", "scores")
 os.makedirs(OUT, exist_ok=True)
 
 levels, digests = {}, {}
-for i in range(1, 101):
+for i in range(1, 141):
     lvl = LevelData.load(i)
     d = {k: v for k, v in lvl.raw.items() if k not in ("ref_taps", "difficulty", "title")}
     levels[str(i)] = d
@@ -62,7 +62,7 @@ def snap(sim, res):
 
 golden = []
 rng = random.Random(2026)
-for i in range(1, 101):
+for i in range(1, 141):
     lvl = LevelData.load(i)
     ref = lvl.raw["ref_taps"]
     variants = [ref]

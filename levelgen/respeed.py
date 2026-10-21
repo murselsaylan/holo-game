@@ -67,7 +67,7 @@ def respeed(i):
     H.small_spinners(d)
     if os.environ.get("RESPEED_DILATE") == "1":
         dilate(d, P.speed_of(i) / d["speed"])
-    d["speed"] = P.speed_of(i)
+    d["speed"] = round(P.speed_of(i) * float(os.environ.get("RESPEED_SPEED_MUL", "1")), 3)
     H.tidy_roamers(d)                                     # rectangle loops, paced by the new speed
     lvl = LevelData(d)
     m = S.max_margin(lvl, hi=64.0, iters=4, beam=BEAM, **KW)

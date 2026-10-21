@@ -249,3 +249,13 @@ from olo_lines_more import M as _M  # noqa: E402
 
 for _k, _v in _M.items():
     R.setdefault(_k, []).extend(_v)
+
+# the shared weekly goal and the level of the week (olo_lines_crowd.py, all four languages there)
+from olo_lines_crowd import C as _C  # noqa: E402
+
+R.update(_C)
+
+# "try it with a shield" after a few deaths (olo_lines_shield.py, all four languages there)
+from olo_lines_shield import S as _S  # noqa: E402
+
+R.update(_S)

@@ -30,6 +30,7 @@ _TIER_SECTOR = (1, 1, 2, 2, 3, 3, 4, 5)
 
 
 def sector_for_stage(k):
+    """v4 fallback (a stage's sector by its tier); v5 asks the run's world (run.world.sector)."""
     return _TIER_SECTOR[E.tier_of(k)]
 
 
@@ -128,9 +129,11 @@ class EndlessLevel(lm.Level):
         self.arts = {}
         self._dummy = pygame.Surface((1, 1))
         self._fade = None                # (old art, started at) while the backdrop crossfades to a new sector
-        self._shown_sector = sector_for_stage(0)
+        self.record_m = 0
+        self.ghost = []                  # the best climb's metres every GHOST_EVERY steps (pace ghost)
+        self._shown_sector = run.world.sector(0)
         self._art(self._shown_sector, sync=True)
-        self._art(sector_for_stage(4))   # next sector, early
+        self._art(run.world.sector(1))   # next zone, early
         rng = random.Random(4242)
         self.far_h = FAR_H * 2
         self.twinkles = [(rng.randrange(20, W - 20), rng.randrange(0, self.far_h), rng.uniform(0, 6.28)) for _ in range(60)]
@@ -161,10 +164,12 @@ class EndlessLevel(lm.Level):
         for key in [key for key in self.bands if key[0] < w0 - 1]:
             del self.bands[key]
         self.done = {k for k in self.done if k >= w0 - 1}
-        nxt = sector_for_stage(w0 + E.WINDOW + 1)
-        if nxt not in self.arts:
-            self._art(nxt)
-        for s in [s for s in self.arts if s not in (self.sector, nxt, sector_for_stage(w0))]:
+        wd = self.run.world
+        keep = {wd.sector(w0), wd.sector(w0 + 1), wd.sector(w0 + 2)}
+        for s in keep:
+            if s not in self.arts:
+                self._art(s)
+        for s in [s for s in self.arts if s not in keep and s != self.sector]:
             if self._fade is None or self._fade[0] is not self.arts[s]:
                 del self.arts[s]
 
@@ -195,7 +200,7 @@ class EndlessLevel(lm.Level):
     def _render_stage(self, k):
         world = self.run.world
         st = world.stage(k)
-        sector = sector_for_stage(k)
+        sector = world.sector(k)
         art = self._art(sector)
         while not art.ready():
             yield
@@ -286,7 +291,7 @@ class EndlessLevel(lm.Level):
         vh = arena.get_height()
         oy = int(oy)
         k_now = run.stage_at(oy + vh * 0.5)
-        want = sector_for_stage(k_now)
+        want = run.world.sector(k_now)
         if want != self._shown_sector and self._art(want).ready():
             self._fade = (self.arts.get(self._shown_sector), time.perf_counter())
             self._shown_sector = want
@@ -309,7 +314,7 @@ class EndlessLevel(lm.Level):
                 continue
             cy = st.top - E.GAP - oy                             # connector chamber above this stage
             if cy + E.GAP > -10 and cy < vh + 10 and k < run.w0 + E.WINDOW - 1:
-                self._draw_connector(arena, int(cy), lm.PALETTES[sector_for_stage(k + 1)])
+                self._draw_connector(arena, int(cy), lm.PALETTES[run.world.sector(k + 1)])
             for b in range((int(round(st.height)) + BAND - 1) // BAND):
                 y = int(round(st.top)) + b * BAND - oy
                 if y + BAND < 0 or y > vh:
@@ -348,6 +353,13 @@ class EndlessLevel(lm.Level):
                 cx, cy = W - 34, y - 16
                 pygame.draw.polygon(arena, (0, 230, 255), [(cx, cy - 12), (cx + 10, cy), (cx, cy + 12), (cx - 10, cy)])
                 pygame.draw.polygon(arena, (220, 250, 255), [(cx, cy - 12), (cx + 10, cy), (cx, cy + 12), (cx - 10, cy)], 2)
+        for gm, gd in E.GOALS:                                # v5 metre goals: magenta line, paid by the server
+            if bot_m <= gm <= top_m:
+                y = int(sy - gm * E.PX_PER_M - oy)
+                for x in range(0, W, 24):
+                    pygame.draw.line(arena, (255, 120, 220), (x, y), (x + 14, y), 3)
+                lab = self._mark_label(f"{gm} m  +{gd}", (255, 150, 230))
+                arena.blit(lab, (W - lab.get_width() - 14, y - lab.get_height() - 4))
         rec = getattr(self, "record_m", 0)
         if rec > 0 and bot_m <= rec <= top_m:
             y = int(sy - rec * E.PX_PER_M - oy)
@@ -384,7 +396,7 @@ class EndlessLevel(lm.Level):
         pygame.draw.line(arena, border, (W - side, y), (W - side, y + g), 2)
 
     def _draw_plain(self, arena, st, k, oy, y, bh):
-        pal = lm.PALETTES[sector_for_stage(k)]
+        pal = lm.PALETTES[st.sector]
         top = st.top
         for (x, wy, w, h) in st.d["walls"]:
             sy = wy - oy

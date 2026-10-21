@@ -144,7 +144,7 @@ check("tampered taps (403)", (await post("/api/submit", tampered)).status === 40
 check("superhuman tap rate (422)", (await post("/api/submit", await signed(1, [5, 6, 7]))).status === 422);
 check("stale timestamp (400)", (await post("/api/submit", await signed(1, refTaps(1), sec, ts - 4000))).status === 400);
 check("identity hijack (403)", (await post("/api/register", { player_id: pid, secret: "f".repeat(48), name: "HIJACK", country: "US" })).status === 403);
-check("level out of range (400)", (await post("/api/submit", await signed(101, refTaps(1)))).status === 400);
+check("level out of range (400)", (await post("/api/submit", await signed(141, refTaps(1)))).status === 400);
 { const rr = await post("/api/submit", await signed(1, refTaps(1), sec, ts, { lvl: "deadbeef00" })); check("stale level digest (409)", rr.status === 409, rr); }
 check("matching digest accepted", (await post("/api/submit", await signed(1, refTaps(1), sec, ts, { lvl: DIGESTS["1"] }))).status === 200);
 { // a rebuilt level: games not updated yet still submit runs on its previous version (levelgen/legacy_levels)

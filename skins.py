@@ -2,6 +2,7 @@ import pygame
 import math
 import random
 from render_cache import SurfaceCache
+from skin_surface_art import SURFACE_ART, draw_surface_orb
 
 _ORB_FX = SurfaceCache(2 * 1024 * 1024)
 
@@ -635,13 +636,39 @@ SKINS = {
         "color1": (150, 175, 255), "color2": (255, 255, 255), "glow1": (160, 185, 255), "glow2": (240, 245, 255),
         "tether_type": "pulse_wave", "tether_color": (160, 185, 255), "orb_style": "moon", "unlock_desc": ""
     },
+    # ---- Seri (Streak): earned by completing 7-day login runs, never sold
+    "streak_aurora": {
+        "id": "streak_aurora", "name": "Streak Aurora", "desc": "12 tam hafta: gökyüzünü yeşil-mor saran kuzey ışığı",
+        "color1": (90, 255, 190), "color2": (190, 120, 255), "glow1": (110, 255, 205), "glow2": (205, 140, 255),
+        "tether_type": "double_helix", "tether_color": (130, 245, 215), "orb_style": "gem", "unlock_desc": ""
+    },
+    "streak_nova": {
+        "id": "streak_nova", "name": "Streak Nova", "desc": "8 hafta: her gün biraz daha parlayan bir yıldız",
+        "color1": (255, 150, 60), "color2": (255, 235, 140), "glow1": (255, 165, 80), "glow2": (255, 240, 160),
+        "tether_type": "sparks", "tether_color": (255, 190, 90), "orb_style": "sun", "unlock_desc": ""
+    },
+    "streak_flame": {
+        "id": "streak_flame", "name": "Streak Flame", "desc": "4 hafta: hiç sönmeyen bir seri alevi",
+        "color1": (255, 95, 60), "color2": (255, 205, 80), "glow1": (255, 110, 70), "glow2": (255, 215, 100),
+        "tether_type": "star_chain", "tether_color": (255, 140, 70), "orb_style": "star", "unlock_desc": ""
+    },
+    "streak_ember": {
+        "id": "streak_ember", "name": "Streak Ember", "desc": "2 hafta: közün altında yanan ilk ateş",
+        "color1": (230, 90, 70), "color2": (255, 170, 110), "glow1": (240, 105, 80), "glow2": (255, 185, 125),
+        "tether_type": "stardust", "tether_color": (240, 120, 85), "orb_style": "ring", "unlock_desc": ""
+    },
+    "streak_spark": {
+        "id": "streak_spark", "name": "Streak Spark", "desc": "İlk tam hafta: küçük ama inatçı bir kıvılcım",
+        "color1": (255, 210, 90), "color2": (255, 250, 210), "glow1": (255, 220, 110), "glow2": (255, 252, 225),
+        "tether_type": "pulse_wave", "tether_color": (255, 225, 120), "orb_style": "half", "unlock_desc": ""
+    },
 }
 
 SKIN_LIST = list(SKINS.keys())
 import skin_catalog as _catalog
 # catalogue order (themes, then Legendary -> Common); Legendary skins are the "premium" ones that can also be bought with real money
 SKIN_LIST = [k for k in _catalog.ORDER if k in SKINS] + [k for k in SKINS if k not in _catalog.THEME_OF]
-PREMIUM_SKINS = [k for k in SKIN_LIST if _catalog.tier(k) == 1 and k not in _catalog.STAR_COST]
+PREMIUM_SKINS = [k for k in SKIN_LIST if _catalog.tier(k) == 1 and k not in _catalog.STAR_COST and k not in _catalog.STREAK_WEEKS]
 
 # Look-alikes separated (1.0.5): the Legendary original keeps its look, the cheaper twin gets its own identity.
 _RETUNE = {
@@ -705,6 +732,12 @@ _THEME_RETUNE = {
 for _sid, _ch in _THEME_RETUNE.items():
     if _sid in SKINS:
         SKINS[_sid].update(_ch)
+
+# Preserve the original Neon Pulse, Solar Wind, Twinkle and Honey Bee renderers.
+_DISTINCT_ART = SURFACE_ART
+for _sid, _style in _DISTINCT_ART.items():
+    SKINS[_sid]["orb_style"] = _style
+_DISTINCT_STYLES = frozenset(_DISTINCT_ART.values())
 
 _TIER_OF = {k: _catalog.tier(k) for k in SKINS}
 _GOLD = (255, 205, 80)
@@ -1517,7 +1550,12 @@ def draw_orb(surface, pos, radius, color, glow_color, is_pivot=False, skin_data=
     # 2/3. Orb body (per-skin style)
     cr, cg, cb = color[:3]
     style = (skin_data or {}).get("orb_style")
-    if style == "void":
+    if style in _DISTINCT_STYLES:
+        art_tier = _TIER_OF.get((skin_data or {}).get("id"), 5)
+        # Body animation is an extra for rare and higher skins.
+        draw_surface_orb(surface, x, y, rad, color, style,
+                           time_val if art_tier <= 3 else 0.0, art_tier, (skin_data or {}).get("id", ""))
+    elif style == "void":
         pygame.draw.circle(surface, (3, 3, 8), (x, y), rad)
         pygame.draw.circle(surface, (cr, cg, cb), (x, y), rad, max(2, rad // 4))
         a0 = time_val * 3.0

@@ -17,6 +17,15 @@ export const WALL_SHIELD_INVULN = 0.15;
 export const BOUNCE_BOOST = 0.7;
 export const SHRINK_TETHER = 62.0;
 export const BREAK_R = 21.0;
+export const SLOW_EASE = 0.05;
+export const SLOW_FACTOR = 0.6;      // slow field: 60 % speed (levels 101+)
+export const STRETCH_LONG = 1.6;     // tether stretch field kind +1 (levels 121+)
+export const STRETCH_SHORT = 0.6;    // kind -1
+export const STRETCH_TIME = 6.0;
+export const SHORT_SPIN_MAX = 1.2;
+export const TETHER_EASE_SOFT = 0.08;
+export const STRETCH_SLOW = 0.15;
+export const STRETCH_DECAY = 150;
 export const FX_TIME = 10.0;
 export const SHIELD_INVULN = 0.8;
 export const SNAP_EVERY = 15;     // revive points (mirror of sim.py)
@@ -28,7 +37,12 @@ export const REVIVE_SPIN_START = 0.12;   // revive R2 (1.0.6): starts turning at
 export const REVIVE_SPIN_RAMP = 2.5;     // ... full speed again after this many seconds
 export const REVIVE_SPIN_RAMP_R3 = 4.0;  // revive R3 (1.0.8): a longer spin-up
 export const BARRIER_PASS = 0.8;   // a shield phases the pair through energy barriers only (sim v10)
-export const MAX_LEVELS = 100;
+export const MAX_LEVELS = 140;
+export const CP_RADIUS = 60.0;       // checkpoints (1.0.9): either orb this close to the flag lights it
+export const CHECKPOINT_SHIELD_S = 1.2;   // resume from a checkpoint (free, light help): every hit bounces for this long (or until the first tap) ...
+export const CHECKPOINT_SLOW_S = 1.5;     // ... and the pair spins up from 12 % over this long (paid R3: unlimited shield until the tap, 4 s)
+export const CHECKPOINT_FREE_RESUMES = 2; // the 3rd resume in a row from the SAME flag gets neither shield nor slow start
+export const CP_PENALTY = 0.95;       // a clear that resumed from a checkpoint scores 95 %
 const TWO_PI = Math.PI * 2.0;
 
 // ---- Python float semantics -------------------------------------------------------------------------------
@@ -100,10 +114,13 @@ export class LevelData {
   lasers: number[][];
   spinners: number[][];
   circles: number[][];
+  checkpoints: number[][];     // 1.0.9 flags in route order (not part of the digest)
   stars: number[][];
   growth: number[][];
   shrink: number[][];
   boost: number[][];
+  slow: number[][];
+  stretch: number[][];
   shields: number[][];
   breakables: number[][];
   chasers: number[][];
@@ -147,10 +164,13 @@ export class LevelData {
       return sp;
     });
     this.circles = (d.circles ?? []).map((c: number[]) => c.slice());
+    this.checkpoints = (d.checkpoints ?? []).map((c: number[]) => [Number(c[0]), Number(c[1])]);
     this.stars = (d.stars ?? []).slice(0, pre ? undefined : 3).map((s: number[]) => s.slice());   // endless: every stage's stars
     this.growth = (d.growth_zones ?? []).map((z: number[]) => z.concat([32.0].slice(z.length - 2)));
     this.shrink = (d.shrink_zones ?? []).map((z: number[]) => z.concat([30.0].slice(z.length - 2)));
     this.boost = (d.boost_pads ?? []).map((z: number[]) => z.concat([28.0].slice(z.length - 2)));
+    this.slow = (d.slow_zones ?? []).map((z: number[]) => z.slice());
+    this.stretch = (d.stretch_zones ?? []).map((z: number[]) => z.concat([1].slice(z.length - 3)));
     this.shields = (d.shields ?? []).map((z: number[]) => z.slice());
     this.breakables = (d.breakables ?? []).map((b: number[]) => b.slice());
     const OFFSET = 85.0;
@@ -301,6 +321,8 @@ class Orb {
 }
 
 /** A clean state of the pair's own motion (revive point), mirror of sim.py Sim._snap. */
+type Cp = { snap: Snap; stretchSoft: boolean; stretchHold: number; stretchAmp: number; shields: number; stars: boolean[];
+            shieldTaken: boolean[]; starPts: number; broken: boolean[]; chaseT0: (number | null)[]; t: number };
 type Snap = { n: number; orbs: number[][]; piv: number; ang: number; rotSign: number; tether: number; tetherBase: number;
               fxT: number; boostT: number; smooth: number };
 
@@ -315,6 +337,10 @@ export class Sim {
   tetherBase = TETHER;
   rotSign = 1.0;
   fxT = 0.0;
+  stretchSoft = false;
+  slowF = 1.0;
+  stretchHold = 0;
+  stretchAmp = 0.0;
   broken: boolean[];
   chaseT0: (number | null)[];
   smooth: number;
@@ -348,6 +374,11 @@ export class Sim {
   spinRampS = REVIVE_SPIN_RAMP;   // seconds of the current revive's spin-up (R3: longer)
   spinRamp = 1.0;         // revive R2: rotation speed ramp 0 -> 1
   snaps: Snap[] = [];
+  cpNext = 0;                    // checkpoints lit so far
+  cpState: Cp | null = null;     // the pair at the latest lit checkpoint
+  cpStreak = 0;                  // resumes in a row from the latest flag
+  guardT = 0.0;                  // checkpoint resume: seconds of shield left (0 = no timer)
+  cpUsed = 0;                    // deaths resumed from a checkpoint
   ang: number;
 
   constructor(lvl: LevelData, margin = 0.0) {
@@ -440,14 +471,71 @@ export class Sim {
     this.barrierT = 0.0;
     this.reviveT = REVIVE_SAFE;
     this.snaps = [s];
+    this.guardT = 0.0;
     if (guarded) { this.guard = true; this.spinRamp = 0.0; }
     this.guardWalls = guarded && walls;
     this.spinRampS = guarded && walls ? REVIVE_SPIN_RAMP_R3 : REVIVE_SPIN_RAMP;
   }
 
+  /** A flag lit: remember the pair as it is (mirror of sim.py Sim._take_checkpoint). */
+  private takeCheckpoint() {
+    this.cpState = {
+      snap: this.snap(), stretchSoft: this.stretchSoft, stretchHold: this.stretchHold, stretchAmp: this.stretchAmp,
+      shields: this.shields, stars: this.stars.slice(), shieldTaken: this.shieldTaken.slice(), starPts: this.starPts,
+      broken: this.broken.slice(), chaseT0: this.chaseT0.slice(), t: this.t,
+    };
+    this.cpNext += 1;
+    this.cpStreak = 0;
+  }
+
+  /** Continue after dying from the latest lit checkpoint (free, assist "C"); mirror of sim.py resume_checkpoint. */
+  resumeCheckpoint(): boolean {
+    const cp = this.cpState;
+    if (cp === null || !this.dead) return false;
+    this.dead = false;
+    const s = cp.snap;
+    this.piv = s.piv; this.ang = s.ang; this.rotSign = s.rotSign; this.tether = s.tether; this.tetherBase = s.tetherBase;
+    this.fxT = s.fxT; this.boostT = s.boostT; this.smooth = s.smooth;
+    for (let i = 0; i < 2; i++) {
+      const o = this.orbs[i], v = s.orbs[i];
+      o.x = v[0]; o.y = v[1]; o.r = v[2]; o.tr = v[3]; o.m = v[4]; o.tm = v[5];
+    }
+    this.stretchSoft = cp.stretchSoft; this.stretchHold = cp.stretchHold; this.stretchAmp = cp.stretchAmp;
+    this.shields = cp.shields;
+    this.stars = cp.stars.slice();
+    this.shieldTaken = cp.shieldTaken.slice();
+    this.starPts = cp.starPts;
+    this.broken = cp.broken.slice();
+    const shift = this.t - cp.t;
+    this.chaseT0 = cp.chaseT0.map((v) => (v === null ? null : v + shift));
+    this.grace = 0.0;
+    this.invuln = 0.0;
+    this.wallEscaping = false;
+    this.wallEscapeT = 0.0;
+    this.barrierT = 0.0;
+    this.reviveT = REVIVE_SAFE;
+    this.snaps = [s];
+    this.cpStreak += 1;
+    this.cpUsed += 1;
+    if (this.cpStreak <= CHECKPOINT_FREE_RESUMES) {
+      this.guard = true;
+      this.guardT = CHECKPOINT_SHIELD_S;
+      this.guardWalls = true;
+      this.spinRamp = 0.0;
+      this.spinRampS = CHECKPOINT_SLOW_S;
+    } else {
+      this.guard = false;
+      this.guardT = 0.0;
+      this.guardWalls = false;
+      this.spinRamp = 1.0;
+    }
+    return true;
+  }
+
   swap() {
     if (this.dead || this.won) return;
     this.guard = false;
+    this.guardT = 0.0;
     this.guardWalls = false;
     const since = this.t - this.lastSwapT;
     this.lastSwapT = this.t;
@@ -484,7 +572,12 @@ export class Sim {
       if (o.r !== o.tr) o.r += (o.tr - o.r) * 0.18;
       if (o.m !== o.tm) o.m += (o.tm - o.m) * 0.18;
     }
-    this.tether += (this.tetherBase - this.tether) * 0.14;
+    if (this.stretchSoft) {
+      this.tether += (this.tetherBase - this.tether) * TETHER_EASE_SOFT;
+      if (this.tetherBase === TETHER && Math.abs(this.tether - TETHER) < 1.0) this.stretchSoft = false;
+    } else {
+      this.tether += (this.tetherBase - this.tether) * 0.14;
+    }
 
     const prog = lvl.progress(piv.x, piv.y);
     this.progress = prog;
@@ -498,6 +591,21 @@ export class Sim {
     this.smooth += (target - this.smooth) * 0.04;
 
     let omega = BASE_OMEGA * this.smooth / Math.pow(rot.m, 0.35);
+    let slowTarget = 1.0;
+    if (lvl.slow.length) {                   // slow field: either orb inside -> the turning factor eases down to SLOW_FACTOR
+      for (const z of lvl.slow) {
+        if (hypot(o0.x - z[0], o0.y - z[1]) < z[2] + o0.r * 0.5 || hypot(o1.x - z[0], o1.y - z[1]) < z[2] + o1.r * 0.5) {
+          slowTarget = SLOW_FACTOR;
+          break;
+        }
+      }
+    }
+    if (lvl.slow.length || this.slowF !== 1.0) {
+      this.slowF += (slowTarget - this.slowF) * SLOW_EASE;
+      if (Math.abs(this.slowF - 1.0) < 1e-4) this.slowF = 1.0;
+      omega *= this.slowF;
+    }
+    if (this.stretchHold > 0) omega *= 1.0 - (STRETCH_SLOW * this.stretchHold) / STRETCH_DECAY;
     if (this.spinRamp < 1.0) {               // just revived (R2): turning slowly, easing back to full speed
       omega *= REVIVE_SPIN_START + (1.0 - REVIVE_SPIN_START) * this.spinRamp * this.spinRamp;
       this.spinRamp = Math.min(1.0, this.spinRamp + dt / this.spinRampS);
@@ -566,6 +674,21 @@ export class Sim {
       rot.y = piv.y + Math.sin(this.ang) * this.tether;
     }
 
+    if (lvl.stretch.length) {                       // touching a field stretches the tether once; it then shortens slowly by itself
+      let kind = 0;
+      for (const z of lvl.stretch) {
+        if (hypot(rot.x - z[0], rot.y - z[1]) < z[2] + rot.r * 0.5) kind = z[3] > 0 ? 1 : -1;
+      }
+      if (kind !== 0) {
+        this.stretchAmp = TETHER * ((kind > 0 ? STRETCH_LONG : STRETCH_SHORT) - 1.0);
+        this.stretchHold = STRETCH_DECAY;
+        this.stretchSoft = true;
+        this.tetherBase = TETHER + this.stretchAmp;
+      } else if (this.stretchHold > 0) {
+        this.stretchHold -= 1;
+        this.tetherBase = TETHER + (this.stretchAmp * this.stretchHold) / STRETCH_DECAY;
+      }
+    }
     if (lvl.growth.length || lvl.shrink.length || lvl.boost.length) {
       for (const orb of [rot, piv]) {
         for (const z of lvl.growth) {
@@ -623,6 +746,10 @@ export class Sim {
 
     if (this.invuln > 0) this.invuln -= dt;
     if (this.reviveT > 0) this.reviveT -= dt;
+    if (this.guardT > 0) {                       // a checkpoint resume's shield runs out on its own
+      this.guardT -= dt;
+      if (this.guardT <= 0) { this.guard = false; this.guardWalls = false; }
+    }
     if (this.barrierT > 0) {
       this.barrierT -= dt;
       if (this.barrierT < 0.2) {
@@ -717,6 +844,10 @@ export class Sim {
       this.won = true;
       return;
     }
+    if (this.cpNext < lvl.checkpoints.length && this.invuln <= 0 && !this.wallEscaping && this.barrierT <= 0) {
+      const [cx, cy] = lvl.checkpoints[this.cpNext];
+      if (hypot(o0.x - cx, o0.y - cy) < CP_RADIUS + o0.r || hypot(o1.x - cx, o1.y - cy) < CP_RADIUS + o1.r) this.takeCheckpoint();
+    }
     if (this.n % SNAP_EVERY === 0 && this.invuln <= 0 && !this.wallEscaping && this.barrierT <= 0) {
       this.snaps.push(this.snap());
       if (this.snaps.length > SNAP_KEEP) this.snaps.shift();
@@ -789,7 +920,8 @@ export function computeResult(sim: Sim): Result {
   const starBonus = stars * 2500;
   const starMult = 1.0 + stars * 0.15;
   const subtotal = base + timeBonus + swapBonus + comboBonus + grazeBonus + starBonus;
-  const total = Math.trunc(subtotal * starMult);
+  let total = Math.trunc(subtotal * starMult);
+  if (sim.cpUsed > 0) total = Math.trunc(total * CP_PENALTY);     // resumed from a checkpoint: a small cut
   const tRatio = sim.t / Math.max(1.0, lvl.parTime);
   const sRatio = sim.swaps / Math.max(1, lvl.parSwaps);
   let rank: string;
@@ -804,7 +936,7 @@ export function computeResult(sim: Sim): Result {
   };
 }
 
-export type Assist = [number, "S" | "R" | "R2" | "R3"];
+export type Assist = [number, "S" | "R" | "R2" | "R3" | "C"];
 
 /** `assists`: paid help, [step, "S"] = a bought shield put on before that step, [step, "R"] = revive after dying at
  *  that step (mirror of sim.py replay). */
@@ -817,7 +949,9 @@ export function replay(lvl: LevelData, tapsIn: number[], maxSeconds = 400.0,
   const maxSteps = Math.trunc(maxSeconds / SIM_DT);
   while (sim.n < maxSteps && !sim.won) {
     while (hi < helps.length && helps[hi][0] <= sim.n && (helps[hi][1] === "S" || sim.dead)) {
-      if (helps[hi][1] === "S") sim.addShield(); else sim.revive(helps[hi][1] === "R2" || helps[hi][1] === "R3", helps[hi][1] === "R3");
+      if (helps[hi][1] === "S") sim.addShield();
+      else if (helps[hi][1] === "C") sim.resumeCheckpoint();
+      else sim.revive(helps[hi][1] === "R2" || helps[hi][1] === "R3", helps[hi][1] === "R3");
       hi++;
     }
     if (sim.dead) break;

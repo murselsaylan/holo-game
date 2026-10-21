@@ -247,7 +247,7 @@ _TR_NEW = {
     "sector_desc_2": "Süpürücü pistonlar • zamanlama • Aegis kalkanları",
     "sector_desc_3": "Küçülme / büyüme alanları • mikro geçitler",
     "sector_desc_4": "Lazer kapıları • döner kollar • ritim",
-    "sector_desc_5": "Her şey bir arada • hata affetmez",
+    "sector_desc_5": "Her şey bir arada • hata affetmez", "sector_desc_6": "Yavaşlatan zaman alanları • saat gibi tuzaklar", "sector_desc_7": "Gerilen ve kısalan bağ • titreşen teller",
     "play": "OYNA",
     "tab_world": "DÜNYA",
     "tab_country": "ÜLKEM",
@@ -312,6 +312,10 @@ _TR_NEW = {
     "login_sub": "Her gün gir, 7. gün haftanın büyük ödülü seni bekliyor!",
     "login_day": "{n}. GÜN",
     "login_weekly": "HAFTALIK ÖDÜL",
+    "login_skin": "SERİ SKİNİ",
+    "src_streak": "{n} TAM HAFTA",
+    "unlock_streak": "Giriş takvimini {n} kez tamamlayınca açılır ({have}/{n})",
+    "login_skin_got": "Yeni skin: {name}!",
     "login_got": "+{n} elmas kazandın!",
     "login_great": "HARİKA!",
     "login_come_back": "Yarın yeni ödül için tekrar gel",
@@ -462,7 +466,7 @@ _TR_NEW = {
     "rewinding": "GERİ SARILIYOR...",
     "diamond_packs_title": "ELMAS PAKETLERİ",
     "buy_for_diamonds": "ELMASLA AL",
-    "daily_btn": "GÜNLÜK",
+    "daily_btn": "GÖREVLER",
     "daily_title": "GÜNLÜK GÖREVLER",
     "daily_streak": "🔥 {n} GÜN SERİSİ",
     "daily_reward": "Ödül: {n} elmas",
@@ -516,7 +520,7 @@ _EN_NEW = {
     "sector_desc_2": "Sweeping pistons • timing • Aegis shields",
     "sector_desc_3": "Shrink / growth fields • micro gates",
     "sector_desc_4": "Laser gates • spinning arms • rhythm",
-    "sector_desc_5": "Everything at once • zero forgiveness",
+    "sector_desc_5": "Everything at once • zero forgiveness", "sector_desc_6": "Time-slowing fields • clockwork traps", "sector_desc_7": "A tether that stretches and shrinks • humming strings",
     "play": "PLAY",
     "tab_world": "WORLD",
     "tab_country": "MY COUNTRY",
@@ -580,6 +584,10 @@ _EN_NEW = {
     "login_sub": "Come back every day - day 7 is the weekly big prize!",
     "login_day": "DAY {n}",
     "login_weekly": "WEEKLY PRIZE",
+    "login_skin": "STREAK SKIN",
+    "src_streak": "{n} FULL WEEKS",
+    "unlock_streak": "Unlocks after completing the login calendar {n} times ({have}/{n})",
+    "login_skin_got": "New skin: {name}!",
     "login_got": "+{n} diamonds!",
     "login_great": "GREAT!",
     "login_come_back": "Come back tomorrow for the next reward",
@@ -729,7 +737,7 @@ _EN_NEW = {
     "rewinding": "REWINDING...",
     "diamond_packs_title": "DIAMOND PACKS",
     "buy_for_diamonds": "BUY WITH GEMS",
-    "daily_btn": "DAILY",
+    "daily_btn": "QUESTS",
     "daily_title": "DAILY MISSIONS",
     "daily_streak": "🔥 {n} DAY STREAK",
     "daily_reward": "Reward: {n} diamonds",
@@ -810,7 +818,7 @@ _DE = {
     "progress_line": "{done} Level  •  {stars} Sterne", "rank_world": "Welt #{rank}", "rank_country": "Land #{rank}",
     "sector": "SEKTOR", "sector_desc_1": "Orbitale Grundlagen • Korridore • Prallwände",
     "sector_desc_2": "Schwenkende Kolben • Timing • Aegis-Schilde", "sector_desc_3": "Schrumpf-/Wachstumsfelder • Mikro-Tore",
-    "sector_desc_4": "Laser-Tore • Dreharme • Rhythmus", "sector_desc_5": "Alles zusammen • keine Gnade", "play": "SPIELEN",
+    "sector_desc_4": "Laser-Tore • Dreharme • Rhythmus", "sector_desc_5": "Alles zusammen • keine Gnade", "sector_desc_6": "Zeitlupenfelder • Uhrwerk-Fallen", "sector_desc_7": "Ein Band, das sich dehnt und staucht • summende Saiten", "play": "SPIELEN",
     "tab_world": "WELT", "tab_country": "MEIN LAND", "tab_around": "IN MEINER NÄHE", "refresh": "AKTUALISIEREN",
     "loading": "Lädt…", "offline": "Server nicht erreichbar. Verbindung prüfen.", "online_disabled": "Online-Rangliste ist deaktiviert.",
     "lb_empty": "Noch niemand hier — sei der Erste!", "status_online": "ONLINE", "status_offline": "OFFLINE", "equip": "AUSRÜSTEN",
@@ -859,6 +867,10 @@ _DE = {
     "login_sub": "Komm jeden Tag - Tag 7 ist der große Wochenpreis!",
     "login_day": "TAG {n}",
     "login_weekly": "WOCHENPREIS",
+    "login_skin": "SERIEN-SKIN",
+    "src_streak": "{n} VOLLE WOCHEN",
+    "unlock_streak": "Wird frei, wenn du den Login-Kalender {n}-mal abschließt ({have}/{n})",
+    "login_skin_got": "Neuer Skin: {name}!",
     "login_got": "+{n} Diamanten!",
     "login_great": "SUPER!",
     "login_come_back": "Komm morgen für die nächste Belohnung wieder",
@@ -920,7 +932,7 @@ _DE = {
     "hint_chase": "Eine Wand jagt dich! Berühre die Boost-Felder", "diamonds": "Diamanten",
     "not_enough_diamonds": "Nicht genug Diamanten! Im Shop erhältlich", "shop_thanks_diamonds": "Danke! Diamanten gutgeschrieben",
     "rewinding": "ZURÜCKSPULEN...", "diamond_packs_title": "DIAMANTPAKETE", "buy_for_diamonds": "MIT DIAMANTEN KAUFEN",
-    "daily_btn": "TÄGLICH", "daily_title": "TÄGLICHE AUFGABEN", "daily_streak": "🔥 {n} TAGE IN FOLGE",
+    "daily_btn": "AUFGABEN", "daily_title": "TÄGLICHE AUFGABEN", "daily_streak": "🔥 {n} TAGE IN FOLGE",
     "daily_reward": "Belohnung: {n} Diamanten", "daily_levels": "{n} Level abschließen", "daily_stars": "{n} Sterne sammeln",
     "daily_claim": "ABHOLEN", "daily_note": "Aufgaben erneuern sich täglich. Hol dir alle drei für eine längere Serie.",
     "howto_page2_title": "WAS KOMMT NOCH?", "howto_p2_1": "SKINS & SHOP: gestalte deine Orbs mit Diamanten oder echtem Geld",
@@ -983,7 +995,7 @@ _ES = {
     "progress_line": "{done} niveles  •  {stars} estrellas", "rank_world": "Mundo #{rank}", "rank_country": "País #{rank}",
     "sector": "SECTOR", "sector_desc_1": "Bases orbitales • corredores • paredes que rebotan",
     "sector_desc_2": "Pistones giratorios • ritmo • escudos Aegis", "sector_desc_3": "Campos de encogimiento/crecimiento • microportales",
-    "sector_desc_4": "Puertas láser • brazos giratorios • ritmo", "sector_desc_5": "Todo a la vez • sin piedad", "play": "JUGAR",
+    "sector_desc_4": "Puertas láser • brazos giratorios • ritmo", "sector_desc_5": "Todo a la vez • sin piedad", "sector_desc_6": "Campos que frenan el tiempo • trampas de relojería", "sector_desc_7": "Un vínculo que se estira y encoge • cuerdas vibrantes", "play": "JUGAR",
     "tab_world": "MUNDO", "tab_country": "MI PAÍS", "tab_around": "CERCA DE MÍ", "refresh": "ACTUALIZAR",
     "loading": "Cargando…", "offline": "No se puede conectar al servidor. Revisa tu conexión.",
     "online_disabled": "La clasificación en línea está desactivada.", "lb_empty": "Todavía no hay nadie — ¡sé el primero!",
@@ -1033,6 +1045,10 @@ _ES = {
     "login_sub": "¡Vuelve cada día: el día 7 es el gran premio semanal!",
     "login_day": "DÍA {n}",
     "login_weekly": "PREMIO SEMANAL",
+    "login_skin": "SKIN DE RACHA",
+    "src_streak": "{n} SEMANAS COMPLETAS",
+    "unlock_streak": "Se desbloquea al completar el calendario {n} veces ({have}/{n})",
+    "login_skin_got": "¡Nueva skin: {name}!",
     "login_got": "¡+{n} diamantes!",
     "login_great": "¡GENIAL!",
     "login_come_back": "Vuelve mañana por el siguiente premio",
@@ -1098,7 +1114,7 @@ _ES = {
     "not_enough_diamonds": "¡Diamantes insuficientes! Consigue más en la tienda",
     "shop_thanks_diamonds": "¡Gracias! Diamantes añadidos a tu cuenta", "rewinding": "REBOBINANDO...",
     "diamond_packs_title": "PAQUETES DE DIAMANTES", "buy_for_diamonds": "COMPRAR CON DIAMANTES",
-    "daily_btn": "DIARIO", "daily_title": "MISIONES DIARIAS", "daily_streak": "🔥 RACHA DE {n} DÍAS",
+    "daily_btn": "MISIONES", "daily_title": "MISIONES DIARIAS", "daily_streak": "🔥 RACHA DE {n} DÍAS",
     "daily_reward": "Recompensa: {n} diamantes", "daily_levels": "Completa {n} niveles", "daily_stars": "Recoge {n} estrellas",
     "daily_claim": "RECLAMAR", "daily_note": "Las misiones se renuevan cada día. Reclama las tres para aumentar tu racha.",
     "howto_page2_title": "¿QUÉ MÁS HAY?", "howto_p2_1": "SKINS Y TIENDA: personaliza tus orbes con diamantes o dinero real",
@@ -1257,5 +1273,52 @@ for _lang, _d in _NAMES.items():
     if _lang in STRINGS:
         STRINGS[_lang].update(_d)
 for _lang, _d in _ADS.items():
+    if _lang in STRINGS:
+        STRINGS[_lang].update(_d)
+
+# friends (1.0.9)
+from locales_friends import FRIENDS as _FRIENDS
+for _lang, _d in _FRIENDS.items():
+    if _lang in STRINGS:
+        STRINGS[_lang].update(_d)
+
+# shared weekly goal + level of the week (1.0.9)
+from locales_crowd import CROWD as _CROWD
+for _lang, _d in _CROWD.items():
+    if _lang in STRINGS:
+        STRINGS[_lang].update(_d)
+
+# endless climb v5: zone names, events, metre goals (1.0.9)
+from locales_endless import ENDLESS as _ENDLESS
+for _lang, _d in _ENDLESS.items():
+    if _lang in STRINGS:
+        STRINGS[_lang].update(_d)
+
+# ranking / daily level texts (1.0.9)
+from locales_ranked import RANKED as _RANKED
+for _lang, _d in _RANKED.items():
+    if _lang in STRINGS:
+        STRINGS[_lang].update(_d)
+
+# shield on the failure screen (1.0.9)
+from locales_shield import SHIELD as _SHIELD
+for _lang, _d in _SHIELD.items():
+    if _lang in STRINGS:
+        STRINGS[_lang].update(_d)
+
+# shop extras: weekly showcase, supplies, prestige, Star Market, Star Chest (1.0.9)
+from locales_shop import SHOPX as _SHOPX
+for _lang, _d in _SHOPX.items():
+    if _lang in STRINGS:
+        STRINGS[_lang].update(_d)
+
+# checkpoints (1.0.9)
+_CHECKPOINTS = {
+    "tr": {"cp_popup": "KONTROL NOKTASI", "cp_resume_btn": "KONTROL NOKTASINDAN DEVAM [SPACE]", "cp_resumed": "Kontrol noktasından devam"},
+    "en": {"cp_popup": "CHECKPOINT", "cp_resume_btn": "RESUME FROM CHECKPOINT [SPACE]", "cp_resumed": "Back at the checkpoint"},
+    "de": {"cp_popup": "KONTROLLPUNKT", "cp_resume_btn": "AB KONTROLLPUNKT [SPACE]", "cp_resumed": "Zurück am Kontrollpunkt"},
+    "es": {"cp_popup": "PUNTO DE CONTROL", "cp_resume_btn": "SEGUIR DESDE EL PUNTO [ESPACIO]", "cp_resumed": "De vuelta en el punto de control"},
+}
+for _lang, _d in _CHECKPOINTS.items():
     if _lang in STRINGS:
         STRINGS[_lang].update(_d)

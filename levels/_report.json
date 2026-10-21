@@ -7229,5 +7229,3010 @@
    ]
   ],
   "secs": 576.3
+ },
+ "105": {
+  "level": 105,
+  "title": "DILATED ZIGZAG",
+  "family": "zigzag",
+  "tight": 0.433,
+  "margin": 16.0,
+  "jitter": null,
+  "gates": [
+   "gshield"
+  ],
+  "gk": 0,
+  "W": 251,
+  "swaps": 86,
+  "time": 60.9,
+  "speed": 1.359,
+  "haz": {
+   "moving_walls": 0,
+   "lasers": 0,
+   "spinners": 0,
+   "circles": 0,
+   "reverse_walls": 0,
+   "growth_zones": 0,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 1,
+   "breakables": 0,
+   "chasers": 0,
+   "barriers": 1
+  },
+  "log": [
+   [
+    0.633,
+    8.0,
+    0,
+    0
+   ],
+   [
+    0.533,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.433,
+    16.0,
+    0,
+    0
+   ]
+  ],
+  "secs": 171.4
+ },
+ "111": {
+  "level": 111,
+  "title": "GLACIAL PASSAGE",
+  "family": "wander",
+  "tight": 0.328,
+  "margin": 12.0,
+  "jitter": null,
+  "gates": [
+   "gboost",
+   "gshield"
+  ],
+  "gk": 0,
+  "W": 271,
+  "swaps": 92,
+  "time": 91.2,
+  "speed": 1.394,
+  "haz": {
+   "moving_walls": 6,
+   "lasers": 0,
+   "spinners": 0,
+   "circles": 2,
+   "reverse_walls": 0,
+   "growth_zones": 0,
+   "shrink_zones": 0,
+   "boost_pads": 3,
+   "shields": 1,
+   "breakables": 0,
+   "chasers": 1,
+   "barriers": 1
+  },
+  "log": [
+   [
+    0.688,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.508,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.328,
+    12.0,
+    0,
+    0
+   ]
+  ],
+  "secs": 172.8
+ },
+ "106": {
+  "level": 106,
+  "title": "LINGERING PASSAGE",
+  "family": "wander",
+  "tight": 0.438,
+  "margin": 16.0,
+  "jitter": 0.0,
+  "gates": [
+   "gboost"
+  ],
+  "gk": 1,
+  "W": 251,
+  "swaps": 78,
+  "time": 54.4,
+  "speed": 1.365,
+  "haz": {
+   "moving_walls": 0,
+   "lasers": 0,
+   "spinners": 0,
+   "circles": 0,
+   "reverse_walls": 1,
+   "growth_zones": 0,
+   "shrink_zones": 0,
+   "boost_pads": 3,
+   "shields": 0,
+   "breakables": 0,
+   "chasers": 1,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.638,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.538,
+    8.0,
+    0,
+    0
+   ],
+   [
+    0.438,
+    16.0,
+    0,
+    0
+   ],
+   [
+    "optional",
+    "gboost",
+    "gk",
+    1
+   ],
+   [
+    0.438,
+    16.0,
+    0,
+    0
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 311.2
+ },
+ "104": {
+  "level": 104,
+  "title": "TIDAL CHAMBERS",
+  "family": "chambers",
+  "tight": 0.598,
+  "margin": 12.0,
+  "jitter": 0.0,
+  "gates": [
+   "ggrow"
+  ],
+  "gk": 0,
+  "W": 222,
+  "swaps": 41,
+  "time": 34.1,
+  "speed": 1.342,
+  "haz": {
+   "moving_walls": 2,
+   "lasers": 0,
+   "spinners": 0,
+   "circles": 0,
+   "reverse_walls": 0,
+   "growth_zones": 1,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 0,
+   "breakables": 1,
+   "chasers": 0,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.778,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.598,
+    12.0,
+    0,
+    0
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 180.1
+ },
+ "107": {
+  "level": 107,
+  "title": "AMBER PASSAGE",
+  "family": "wander",
+  "tight": 0.557,
+  "margin": 8.0,
+  "jitter": 0.0,
+  "gates": [
+   "gslow"
+  ],
+  "gk": 0,
+  "W": 229,
+  "swaps": 121,
+  "time": 80.8,
+  "speed": 1.351,
+  "haz": {
+   "moving_walls": 3,
+   "lasers": 4,
+   "spinners": 0,
+   "circles": 0,
+   "reverse_walls": 0,
+   "growth_zones": 0,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 0,
+   "breakables": 0,
+   "chasers": 0,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.557,
+    8.0,
+    0,
+    0
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 105.6
+ },
+ "116": {
+  "level": 116,
+  "title": "LAGGED PASSAGE",
+  "family": "wander",
+  "tight": 0.5,
+  "margin": 12.0,
+  "jitter": null,
+  "gates": [
+   "gboost",
+   "gshield",
+   "ggrow"
+  ],
+  "gk": 1,
+  "W": 239,
+  "swaps": 96,
+  "time": 74.6,
+  "speed": 1.425,
+  "haz": {
+   "moving_walls": 13,
+   "lasers": 0,
+   "spinners": 0,
+   "circles": 0,
+   "reverse_walls": 0,
+   "growth_zones": 1,
+   "shrink_zones": 0,
+   "boost_pads": 3,
+   "shields": 1,
+   "breakables": 1,
+   "chasers": 1,
+   "barriers": 1
+  },
+  "log": [
+   [
+    0.7,
+    8.0,
+    0,
+    0
+   ],
+   [
+    0.6,
+    8.0,
+    0,
+    0
+   ],
+   [
+    0.5,
+    12.0,
+    0,
+    0
+   ],
+   [
+    "optional",
+    "gboost",
+    "gk",
+    1
+   ],
+   [
+    0.5,
+    12.0,
+    0,
+    0
+   ]
+  ],
+  "secs": 451.7
+ },
+ "101": {
+  "level": 101,
+  "title": "CHRONO PASSAGE",
+  "family": "wander",
+  "tight": 0.612,
+  "margin": 12.0,
+  "jitter": 0.0,
+  "gates": [
+   "gslow"
+  ],
+  "gk": 6,
+  "W": 219,
+  "swaps": 109,
+  "time": 79.9,
+  "speed": 1.335,
+  "haz": {
+   "moving_walls": 6,
+   "lasers": 0,
+   "spinners": 0,
+   "circles": 0,
+   "reverse_walls": 0,
+   "growth_zones": 0,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 0,
+   "breakables": 0,
+   "chasers": 0,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.612,
+    12.0,
+    0,
+    0
+   ],
+   [
+    "optional",
+    "gslow",
+    "gk",
+    1
+   ],
+   [
+    0.612,
+    12.0,
+    0,
+    0
+   ],
+   [
+    "optional",
+    "gslow",
+    "gk",
+    2
+   ],
+   [
+    0.612,
+    12.0,
+    0,
+    0
+   ],
+   [
+    "optional",
+    "gslow",
+    "gk",
+    3
+   ],
+   [
+    0.612,
+    12.0,
+    0,
+    0
+   ],
+   [
+    "optional",
+    "gslow",
+    "gk",
+    4
+   ],
+   [
+    0.612,
+    12.0,
+    0,
+    0
+   ],
+   [
+    "optional",
+    "gslow",
+    "gk",
+    5
+   ],
+   [
+    0.612,
+    12.0,
+    0,
+    1
+   ],
+   [
+    "optional",
+    "gslow",
+    "gk",
+    6
+   ],
+   [
+    0.612,
+    12.0,
+    0,
+    1
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 645.7
+ },
+ "102": {
+  "level": 102,
+  "title": "DRIFTING PASSAGE",
+  "family": "wander",
+  "tight": 0.488,
+  "margin": 16.0,
+  "jitter": 0.0,
+  "gates": [
+   "gshrink"
+  ],
+  "gk": 0,
+  "W": 241,
+  "swaps": 63,
+  "time": 49.9,
+  "speed": 1.336,
+  "haz": {
+   "moving_walls": 0,
+   "lasers": 2,
+   "spinners": 0,
+   "circles": 1,
+   "reverse_walls": 1,
+   "growth_zones": 0,
+   "shrink_zones": 1,
+   "boost_pads": 0,
+   "shields": 0,
+   "breakables": 0,
+   "chasers": 0,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.768,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.588,
+    0.0,
+    0,
+    0
+   ],
+   [
+    0.488,
+    16.0,
+    0,
+    0
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 253.9
+ },
+ "110": {
+  "level": 110,
+  "title": "EBBING GATEWAY",
+  "family": "gates",
+  "tight": 0.685,
+  "margin": 8.0,
+  "jitter": null,
+  "gates": [
+   "ggrow",
+   "gshield"
+  ],
+  "gk": 0,
+  "W": 206,
+  "swaps": 54,
+  "time": 55.4,
+  "speed": 1.388,
+  "haz": {
+   "moving_walls": 9,
+   "lasers": 0,
+   "spinners": 0,
+   "circles": 2,
+   "reverse_walls": 0,
+   "growth_zones": 1,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 1,
+   "breakables": 1,
+   "chasers": 0,
+   "barriers": 1
+  },
+  "log": [
+   [
+    0.685,
+    8.0,
+    0,
+    0
+   ]
+  ],
+  "secs": 109.8
+ },
+ "112": {
+  "level": 112,
+  "error": "unsolvable",
+  "log": [
+   [
+    0.44,
+    8.0,
+    0,
+    0
+   ],
+   [
+    "optional",
+    "gboost",
+    "gk",
+    1
+   ],
+   [
+    0.44,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.26,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.16,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.06,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.44,
+    4.0,
+    0,
+    1
+   ],
+   [
+    0.34,
+    4.0,
+    0,
+    1
+   ],
+   [
+    0.24,
+    4.0,
+    0,
+    1
+   ],
+   [
+    0.14,
+    8.0,
+    0,
+    1
+   ],
+   [
+    "optional",
+    "gboost",
+    "gk",
+    2
+   ],
+   [
+    0.14,
+    4.0,
+    0,
+    1
+   ],
+   [
+    0.44,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.26,
+    4.0,
+    0,
+    2
+   ],
+   [
+    0.16,
+    4.0,
+    0,
+    2
+   ],
+   [
+    0.06,
+    4.0,
+    0,
+    2
+   ]
+  ]
+ },
+ "109": {
+  "level": 109,
+  "title": "STILL PASSAGE",
+  "family": "wander",
+  "tight": 0.222,
+  "margin": 8.0,
+  "jitter": 0.0,
+  "gates": [
+   "ggrow",
+   "gslow"
+  ],
+  "gk": 0,
+  "W": 291,
+  "swaps": 98,
+  "time": 87.0,
+  "speed": 1.382,
+  "haz": {
+   "moving_walls": 6,
+   "lasers": 0,
+   "spinners": 0,
+   "circles": 2,
+   "reverse_walls": 0,
+   "growth_zones": 1,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 0,
+   "breakables": 1,
+   "chasers": 0,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.682,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.502,
+    0.0,
+    0,
+    0
+   ],
+   [
+    0.402,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.222,
+    8.0,
+    0,
+    0
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 393.8
+ },
+ "114": {
+  "level": 114,
+  "title": "TEMPORAL PASSAGE",
+  "family": "wander",
+  "tight": 0.335,
+  "margin": 8.0,
+  "jitter": 0.0,
+  "gates": [
+   "gslow",
+   "gshrink"
+  ],
+  "gk": 0,
+  "W": 270,
+  "swaps": 101,
+  "time": 77.0,
+  "speed": 1.413,
+  "haz": {
+   "moving_walls": 0,
+   "lasers": 0,
+   "spinners": 0,
+   "circles": 4,
+   "reverse_walls": 1,
+   "growth_zones": 0,
+   "shrink_zones": 1,
+   "boost_pads": 0,
+   "shields": 1,
+   "breakables": 0,
+   "chasers": 0,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.695,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.515,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.335,
+    8.0,
+    0,
+    0
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 170.0
+ },
+ "117": {
+  "level": 117,
+  "title": "SILENT-CLOCK TRIAL",
+  "family": "arena",
+  "tight": 0.973,
+  "margin": 24.0,
+  "jitter": 0.0,
+  "gates": [],
+  "gk": 0,
+  "W": 157,
+  "swaps": 53,
+  "time": 49.8,
+  "speed": 1.381,
+  "haz": {
+   "moving_walls": 6,
+   "lasers": 2,
+   "spinners": 0,
+   "circles": 20,
+   "reverse_walls": 9,
+   "growth_zones": 0,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 0,
+   "breakables": 0,
+   "chasers": 0,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.853,
+    28.0,
+    0,
+    0
+   ],
+   [
+    "harden",
+    2,
+    0.973,
+    24.0
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 364.4
+ },
+ "125": {
+  "level": 125,
+  "title": "LOOSE PASSAGE",
+  "family": "wander",
+  "tight": 0.583,
+  "margin": 12.0,
+  "jitter": null,
+  "gates": [
+   "gshield",
+   "gstretchl"
+  ],
+  "gk": 0,
+  "W": 224,
+  "swaps": 119,
+  "time": 80.1,
+  "speed": 1.405,
+  "haz": {
+   "moving_walls": 0,
+   "lasers": 2,
+   "spinners": 2,
+   "circles": 0,
+   "reverse_walls": 1,
+   "growth_zones": 0,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 1,
+   "breakables": 0,
+   "chasers": 1,
+   "barriers": 1
+  },
+  "log": [
+   [
+    0.683,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.583,
+    12.0,
+    0,
+    0
+   ]
+  ],
+  "secs": 162.4
+ },
+ "113": {
+  "level": 113,
+  "title": "SUSPENDED PASSAGE",
+  "family": "wander",
+  "tight": 0.132,
+  "margin": 8.0,
+  "jitter": 0.0,
+  "gates": [
+   "gslow",
+   "gshrink"
+  ],
+  "gk": 1,
+  "W": 310,
+  "swaps": 106,
+  "time": 101.2,
+  "speed": 1.406,
+  "haz": {
+   "moving_walls": 5,
+   "lasers": 0,
+   "spinners": 0,
+   "circles": 4,
+   "reverse_walls": 0,
+   "growth_zones": 0,
+   "shrink_zones": 1,
+   "boost_pads": 0,
+   "shields": 0,
+   "breakables": 0,
+   "chasers": 0,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.693,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.512,
+    0.0,
+    0,
+    0
+   ],
+   [
+    0.412,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.232,
+    0.0,
+    0,
+    0
+   ],
+   [
+    0.132,
+    8.0,
+    0,
+    0
+   ],
+   [
+    "optional",
+    "gshrink",
+    "gk",
+    1
+   ],
+   [
+    0.693,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.512,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.332,
+    0.0,
+    0,
+    1
+   ],
+   [
+    0.232,
+    4.0,
+    0,
+    1
+   ],
+   [
+    0.132,
+    4.0,
+    0,
+    1
+   ],
+   [
+    0.693,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.512,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.332,
+    4.0,
+    0,
+    2
+   ],
+   [
+    0.232,
+    4.0,
+    0,
+    2
+   ],
+   [
+    0.132,
+    8.0,
+    0,
+    2
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 1021.5
+ },
+ "103": {
+  "level": 103,
+  "title": "SLOW-BURN PASSAGE",
+  "family": "wander",
+  "tight": 0.263,
+  "margin": 8.0,
+  "jitter": 0.0,
+  "gates": [
+   "gslow"
+  ],
+  "gk": 0,
+  "W": 284,
+  "swaps": 91,
+  "time": 98.8,
+  "speed": 1.347,
+  "haz": {
+   "moving_walls": 2,
+   "lasers": 0,
+   "spinners": 0,
+   "circles": 2,
+   "reverse_walls": 0,
+   "growth_zones": 0,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 0,
+   "breakables": 0,
+   "chasers": 0,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.623,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.443,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.263,
+    8.0,
+    0,
+    0
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 259.7
+ },
+ "115": {
+  "level": 115,
+  "title": "FADING PASSAGE",
+  "family": "wander",
+  "tight": 0.398,
+  "margin": 8.0,
+  "jitter": 0.0,
+  "gates": [
+   "ggrow",
+   "gslow"
+  ],
+  "gk": 0,
+  "W": 258,
+  "swaps": 117,
+  "time": 87.6,
+  "speed": 1.419,
+  "haz": {
+   "moving_walls": 7,
+   "lasers": 0,
+   "spinners": 0,
+   "circles": 0,
+   "reverse_walls": 0,
+   "growth_zones": 1,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 0,
+   "breakables": 1,
+   "chasers": 0,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.698,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.598,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.498,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.398,
+    8.0,
+    0,
+    0
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 387.6
+ },
+ "124": {
+  "level": 124,
+  "title": "VIBRATING PASSAGE",
+  "family": "wander",
+  "tight": 0.678,
+  "margin": 8.0,
+  "jitter": 0.0,
+  "gates": [
+   "gstretchl"
+  ],
+  "gk": 0,
+  "W": 208,
+  "swaps": 140,
+  "time": 93.6,
+  "speed": 1.402,
+  "haz": {
+   "moving_walls": 0,
+   "lasers": 0,
+   "spinners": 3,
+   "circles": 0,
+   "reverse_walls": 0,
+   "growth_zones": 0,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 1,
+   "breakables": 0,
+   "chasers": 1,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.678,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.498,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.318,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.138,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.678,
+    4.0,
+    0,
+    1
+   ],
+   [
+    0.578,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.398,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.218,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.038,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.678,
+    8.0,
+    0,
+    2
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 195.1
+ },
+ "126": {
+  "level": 126,
+  "title": "TENSION TRIAL",
+  "family": "arena",
+  "tight": 0.958,
+  "margin": 20.0,
+  "jitter": 0.0,
+  "gates": [],
+  "gk": 0,
+  "W": 159,
+  "swaps": 77,
+  "time": 61.2,
+  "speed": 1.408,
+  "haz": {
+   "moving_walls": 0,
+   "lasers": 8,
+   "spinners": 8,
+   "circles": 0,
+   "reverse_walls": 0,
+   "growth_zones": 0,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 0,
+   "breakables": 0,
+   "chasers": 0,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.838,
+    28.0,
+    0,
+    0
+   ],
+   [
+    "harden",
+    2,
+    0.958,
+    -1.0
+   ],
+   [
+    "harden",
+    2,
+    1.0,
+    -1.0
+   ],
+   [
+    "harden",
+    2,
+    1.0,
+    -1.0
+   ],
+   [
+    "harden",
+    4,
+    0.958,
+    20.0
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 263.8
+ },
+ "120": {
+  "level": 120,
+  "title": "CHRONO CORE",
+  "family": "wander",
+  "tight": 0.44,
+  "margin": 12.0,
+  "jitter": 0.0,
+  "gates": [
+   "gshrink",
+   "ggrow",
+   "gslow"
+  ],
+  "gk": 0,
+  "W": 250,
+  "swaps": 126,
+  "time": 82.7,
+  "speed": 1.449,
+  "haz": {
+   "moving_walls": 4,
+   "lasers": 4,
+   "spinners": 0,
+   "circles": 0,
+   "reverse_walls": 0,
+   "growth_zones": 1,
+   "shrink_zones": 1,
+   "boost_pads": 0,
+   "shields": 0,
+   "breakables": 1,
+   "chasers": 0,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.74,
+    8.0,
+    0,
+    0
+   ],
+   [
+    0.64,
+    8.0,
+    0,
+    0
+   ],
+   [
+    0.54,
+    8.0,
+    0,
+    0
+   ],
+   [
+    0.44,
+    12.0,
+    0,
+    0
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 522.5
+ },
+ "108": {
+  "level": 108,
+  "error": "unsolvable",
+  "log": [
+   [
+    0.83,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.65,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.47,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.29,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.11,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.83,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.65,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.47,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.29,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.11,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.83,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.65,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.47,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.29,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.11,
+    -1.0,
+    0,
+    2
+   ]
+  ]
+ },
+ "118": {
+  "level": 118,
+  "title": "ECHOING PASSAGE",
+  "family": "wander",
+  "tight": 0.245,
+  "margin": 8.0,
+  "jitter": 0.0,
+  "gates": [
+   "gslow",
+   "ggrow"
+  ],
+  "gk": 0,
+  "W": 287,
+  "swaps": 125,
+  "time": 88.8,
+  "speed": 1.437,
+  "haz": {
+   "moving_walls": 3,
+   "lasers": 0,
+   "spinners": 0,
+   "circles": 3,
+   "reverse_walls": 1,
+   "growth_zones": 1,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 0,
+   "breakables": 1,
+   "chasers": 0,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.705,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.525,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.345,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.245,
+    8.0,
+    0,
+    0
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 322.5
+ },
+ "122": {
+  "level": 122,
+  "error": "unsolvable",
+  "log": [
+   [
+    0.668,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.488,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.308,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.128,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.668,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.488,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.308,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.128,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.668,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.488,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.308,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.128,
+    -1.0,
+    0,
+    2
+   ]
+  ]
+ },
+ "135": {
+  "level": 135,
+  "error": "unsolvable",
+  "log": [
+   [
+    0.898,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.718,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.538,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.358,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.178,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.898,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.718,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.538,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.358,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.178,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.898,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.718,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.538,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.358,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.178,
+    -1.0,
+    0,
+    2
+   ]
+  ]
+ },
+ "119": {
+  "level": 119,
+  "title": "FROZEN PASSAGE",
+  "family": "wander",
+  "tight": 0.608,
+  "margin": 8.0,
+  "jitter": 0.0,
+  "gates": [
+   "gshrink",
+   "gslow",
+   "gslow"
+  ],
+  "gk": 0,
+  "W": 220,
+  "swaps": 141,
+  "time": 101.8,
+  "speed": 1.443,
+  "haz": {
+   "moving_walls": 2,
+   "lasers": 0,
+   "spinners": 0,
+   "circles": 0,
+   "reverse_walls": 0,
+   "growth_zones": 0,
+   "shrink_zones": 1,
+   "boost_pads": 0,
+   "shields": 0,
+   "breakables": 0,
+   "chasers": 0,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.708,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.608,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.508,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.328,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.148,
+    0.0,
+    0,
+    0
+   ],
+   [
+    0.708,
+    0.0,
+    0,
+    1
+   ],
+   [
+    0.608,
+    8.0,
+    0,
+    1
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 522.8
+ },
+ "127": {
+  "level": 127,
+  "title": "SPRUNG PASSAGE",
+  "family": "wander",
+  "tight": 0.288,
+  "margin": 12.0,
+  "jitter": 0.0,
+  "gates": [],
+  "gk": 0,
+  "W": 279,
+  "swaps": 90,
+  "time": 57.9,
+  "speed": 1.493,
+  "haz": {
+   "moving_walls": 6,
+   "lasers": 0,
+   "spinners": 6,
+   "circles": 0,
+   "reverse_walls": 2,
+   "growth_zones": 0,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 0,
+   "breakables": 0,
+   "chasers": 0,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.728,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.628,
+    0.0,
+    0,
+    0
+   ],
+   [
+    0.528,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.348,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.168,
+    24.0,
+    0,
+    0
+   ],
+   [
+    "harden",
+    2,
+    0.288,
+    12.0
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 474.5
+ },
+ "132": {
+  "level": 132,
+  "error": "unsolvable",
+  "log": [
+   [
+    0.74,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.56,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.38,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.2,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.02,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.74,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.56,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.38,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.2,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.02,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.74,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.56,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.38,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.2,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.02,
+    -1.0,
+    0,
+    2
+   ]
+  ]
+ },
+ "131": {
+  "level": 131,
+  "error": "unsolvable",
+  "log": [
+   [
+    0.738,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.558,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.378,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.198,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.018,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.738,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.558,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.378,
+    0.0,
+    0,
+    1
+   ],
+   [
+    0.278,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.098,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.738,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.558,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.378,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.198,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.018,
+    -1.0,
+    0,
+    2
+   ]
+  ]
+ },
+ "138": {
+  "level": 138,
+  "error": "unsolvable",
+  "log": [
+   [
+    0.755,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.575,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.395,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.215,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.035,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.755,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.575,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.395,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.215,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.035,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.755,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.575,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.395,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.215,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.035,
+    -1.0,
+    0,
+    2
+   ]
+  ]
+ },
+ "134": {
+  "level": 134,
+  "error": "unsolvable",
+  "log": [
+   [
+    0.745,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.565,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.385,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.205,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.025,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.745,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.565,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.385,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.205,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.025,
+    0.0,
+    0,
+    1
+   ],
+   [
+    0.745,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.565,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.385,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.205,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.025,
+    -1.0,
+    0,
+    2
+   ]
+  ]
+ },
+ "121": {
+  "level": 121,
+  "title": "STRING PASSAGE",
+  "family": "wander",
+  "tight": 0.662,
+  "margin": 8.0,
+  "jitter": 0.0,
+  "gates": [
+   "gstretchs"
+  ],
+  "gk": 0,
+  "W": 210,
+  "swaps": 136,
+  "time": 82.0,
+  "speed": 1.456,
+  "haz": {
+   "moving_walls": 0,
+   "lasers": 0,
+   "spinners": 0,
+   "circles": 0,
+   "reverse_walls": 0,
+   "growth_zones": 0,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 0,
+   "breakables": 0,
+   "chasers": 0,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.662,
+    8.0,
+    0,
+    0
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 80.1
+ },
+ "133": {
+  "level": 133,
+  "error": "unsolvable",
+  "log": [
+   [
+    0.743,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.562,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.383,
+    0.0,
+    0,
+    0
+   ],
+   [
+    0.282,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.102,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.743,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.562,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.383,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.203,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.023,
+    4.0,
+    0,
+    1
+   ],
+   [
+    0.743,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.562,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.383,
+    0.0,
+    0,
+    2
+   ],
+   [
+    0.282,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.102,
+    -1.0,
+    0,
+    2
+   ]
+  ]
+ },
+ "128": {
+  "level": 128,
+  "error": "unsolvable",
+  "log": [
+   [
+    0.73,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.55,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.37,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.19,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.01,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.73,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.55,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.37,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.19,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.01,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.73,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.55,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.37,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.19,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.01,
+    -1.0,
+    0,
+    2
+   ]
+  ]
+ },
+ "123": {
+  "level": 123,
+  "title": "TAUT PASSAGE",
+  "family": "wander",
+  "tight": 0.213,
+  "margin": 8.0,
+  "jitter": 0.0,
+  "gates": [
+   "gstretchs",
+   "gslow"
+  ],
+  "gk": 0,
+  "W": 293,
+  "swaps": 109,
+  "time": 100.1,
+  "speed": 1.468,
+  "haz": {
+   "moving_walls": 6,
+   "lasers": 0,
+   "spinners": 4,
+   "circles": 1,
+   "reverse_walls": 0,
+   "growth_zones": 0,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 0,
+   "breakables": 0,
+   "chasers": 0,
+   "barriers": 0
+  },
+  "log": [
+   [
+    0.673,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.493,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.393,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.213,
+    8.0,
+    0,
+    0
+   ],
+   [
+    "jitter_rate",
+    0.0
+   ]
+  ],
+  "secs": 483.6
+ },
+ "139": {
+  "level": 139,
+  "error": "unsolvable",
+  "log": [
+   [
+    0.758,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.578,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.398,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.218,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.038,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.758,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.578,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.398,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.218,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.038,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.758,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.578,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.398,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.218,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.038,
+    -1.0,
+    0,
+    2
+   ]
+  ]
+ },
+ "129": {
+  "level": 129,
+  "error": "unsolvable",
+  "log": [
+   [
+    0.733,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.552,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.372,
+    0.0,
+    0,
+    0
+   ],
+   [
+    0.272,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.092,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.733,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.552,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.372,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.193,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.013,
+    4.0,
+    0,
+    1
+   ],
+   [
+    0.733,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.552,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.372,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.193,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.013,
+    -1.0,
+    0,
+    2
+   ]
+  ]
+ },
+ "136": {
+  "level": 136,
+  "error": "unsolvable",
+  "log": [
+   [
+    0.75,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.57,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.39,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.21,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.03,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.75,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.57,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.39,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.21,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.03,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.75,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.57,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.39,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.21,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.03,
+    -1.0,
+    0,
+    2
+   ]
+  ]
+ },
+ "130": {
+  "level": 130,
+  "title": "RESONANT PASSAGE",
+  "family": "wander",
+  "tight": 0.335,
+  "margin": 8.0,
+  "jitter": null,
+  "gates": [
+   "gslow",
+   "gshield",
+   "gstretchs"
+  ],
+  "gk": 0,
+  "W": 270,
+  "swaps": 107,
+  "time": 119.6,
+  "speed": 1.512,
+  "haz": {
+   "moving_walls": 9,
+   "lasers": 3,
+   "spinners": 3,
+   "circles": 0,
+   "reverse_walls": 0,
+   "growth_zones": 0,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 1,
+   "breakables": 0,
+   "chasers": 0,
+   "barriers": 1
+  },
+  "log": [
+   [
+    0.735,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.635,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.535,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.435,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.335,
+    8.0,
+    0,
+    0
+   ]
+  ],
+  "secs": 593.5
+ },
+ "140": {
+  "level": 140,
+  "error": "unsolvable",
+  "log": [
+   [
+    0.79,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.61,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.43,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.25,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.07,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.79,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.61,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.43,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.25,
+    -1.0,
+    0,
+    1
+   ],
+   [
+    0.07,
+    4.0,
+    0,
+    1
+   ],
+   [
+    0.79,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.61,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.43,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.25,
+    -1.0,
+    0,
+    2
+   ],
+   [
+    0.07,
+    -1.0,
+    0,
+    2
+   ]
+  ]
+ },
+ "137": {
+  "level": 137,
+  "title": "KNOTTED PASSAGE",
+  "family": "wander",
+  "tight": 0.193,
+  "margin": 8.0,
+  "jitter": null,
+  "gates": [
+   "gstretchs",
+   "gslow",
+   "gshield"
+  ],
+  "gk": 0,
+  "W": 297,
+  "swaps": 111,
+  "time": 92.7,
+  "speed": 1.558,
+  "haz": {
+   "moving_walls": 0,
+   "lasers": 0,
+   "spinners": 4,
+   "circles": 0,
+   "reverse_walls": 2,
+   "growth_zones": 0,
+   "shrink_zones": 0,
+   "boost_pads": 0,
+   "shields": 1,
+   "breakables": 0,
+   "chasers": 0,
+   "barriers": 1
+  },
+  "log": [
+   [
+    0.753,
+    4.0,
+    0,
+    0
+   ],
+   [
+    0.653,
+    0.0,
+    0,
+    0
+   ],
+   [
+    0.553,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.373,
+    -1.0,
+    0,
+    0
+   ],
+   [
+    0.193,
+    8.0,
+    0,
+    0
+   ]
+  ],
+  "secs": 424.3
  }
 }

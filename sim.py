@@ -30,6 +30,15 @@ REVIVE_SPIN_START = 0.12      # revive "R2" (1.0.6): the pair starts turning at 
 REVIVE_SPIN_RAMP = 2.5        # ... and is back to full speed after this many seconds; it is shielded until the next tap
 REVIVE_SPIN_RAMP_R3 = 4.0     # revive "R3" (1.0.8): a longer spin-up - players need time to get used to the speed again
 BARRIER_PASS = 0.8            # seconds a shield lets the pair phase through energy barriers only (extended while inside one, sim v10)
+SLOW_EASE = 0.05               # per step: the field slows / releases the pair gradually (about 0.4 s), not at once
+SLOW_FACTOR = 0.6              # inside a slow field the pair turns at 60 % speed (levels 101+)
+STRETCH_LONG = 1.6            # tether stretch field, kind +1: the tether grows by 60 % (levels 121+)
+STRETCH_SHORT = 0.6           # kind -1: the tether shortens to 60 %
+TETHER_EASE_SOFT = 0.08       # stretch fields: the tether eases in and out gently (0.14 for the old shrink / grow)
+STRETCH_SLOW = 0.15             # turning rate lost at the moment of full stretch
+STRETCH_DECAY = 150             # steps (2.5 s): after the moving orb touched a field the tether shortens back slowly over this time
+SHORT_SPIN_MAX = 1.2          # short tether: at most 20 % faster turning
+STRETCH_TIME = 6.0            # seconds a stretch field stays in effect (the tip speed is held constant meanwhile)
 FX_TIME = 10.0                # seconds a shrink / growth field stays in effect
 BREAK_R = 21.0                # only a grown (heavy) orb can smash a cracked wall
 ORB_R = 15.0
@@ -39,7 +48,12 @@ SPAWN_GRACE = 3.5                  # seconds of safe orbiting before the first t
 BUCKET = 60
 RAMP_EXP = 2.2
 SIM_VERSION = 10
-MAX_LEVELS = 100
+MAX_LEVELS = 140
+CP_RADIUS = 60.0                   # checkpoints (1.0.9): either orb this close to the flag lights it
+CHECKPOINT_SHIELD_S = 1.2          # resume from a checkpoint (free, light help): every hit bounces for this long (or until the first tap) ...
+CHECKPOINT_SLOW_S = 1.5            # ... and the pair spins up from 12 % to full speed over this long (paid R3: unlimited shield until the tap, 4 s)
+CHECKPOINT_FREE_RESUMES = 2        # the 3rd resume in a row from the SAME flag gets neither shield nor slow start
+CP_PENALTY = 0.95                  # a clear that resumed from a checkpoint scores 95 % (the time of the death counts anyway)
 MIN_TAP_GAP = 4                    # steps (66 ms) between swaps; the server rejects faster input
 
 if getattr(sys, "frozen", False):
@@ -122,10 +136,15 @@ class LevelData:
         if pre:
             self.spinners = [tuple(s) + (10.0,)[len(s) - 5:] for s in d.get("spinners", [])]
         self.circles = [tuple(c) for c in d.get("circles", [])]
+        # checkpoints (1.0.9): [x, y] flags in route order; not part of the digest (see `digest`), so a shipped
+        # client's level versions stay valid
+        self.checkpoints = [(float(c[0]), float(c[1])) for c in d.get("checkpoints", [])]
         self.stars = [tuple(s) for s in d.get("stars", [])][:None if pre else 3]    # endless: every stage's stars
         self.growth = [tuple(z) + (32.0,)[len(z) - 2:] for z in d.get("growth_zones", [])]
         self.shrink = [tuple(z) + (30.0,)[len(z) - 2:] for z in d.get("shrink_zones", [])]
         self.boost = [tuple(z) + (28.0,)[len(z) - 2:] for z in d.get("boost_pads", [])]
+        self.slow = [tuple(z) for z in d.get("slow_zones", [])]                  # x, y, r
+        self.stretch = [tuple(z) + (1,)[len(z) - 3:] for z in d.get("stretch_zones", [])]   # x, y, r, kind (+1 long / -1 short)
         self.shields = [tuple(z) for z in d.get("shields", [])]
         # x, y, w, h : cracked wall, smashed by a grown orb (radius >= BREAK_R) instead of killing it
         self.breakables = [tuple(b) for b in d.get("breakables", [])]
@@ -163,7 +182,7 @@ class LevelData:
     @property
     def digest(self):
         """Short hash of everything that influences the physics (not of the reference solution)."""
-        skip = ("ref_taps", "difficulty", "title")
+        skip = ("ref_taps", "difficulty", "title", "checkpoints")
         body = json.dumps({k: v for k, v in self.raw.items() if k not in skip}, sort_keys=True, separators=(",", ":"))
         return hashlib.md5((body + f"|v{SIM_VERSION}").encode()).hexdigest()[:10]
 
@@ -325,7 +344,7 @@ class Sim:
 
     def __init__(self, lvl, margin=0.0, record_events=False, fixed_angle=None):
         self.lvl = lvl
-        self.margin = margin
+        self.margin = margin            # extra radius for FATAL collisions only (solver safety slack); never changes the dynamics
         self.record = record_events
         self.events = []
         self.n = 0
@@ -338,6 +357,10 @@ class Sim:
         self.broken = [False] * len(lvl.breakables)
         self.chase_t0 = [None] * len(lvl.chasers)
         self.fx_t = 0.0
+        self.stretch_soft = False          # a stretch field's tether eases slowly (in and out)
+        self.slow_f = 1.0                  # the slow field's current turning factor: it eases in and out (no jump)
+        self.stretch_hold = 0              # steps left of the stretch's slow decay after the moving orb touched a field
+        self.stretch_amp = 0.0             # how far the stretch pulls the tether from its normal length
         self.rot_sign = 1.0
         self.smooth = lvl.speed
         self.boost_t = 0.0
@@ -372,6 +395,11 @@ class Sim:
         self.spin_ramp = 1.0               # revive R2: rotation speed ramp 0 -> 1 (1 = normal)
         self.guard_walls = False           # revive R3: while guarded, walls stay solid even during a bounce's invulnerability
         self.spin_ramp_s = REVIVE_SPIN_RAMP  # seconds of the current revive's spin-up (R3: longer)
+        self.cp_next = 0                   # checkpoints lit so far (the next one to reach)
+        self.cp_state = None               # the pair's state at the latest lit checkpoint (see _take_checkpoint)
+        self.cp_used = 0                   # times a death was resumed from a checkpoint
+        self.cp_streak = 0                 # resumes in a row from the latest flag (reset when the next flag is lit)
+        self.guard_t = 0.0                 # checkpoint resume: seconds of shield left (0 = no timer: revive shields last until the tap)
         self.ang = fixed_angle if fixed_angle is not None else self._best_start_angle()
         self._place_rotating()
         self.snaps = [self._snap()]      # revive points (see revive())
@@ -423,6 +451,10 @@ class Sim:
         c.broken = list(self.broken)
         c.chase_t0 = list(self.chase_t0)
         c.fx_t = self.fx_t
+        c.stretch_soft = self.stretch_soft
+        c.stretch_hold = self.stretch_hold
+        c.slow_f = self.slow_f
+        c.stretch_amp = self.stretch_amp
         c.rot_sign = self.rot_sign
         c.smooth = self.smooth
         c.boost_t = self.boost_t
@@ -458,6 +490,11 @@ class Sim:
         c.guard_walls = self.guard_walls
         c.spin_ramp_s = self.spin_ramp_s
         c.spin_ramp = self.spin_ramp
+        c.cp_next = self.cp_next
+        c.cp_state = self.cp_state          # immutable once taken
+        c.cp_used = self.cp_used
+        c.cp_streak = self.cp_streak
+        c.guard_t = self.guard_t
         c.snaps = list(self.snaps)
         return c
 
@@ -532,16 +569,72 @@ class Sim:
         self.barrier_t = 0.0
         self.revive_t = REVIVE_SAFE
         self.snaps = [snap]
+        self.guard_t = 0.0
         if guarded:
             self.guard = True
             self.spin_ramp = 0.0
         self.guard_walls = bool(guarded and walls)
         self.spin_ramp_s = REVIVE_SPIN_RAMP_R3 if (guarded and walls) else REVIVE_SPIN_RAMP
 
+    def _take_checkpoint(self):
+        """A flag lit: remember the pair as it is (motion, speed, tether, shields, stars, smashed walls, chasers)."""
+        self.cp_state = {
+            "snap": self._snap(), "stretch": (self.stretch_soft, self.stretch_hold, self.stretch_amp),
+            "shields": self.shields, "stars": tuple(self.stars), "shield_taken": tuple(self.shield_taken),
+            "star_pts": self.star_pts, "broken": tuple(self.broken), "chase_t0": tuple(self.chase_t0), "t": self.t,
+        }
+        self.cp_next += 1
+        self.cp_streak = 0
+        o = self.pivot
+        self._ev("checkpoint", o.x, o.y, self.cp_next)
+
+    def resume_checkpoint(self):
+        """Continue after dying from the latest lit checkpoint (free, assist "C"). Returns False when none was lit.
+        The pair gets back its motion, speed, tether, shields, the stars and smashed walls it had there (what it
+        picked up since is back on the track); time, swaps and taps are not rewound, and the chasers are in the same
+        relative state as at the flag. Revive R3 rules follow: slow spin-up, shielded until the next tap."""
+        cp = self.cp_state
+        if cp is None or not self.dead:
+            return False
+        self.dead = False
+        _, orbs, self.piv, self.ang, self.rot_sign, self.tether, self.tether_base, self.fx_t, self.boost_t, self.smooth = cp["snap"]
+        for o, st in zip(self.orbs, orbs):
+            o.x, o.y, o.r, o.tr, o.m, o.tm = st
+        self.stretch_soft, self.stretch_hold, self.stretch_amp = cp["stretch"]
+        self.shields = cp["shields"]
+        self.stars = list(cp["stars"])
+        self.shield_taken = list(cp["shield_taken"])
+        self.star_pts = cp["star_pts"]
+        self.broken = list(cp["broken"])
+        shift = self.t - cp["t"]
+        self.chase_t0 = [None if v is None else v + shift for v in cp["chase_t0"]]
+        self.grace = 0.0
+        self.invuln = 0.0
+        self.wall_escaping = False
+        self.wall_escape_t = 0.0
+        self.barrier_t = 0.0
+        self.revive_t = REVIVE_SAFE
+        self.snaps = [cp["snap"]]
+        self.cp_streak += 1
+        self.cp_used += 1
+        if self.cp_streak <= CHECKPOINT_FREE_RESUMES:     # light help: a short shield (walls stay solid) and a short slow start
+            self.guard = True
+            self.guard_t = CHECKPOINT_SHIELD_S
+            self.guard_walls = True
+            self.spin_ramp = 0.0
+            self.spin_ramp_s = CHECKPOINT_SLOW_S
+        else:
+            self.guard = False
+            self.guard_t = 0.0
+            self.guard_walls = False
+            self.spin_ramp = 1.0
+        return True
+
     def swap(self):
         if self.dead or self.won:
             return
         self.guard = False                       # the revive shield lasts until the player's first tap
+        self.guard_t = 0.0
         self.guard_walls = False
         since = self.t - self.last_swap_t
         self.last_swap_t = self.t
@@ -589,7 +682,12 @@ class Sim:
                 o.r += (o.tr - o.r) * 0.18
             if o.m != o.tm:
                 o.m += (o.tm - o.m) * 0.18
-        self.tether += (self.tether_base - self.tether) * 0.14
+        if self.stretch_soft:
+            self.tether += (self.tether_base - self.tether) * TETHER_EASE_SOFT
+            if self.tether_base == TETHER and abs(self.tether - TETHER) < 1.0:
+                self.stretch_soft = False
+        else:
+            self.tether += (self.tether_base - self.tether) * 0.14
 
         prog = lvl.progress(piv.x, piv.y)
         self.progress = prog
@@ -604,6 +702,20 @@ class Sim:
         self.smooth += (target - self.smooth) * 0.04
 
         omega = BASE_OMEGA * self.smooth / (rot.m ** 0.35)
+        slow_target = 1.0
+        if lvl.slow:                             # slow field: either orb inside -> the turning factor eases down to SLOW_FACTOR
+            for z in lvl.slow:
+                if (math.hypot(o0.x - z[0], o0.y - z[1]) < z[2] + o0.r * 0.5
+                        or math.hypot(o1.x - z[0], o1.y - z[1]) < z[2] + o1.r * 0.5):
+                    slow_target = SLOW_FACTOR
+                    break
+        if lvl.slow or self.slow_f != 1.0:
+            self.slow_f += (slow_target - self.slow_f) * SLOW_EASE
+            if abs(self.slow_f - 1.0) < 1e-4:
+                self.slow_f = 1.0
+            omega *= self.slow_f
+        if self.stretch_hold > 0:                # a stretched tether turns a little slower (up to STRETCH_SLOW), easing back with the decay
+            omega *= 1.0 - STRETCH_SLOW * self.stretch_hold / STRETCH_DECAY
         if self.spin_ramp < 1.0:                 # just revived (R2): turning slowly, easing back to full speed
             omega *= REVIVE_SPIN_START + (1.0 - REVIVE_SPIN_START) * self.spin_ramp * self.spin_ramp
             self.spin_ramp = min(1.0, self.spin_ramp + dt / self.spin_ramp_s)
@@ -663,7 +775,7 @@ class Sim:
             self.ang += _TWO_PI
         rot.x = piv.x + math.cos(self.ang) * self.tether
         rot.y = piv.y + math.sin(self.ang) * self.tether
-        if self.swaps == 0 and self.t < SPAWN_GRACE and self._wall_hit(rot.x, rot.y, rot.r + self.margin):
+        if self.swaps == 0 and self.t < SPAWN_GRACE and self._wall_hit(rot.x, rot.y, rot.r):
             # spawn protection never lets the swinging orb sink into a wall: it bounces off like a bumper
             self.ang = ang0
             self.rot_sign = -self.rot_sign
@@ -671,6 +783,21 @@ class Sim:
             rot.y = piv.y + math.sin(self.ang) * self.tether
 
         # ---- anomalies -------------------------------------------------------
+        if lvl.stretch:                                  # touching a field stretches the tether once; it then shortens slowly by itself
+            kind = 0
+            for z in lvl.stretch:
+                if math.hypot(rot.x - z[0], rot.y - z[1]) < z[2] + rot.r * 0.5:
+                    kind = 1 if z[3] > 0 else -1
+            if kind:
+                self.stretch_amp = TETHER * ((STRETCH_LONG if kind > 0 else STRETCH_SHORT) - 1.0)
+                if self.stretch_hold <= 0:
+                    self._ev("stretch", rot.x, rot.y, kind)
+                self.stretch_hold = STRETCH_DECAY
+                self.stretch_soft = True
+                self.tether_base = TETHER + self.stretch_amp
+            elif self.stretch_hold > 0:
+                self.stretch_hold -= 1
+                self.tether_base = TETHER + self.stretch_amp * self.stretch_hold / STRETCH_DECAY
         if lvl.growth or lvl.shrink or lvl.boost:
             for orb in (rot, piv):
                 for z in lvl.growth:
@@ -730,12 +857,17 @@ class Sim:
             self.invuln -= dt
         if self.revive_t > 0:
             self.revive_t -= dt
+        if self.guard_t > 0:                       # a checkpoint resume's shield runs out on its own
+            self.guard_t -= dt
+            if self.guard_t <= 0:
+                self.guard = False
+                self.guard_walls = False
         if self.barrier_t > 0:
             self.barrier_t -= dt
             if self.barrier_t < 0.2:
                 for orb in (o0, o1):
                     for (bx, by, bw, bh) in lvl.barriers:
-                        if circle_rect_hit(orb.x, orb.y, orb.r + self.margin + 2.0, bx, by, bw, bh):
+                        if circle_rect_hit(orb.x, orb.y, orb.r + 2.0, bx, by, bw, bh):
                             self.barrier_t = 0.2
         self.near_cool -= dt
 
@@ -761,8 +893,8 @@ class Sim:
         # wall it bounced off, instead of a fixed timer that can expire while still embedded ("stuck in the wall").
         if self.wall_escaping:
             self.wall_escape_t += dt
-            still_stuck = self._wall_hit(o0.x, o0.y, o0.r + self.margin, True) or \
-                self._wall_hit(o1.x, o1.y, o1.r + self.margin, True)
+            still_stuck = self._wall_hit(o0.x, o0.y, o0.r, True) or \
+                self._wall_hit(o1.x, o1.y, o1.r, True)
             if still_stuck and self.wall_escape_t < 1.0:
                 self.invuln = max(self.invuln, 0.05)
             else:
@@ -771,10 +903,10 @@ class Sim:
         # ---- revive R3: while guarded and invulnerable after a bounce, the swinging orb still may not enter a wall
         # (an orb already inside one - the wall-escape case - is free to move out)
         if self.guard_walls and self.protected:
-            if self._wall_hit(rot.x, rot.y, rot.r + self.margin, True):
+            if self._wall_hit(rot.x, rot.y, rot.r, True):
                 ox = piv.x + math.cos(ang0) * self.tether
                 oy = piv.y + math.sin(ang0) * self.tether
-                if not self._wall_hit(ox, oy, rot.r + self.margin, True):
+                if not self._wall_hit(ox, oy, rot.r, True):
                     self.ang = ang0
                     rot.x, rot.y = ox, oy
                     self.rot_sign = -self.rot_sign
@@ -792,7 +924,7 @@ class Sim:
                     else:
                         self.invuln = SHIELD_INVULN
                         self.rot_sign = -self.rot_sign          # ordinary hit: the shield bounces you back
-                        if self._wall_hit(hit[0], hit[1], hit[2] + self.margin + 1.0, True):
+                        if self._wall_hit(hit[0], hit[1], hit[2] + 1.0, True):
                             # a solid wall: throw the swinging orb back out and keep it protected until it truly clears
                             self.ang = ang0
                             rot.x = piv.x + math.cos(self.ang) * self.tether
@@ -812,6 +944,12 @@ class Sim:
             self.won = True
             self._ev("win")
             return
+
+        # ---- checkpoints: lit in route order, in a clean state (same condition as a revive point)
+        if self.cp_next < len(lvl.checkpoints) and self.invuln <= 0 and not self.wall_escaping and self.barrier_t <= 0:
+            cx, cy = lvl.checkpoints[self.cp_next]
+            if (math.hypot(o0.x - cx, o0.y - cy) < CP_RADIUS + o0.r) or (math.hypot(o1.x - cx, o1.y - cy) < CP_RADIUS + o1.r):
+                self._take_checkpoint()
 
         # ---- revive points: a clean state (no shield / barrier / wall-escape protection active) every SNAP_EVERY steps
         if self.n % SNAP_EVERY == 0 and self.invuln <= 0 and not self.wall_escaping and self.barrier_t <= 0:
@@ -937,6 +1075,8 @@ def compute_result(sim):
     star_mult = 1.0 + stars * 0.15
     subtotal = base + time_bonus + swap_bonus + combo_bonus + graze_bonus + star_bonus
     total = int(subtotal * star_mult)
+    if getattr(sim, "cp_used", 0) > 0:
+        total = int(total * CP_PENALTY)       # resumed from a checkpoint: a small cut (sim v11 rule, replayed by the server)
 
     t_ratio = sim.t / max(1.0, lvl.par_time)
     s_ratio = sim.swaps / max(1, lvl.par_swaps)
@@ -962,8 +1102,8 @@ def compute_result(sim):
 def replay(lvl, taps, margin=0.0, max_seconds=400.0, jitter=None, assists=None):
     """Replay a list of tap step-indices (swap applied before step number `tap`).
     `assists`: paid help as [step, "S"] (a bought shield put on the pair before that step), [step, "R2"] (the 1.0.6
-    slow-spin shielded revive), [step, "R3"] (1.0.8: R2 with walls solid for the revive shield) and [step, "R"] (a revive
-    after dying at that step). Returns (Sim, result_dict_or_None)."""
+    slow-spin shielded revive), [step, "R3"] (1.0.8: R2 with walls solid for the revive shield), [step, "R"] (a revive
+    after dying at that step) and [step, "C"] (1.0.9: free resume from the latest lit checkpoint after dying at that step). Returns (Sim, result_dict_or_None)."""
     sim = Sim(lvl, margin=margin)
     taps = sorted(taps)
     helps = sorted(((int(a[0]), str(a[1])) for a in (assists or [])), key=lambda a: a[0])
@@ -973,6 +1113,8 @@ def replay(lvl, taps, margin=0.0, max_seconds=400.0, jitter=None, assists=None):
         while hi < len(helps) and helps[hi][0] <= sim.n and (helps[hi][1] == "S" or sim.dead):
             if helps[hi][1] == "S":
                 sim.add_shield()
+            elif helps[hi][1] == "C":
+                sim.resume_checkpoint()
             else:
                 sim.revive(guarded=helps[hi][1] in ("R2", "R3"), walls=helps[hi][1] == "R3")
             hi += 1

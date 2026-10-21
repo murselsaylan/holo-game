@@ -16,11 +16,11 @@ from sim import LevelData, ARENA_W
 
 W_I = int(ARENA_W)
 
-SECTOR_NAMES = {1: "ALPHA ORBITAL", 2: "PULSAR VOID", 3: "QUANTUM PUZZLES", 4: "EVENT HORIZON", 5: "OMEGA VOID"}
+SECTOR_NAMES = {1: "ALPHA ORBITAL", 2: "PULSAR VOID", 3: "QUANTUM PUZZLES", 4: "EVENT HORIZON", 5: "OMEGA VOID", 6: "CHRONO RIFT", 7: "STRING THEORY"}
 
 
 def sector_of(level_id):
-    return min(5, max(1, (level_id - 1) // 20 + 1))
+    return min(7, max(1, (level_id - 1) // 20 + 1))
 
 
 def get_sector_info(level_id):
@@ -32,13 +32,17 @@ PALETTES = {
     1: {"fill": (20, 27, 44), "grid": (30, 40, 62), "border": (0, 210, 255), "accent": (0, 240, 255),
         "bg_top": (8, 12, 24), "bg_bot": (12, 22, 40), "star_color": (255, 235, 90), "star_glow": (255, 210, 40)},
     2: {"fill": (30, 20, 44), "grid": (44, 30, 64), "border": (210, 60, 255), "accent": (240, 110, 255),
-        "bg_top": (14, 8, 24), "bg_bot": (26, 12, 40), "star_color": (255, 210, 140), "star_glow": (220, 70, 255)},
+        "bg_top": (14, 8, 24), "bg_bot": (26, 12, 40), "star_color": (255, 235, 90), "star_glow": (220, 70, 255)},
     3: {"fill": (16, 34, 30), "grid": (24, 50, 44), "border": (35, 245, 140), "accent": (80, 255, 180),
-        "bg_top": (6, 16, 14), "bg_bot": (10, 28, 24), "star_color": (240, 255, 130), "star_glow": (50, 255, 150)},
+        "bg_top": (6, 16, 14), "bg_bot": (10, 28, 24), "star_color": (255, 235, 90), "star_glow": (50, 255, 150)},
     4: {"fill": (40, 22, 18), "grid": (58, 32, 26), "border": (255, 115, 25), "accent": (255, 180, 50),
-        "bg_top": (20, 9, 8), "bg_bot": (34, 14, 10), "star_color": (255, 190, 40), "star_glow": (255, 90, 20)},
+        "bg_top": (20, 9, 8), "bg_bot": (34, 14, 10), "star_color": (255, 235, 90), "star_glow": (255, 90, 20)},
     5: {"fill": (24, 16, 32), "grid": (38, 26, 50), "border": (255, 35, 75), "accent": (255, 215, 50),
-        "bg_top": (10, 6, 16), "bg_bot": (24, 8, 22), "star_color": (255, 255, 220), "star_glow": (255, 190, 40)},
+        "bg_top": (10, 6, 16), "bg_bot": (24, 8, 22), "star_color": (255, 235, 90), "star_glow": (255, 210, 40)},
+    6: {"fill": (34, 28, 16), "grid": (52, 42, 22), "border": (255, 200, 60), "accent": (255, 232, 140),
+        "bg_top": (16, 12, 6), "bg_bot": (34, 24, 10), "star_color": (255, 235, 90), "star_glow": (255, 210, 40)},
+    7: {"fill": (16, 20, 46), "grid": (26, 32, 72), "border": (110, 140, 255), "accent": (190, 205, 255),
+        "bg_top": (6, 8, 26), "bg_bot": (12, 14, 46), "star_color": (255, 235, 90), "star_glow": (255, 210, 40)},
 }
 
 
@@ -113,7 +117,11 @@ class Level:
         return self.data.height
 
     def load(self, levels_dir=None):
-        self.data = LevelData.load(self.id, levels_dir)
+        try:
+            self.data = LevelData.load(self.id, levels_dir)
+        except Exception as e:                   # a damaged / half-written level file: say no instead of crashing
+            print(f"Level {self.id} could not be read: {e!r}")
+            return False
         if self.data is None:
             return False
         self.level_title = self.data.title
@@ -395,10 +403,16 @@ class Level:
                 self._draw_chaser(arena, r_, c, t, oy)
 
         # zones
-        for zs, col, glyph in ((d.growth, (40, 255, 130), "+"), (d.shrink, (90, 200, 255), "-"), (d.boost, (255, 190, 40), ">")):
+        for zs, col, glyph in ((d.growth, (40, 255, 130), "+"), (d.shrink, (90, 200, 255), "-"), (d.boost, (255, 190, 40), ">"),
+                               (d.slow, (170, 120, 255), "~")):
             for z in zs:
                 if vis(z[1] - z[2], z[1] + z[2]):
                     self._draw_zone(arena, z, t, col, glyph, oy)
+
+        # tether stretch fields: orange = long tether (arrows out), teal = short tether (arrows in)
+        for z in d.stretch:
+            if vis(z[1] - z[2], z[1] + z[2]):
+                self._draw_zone(arena, z, t, (255, 150, 40) if z[3] > 0 else (40, 230, 200), "<>" if z[3] > 0 else "><", oy)
 
         # mines
         for (x, y, r) in d.circles:
@@ -473,8 +487,30 @@ class Level:
                 continue
             self._draw_star(arena, z[0], z[1] - oy, t, i, pal)
 
+        for i, c in enumerate(d.checkpoints):
+            if vis(c[1] - 70, c[1] + 70):
+                self._draw_checkpoint(arena, c[0], c[1] - oy, t, sim is not None and i < sim.cp_next)
+
         if vis(d.end[1] - 100, d.end[1] + 100):
             self._draw_goal(arena, t, oy)
+
+    def _draw_checkpoint(self, arena, x, y, t, lit):
+        """A flag on a pole at (x, y): a dim outline until the pair passes it, then a waving bright flag with a glow."""
+        x, y = int(x), int(y)
+        top, base = y - 46, y + 16
+        col = (90, 255, 190) if lit else (120, 140, 170)
+        if lit:
+            add_glow(arena, x, y - 14, 70, (60, 255, 170), 0.5 + 0.12 * math.sin(t * 4.0))
+        pygame.draw.line(arena, col, (x, top), (x, base), 3)
+        pygame.draw.circle(arena, col, (x, base), 5, 0 if lit else 2)
+        pts = [(x, top)]
+        for k in range(1, 7):                                    # the cloth edge ripples while lit
+            w = math.sin(t * 6.0 - k * 0.9) * 2.6 if lit else 0.0
+            pts.append((x + k * 5, top + 3 + w))
+        for k in range(6, -1, -1):
+            w = math.sin(t * 6.0 - k * 0.9) * 2.6 if lit else 0.0
+            pts.append((x + k * 5, top + 25 - (k * 0.9) + w))
+        pygame.draw.polygon(arena, col, pts, 0 if lit else 2)
 
     def _draw_barrier(self, arena, x, y, w, h, t):
         r = pygame.Rect(int(x), int(y), int(w), int(h))
@@ -547,7 +583,7 @@ class Level:
         add_glow(arena, r.centerx, r.centery, int(max(r.w, r.h) * 0.5) + 30, (255, 40, 80), 0.6)
 
     def _draw_zone(self, arena, z, t, col, glyph, oy=0):
-        x, y, r = z
+        x, y, r = z[0], z[1], z[2]
         y = y - oy
         pulse = 1.0 + 0.05 * math.sin(t * 5 + x)
         add_glow(arena, x, y, int(r * 1.05), col, 0.7)
@@ -560,6 +596,24 @@ class Level:
             pygame.draw.line(arena, (200, 255, 220), (cx, cy - s), (cx, cy + s), 5)
         elif glyph == "-":
             pygame.draw.line(arena, (215, 240, 255), (cx - s, cy), (cx + s, cy), 5)
+        elif glyph == "~":                                    # slow field: a clock whose hands crawl
+            pygame.draw.circle(arena, (225, 205, 255), (cx, cy), 20, 3)
+            a = t * 0.9
+            pygame.draw.line(arena, (225, 205, 255), (cx, cy), (cx + math.cos(a) * 15, cy + math.sin(a) * 15), 3)
+            pygame.draw.line(arena, (225, 205, 255), (cx, cy), (cx + math.cos(a * 0.08 - 1.6) * 10, cy + math.sin(a * 0.08 - 1.6) * 10), 3)
+            for k in range(8):
+                b = k * math.pi / 4 + t * 0.15
+                pygame.draw.circle(arena, tuple(c // 2 for c in col), (int(cx + math.cos(b) * r * 0.8), int(cy + math.sin(b) * r * 0.8)), 3)
+        elif glyph in ("<>", "><"):                           # stretch field: two arrows, pointing out (long) or in (short)
+            sgn = 1 if glyph == "<>" else -1
+            sway = int(4 * math.sin(t * 4))
+            for side in (-1, 1):
+                tip = cx + side * (s + 12 + sgn * sway)
+                base = cx + side * (s - 4 - sgn * sway)
+                if sgn < 0:                                 # short tether: the arrows point INWARD (squeeze)
+                    tip, base = cx + side * (s - 10 + sway), cx + side * (s + 10 - sway)
+                pygame.draw.polygon(arena, (255, 245, 225), [(tip, cy), (base, cy - 11), (base, cy + 11)], 3)
+            pygame.draw.line(arena, (255, 245, 225), (cx - 10, cy), (cx + 10, cy), 3)
         else:
             off = int((t * 60) % 40) - 20
             for k in (-30, 0, 30):

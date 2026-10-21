@@ -238,6 +238,8 @@ def _door_gate(L, kind, cx, cy, w, thick, before):
         L.add("shields", [cx, cy + before])
     elif kind == "gshrink":
         L.add("shrink_zones", [cx, cy + before, 92.0])
+    elif kind == "gstretchs":
+        L.add("stretch_zones", [cx, cy + before, 92.0, -1])
     else:
         return
     L.placed_gates.append(kind)
@@ -437,8 +439,8 @@ def gates(ctx, n=2, start_bottom=True, door_kinds=None):
     for k, y in enumerate(ys):
         kind = door_kinds[k % len(door_kinds)] if door_kinds else None
         gap = gap0
-        if kind == "gshrink":
-            gap = max(92.0, min(gap0, 122.0 - 6.0 * getattr(ctx, "gk", 0)))
+        if kind in ("gshrink", "gstretchs"):
+            gap = max(94.0 if kind == "gshrink" else 90.0, min(gap0, 122.0 - (6.0 if kind == "gshrink" else 9.0) * getattr(ctx, "gk", 0)))
         cx = 450.0 + side * rng.uniform(170, 230)
         cx = max(gap / 2.0 + 70, min(ARENA_W - gap / 2.0 - 70, cx))
         gx.append(cx)
@@ -526,8 +528,8 @@ def chambers(ctx, n=3, start_bottom=True, door_kinds=None):
     for i in range(n - 1):
         kind = door_kinds[i % len(door_kinds)] if door_kinds else None
         dw = door_w
-        if kind == "gshrink":
-            dw = max(92.0, min(door_w, 122.0 - 6.0 * getattr(ctx, "gk", 0)))
+        if kind in ("gshrink", "gstretchs"):
+            dw = max(94.0 if kind == "gshrink" else 90.0, min(door_w, 122.0 - (6.0 if kind == "gshrink" else 9.0) * getattr(ctx, "gk", 0)))
         dx = cx + side * rng.uniform(150.0, room_w / 2.0 - door_w / 2.0 - 30.0)
         y_a = rooms[i][3]
         L.rect(dx - dw / 2, y_a - 6, dw, neck + 12)

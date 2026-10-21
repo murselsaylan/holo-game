@@ -1,7 +1,8 @@
 """Golden endless runs for the server parity test (supabase/functions/scores/parity_endless_test.ts).
 
     python tools/endless_golden.py [seconds]     random runs + bot runs that climb through several stages
-    python tools/endless_golden.py --legacy      v3 runs (1.0.7 games) on the maps they shipped with -> endless_golden_v3.json
+    (v5 = this file's output, endless_golden_v5.json. endless_golden.json (v4) and endless_golden_v3.json are FROZEN: made
+     by the 1.0.8 / 1.0.7 code, the server keeps replaying them - do not regenerate them with the current endless.py.)
 """
 import json
 import os
@@ -14,7 +15,7 @@ sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 import endless as E  # noqa: E402
 
-OUT = os.path.join(ROOT, "supabase", "functions", "scores", "endless_golden.json")
+OUT = os.path.join(ROOT, "supabase", "functions", "scores", "endless_golden_v5.json")
 
 
 def record(seed, taps, end=None, assists=None):
@@ -28,7 +29,9 @@ def record(seed, taps, end=None, assists=None):
 
 def main():
     global OUT
-    if "--legacy" in sys.argv:                            # a 1.0.7 game: v3 seeds, the shipped campaign maps
+    if "--legacy" in sys.argv:
+        raise SystemExit("v3 / v4 goldens are frozen (see the module doc)")
+    if False:                            # a 1.0.7 game: v3 seeds, the shipped campaign maps
         sys.argv.remove("--legacy")
         E.ENDLESS_VERSION = 3
         leg = os.path.join(ROOT, "levelgen", "legacy_levels")
@@ -74,9 +77,28 @@ def main():
         seed = E.seed_of("2026-W40", "%08x" % (0x1000 + i))
         best, taps = Q.climb_bot(seed, 4, time.time() + secs / 4)
         cases.append(record(seed, sorted(taps), best.n))
+    for ev in (E.EV_STARS, E.EV_SHIELD, E.EV_BUBBLE):     # bot runs that fly through a stage carrying each event kind
+        n = 0
+        while True:
+            n += 1
+            seed = E.seed_of("2026-W41", "%08x" % (0x2000 + n))
+            w = E.World(seed)
+            if w.stage(1).event == ev:
+                break
+        best, taps = Q.climb_bot(seed, 3, time.time() + secs / 4)
+        cases.append(record(seed, sorted(taps), best.n))
+        print("event", ev, "seed", seed, "reached stage", cases[-1]["py"]["stage"], "stars", cases[-1]["py"]["stars"])
+    plans = []                                            # zones + events far beyond what a run reaches
+    for i in range(12):
+        seed = E.seed_of(f"2026-W{40 + i % 6:02d}", "%08x" % rng.getrandbits(32))
+        w = E.World(seed)
+        plans.append({"seed": seed, "v": E.ENDLESS_VERSION,
+                      "plan": [[w.stage(k).level, w.stage(k).sector, w.stage(k).event] for k in range(40)]})
+    cases.append({"plans": plans})
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(cases, f)
-    print(len(cases), "cases; max stage", max(c["py"]["stage"] for c in cases), "max w0", max(c["py"]["w0"] for c in cases),
+    runs = [c for c in cases if "py" in c]
+    print(len(runs), "cases; max stage", max(c["py"]["stage"] for c in runs), "max w0", max(c["py"]["w0"] for c in runs),
           f"({time.time() - t0:.0f}s bots) ->", OUT)
 
 

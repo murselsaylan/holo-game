@@ -1,6 +1,6 @@
 """The store's own "rate this game" sheet (Google Play in-app review / App Store SKStoreReviewController).
 
-Asked only at good moments: the first time the player clears level 10, 25 and 50 (each once), never twice within a
+Asked only at good moments: the first time the player clears level 5, 10, 25, 50, 75, 100 and 120 (each once), never twice within a
 week, and only after a clean win screen (not after a paid revive). The stores keep their own quota and may show nothing;
 neither tells whether the player rated, so the game simply moves on. Desktop: nothing happens.
 """
@@ -8,7 +8,7 @@ import time
 
 import paths
 
-MILESTONES = (10, 25, 50)
+MILESTONES = (5, 10, 25, 50, 75, 100, 120)
 MIN_GAP_S = 7 * 86400
 DELAY_S = 2.5                   # after the win screen appears: the score has landed, the player is pleased
 

@@ -1,0 +1,32 @@
+<tr-TR>
+Yeni: 40 bölüm daha (101-140) ve iki yeni sektör: zamanı yavaşlatan CHRONO RIFT, gerilip kısalan bağlı STRING THEORY.
+Arkadaşlar: davet koduyla arkadaş ekle, günlük hediye yolla, takılınca yardım iste, arkadaşın hayaleti ve arkadaş sıralaması.
+Ortak Hedef ve Haftanın Bölümü: hep birlikte hedefi doldur, ödül kazan. Lig ve günün bölümü.
+Sonsuz mod yenilendi: bölgeler, metre hedefleri ve ödüller.
+Olo artık bildirimlerde de seninle: günlük, haftalık ve geri dön hatırlatmaları. Giriş serisi için özel Seri skinleri.
+Paylaşım kartı, yeni sıralama ve görevler ekranı.
+</tr-TR>
+<en-US>
+New: 40 more levels (101-140) and two new sectors: CHRONO RIFT with time-slowing fields and STRING THEORY with a stretching, shrinking tether.
+Friends: add friends with an invite code, send a daily gift, ask for help when stuck, race a friend's ghost and see a friends ranking.
+Team Goal and Level of the Week: fill the goal together and earn rewards. The daily level.
+Endless mode reworked: zones, metre goals and prizes.
+Olo now reminds you in notifications too: daily, weekly and come-back reminders. Special Streak skins for login streaks.
+A share card, the new ranking and quests screens.
+</en-US>
+<de-DE>
+Neu: 40 weitere Level (101-140) und zwei neue Sektoren: CHRONO RIFT mit Zeitlupenfeldern und STRING THEORY mit einem sich dehnenden und stauchenden Band.
+Freunde: Freunde per Einladungscode hinzufügen, täglich Geschenke senden, bei Hängern um Hilfe bitten, gegen den Ghost eines Freundes antreten, Freunde-Rangliste.
+Teamziel und Level der Woche: Ziel gemeinsam füllen und Belohnungen verdienen. Ligen und das Tageslevel.
+Endlos-Modus überarbeitet: Zonen, Meterziele und Preise.
+Olo erinnert dich jetzt auch per Benachrichtigung: täglich, wöchentlich und als Comeback-Hinweis. Besondere Serien-Skins für Login-Serien.
+Teilen-Karte, neue Rangliste und Aufgaben-Bildschirm.
+</de-DE>
+<es-ES>
+Nuevo: 40 niveles más (101-140) y dos sectores nuevos: CHRONO RIFT con campos que frenan el tiempo y STRING THEORY con un vínculo que se estira y se encoge.
+Amigos: añade amigos con un código de invitación, envía un regalo diario, pide ayuda cuando te atasques, compite con el fantasma de un amigo y mira el ranking de amigos.
+Objetivo común y Nivel de la semana: llenad el objetivo juntos y ganad premios. Ligas y el nivel del día.
+Modo infinito renovado: zonas, metas de metros y premios.
+Olo ahora también te avisa con notificaciones: diarias, semanales y de regreso. Aspectos especiales de Racha por tus accesos seguidos.
+Tarjeta para compartir, nuevo ranking y pantalla de misiones.
+</es-ES>

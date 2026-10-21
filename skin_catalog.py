@@ -1,4 +1,4 @@
-"""The skin catalogue: 15 themed catalogues x 5 skins = 75 skins, ranked from the most premium to the most ordinary.
+"""The skin catalogue: 18 themed catalogues x 5 skins = 90 skins, ranked from the most premium to the most ordinary.
 
 Every catalogue has one skin of each rarity, listed in this order:
 
@@ -36,6 +36,8 @@ THEMES = [
     ("Arcade", "Arcade", ["rocket_bunny", "arcade_king", "pixel_heart", "joystick", "coin_pop"]),
     # bought only with the stars collected in the endless climb (never with diamonds or money)
     ("Yıldız Avcısı", "Star Hunter", ["star_hunter", "comet_rider", "starfall", "twinkle_orb", "stargazer"]),
+    # earned only by completing 7-day login runs (login_rewards.py): 1, 2, 4, 8 and 12 full weeks; never sold
+    ("Seri", "Streak", ["streak_aurora", "streak_nova", "streak_flame", "streak_ember", "streak_spark"]),
     # every skin here is sold for diamonds (none are level rewards) and all 5 cost more than the same rarity
     # elsewhere; the top one is the single most expensive item in the game, in diamonds and in real money.
     ("Değerli Madenler", "Precious Metals", ["diamond_prestige", "platinum_prestige", "gold_prestige", "silver_prestige", "bronze_prestige"]),
@@ -43,7 +45,7 @@ THEMES = [
 PRESTIGE_THEME = len(THEMES) - 1
 
 # COMMON skin of every catalogue -> level that unlocks it (0 = owned from the start); None = sold in the shop instead
-COMMON_LEVELS = [0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 85, 90, 100, None, None]
+COMMON_LEVELS = [0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 85, 90, 100, None, None, None]
 
 # Değerli Madenler costs (diamonds): well above the normal tier price at every rarity, topped by a genuinely expensive piece
 PRESTIGE_COST = {
@@ -54,6 +56,9 @@ PRESTIGE_TOP = "diamond_prestige"          # real-money price is set separately 
 # Yıldız Avcısı: price in endless-climb stars (the only thing those stars buy)
 STAR_COST = {"star_hunter": 600, "comet_rider": 350, "starfall": 200, "twinkle_orb": 100, "stargazer": 40}
 STAR_THEME = next(i for i, th in enumerate(THEMES) if th[2][0] == "star_hunter")
+
+# Seri: completed 7-day login runs needed (the server counts them: wallet.ts earnClaim, login_rewards.STREAK_SKIN_WEEKS)
+STREAK_WEEKS = {"streak_spark": 1, "streak_ember": 2, "streak_flame": 4, "streak_nova": 8, "streak_aurora": 12}
 
 # UNCOMMON skins that are achievement rewards (the other 7 are sold for 150 diamonds)
 ACH = {
@@ -74,7 +79,7 @@ for ti, (_tr, _en, members) in enumerate(THEMES):
     if COMMON_LEVELS[ti] is not None:
         LEVEL[members[4]] = COMMON_LEVELS[ti]
 
-COST = {sid: TIERS[t]["cost"] for sid, t in TIER_OF.items() if t < 5 and sid not in ACH and sid not in STAR_COST}
+COST = {sid: TIERS[t]["cost"] for sid, t in TIER_OF.items() if t < 5 and sid not in ACH and sid not in STAR_COST and sid not in STREAK_WEEKS}
 COST.update(PRESTIGE_COST)             # overrides, including the tier-5 (Bronze) member which is shop-priced here
 
 
@@ -98,6 +103,8 @@ def source(sid):
     """('level', n) | ('ach', id) | ('star', endless stars) | ('shop', gems)"""
     if sid in STAR_COST:
         return ("star", STAR_COST[sid])
+    if sid in STREAK_WEEKS:
+        return ("streak", STREAK_WEEKS[sid])
     if sid in LEVEL:
         return ("level", LEVEL[sid])
     if sid in ACH:
@@ -107,12 +114,12 @@ def source(sid):
 
 def premium_ids():
     """Legendary skins: also sold for real money (Play products skin_<id>)."""
-    return [sid for sid in ORDER if TIER_OF[sid] == 1 and sid not in STAR_COST]
+    return [sid for sid in ORDER if TIER_OF[sid] == 1 and sid not in STAR_COST and sid not in STREAK_WEEKS]
 
 
 def shop_skins():
     """Everything sold for diamonds: most premium first, then catalogue order."""
-    return sorted((s for s in ORDER if s not in LEVEL and s not in ACH and s not in STAR_COST),
+    return sorted((s for s in ORDER if s not in LEVEL and s not in ACH and s not in STAR_COST and s not in STREAK_WEEKS),
                   key=lambda s: (TIER_OF[s], THEME_OF[s]))
 
 

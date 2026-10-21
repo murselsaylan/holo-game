@@ -5,8 +5,21 @@ cannot be faked - supabase/functions/scores/wallet.ts earnClaim mirrors LOGIN_RE
 """
 import datetime
 
+import skin_catalog
+
 LOGIN_REWARDS = [5, 5, 10, 10, 15, 20, 40]     # diamonds on day 1 ... 7
+STREAK_SKIN_WEEKS = skin_catalog.STREAK_WEEKS   # "Seri" skins: completed 7-day runs needed (the server counts them too)
 WEEKLY_STARS = 20                               # day 7 also fills the star wallet (Yıldız Avcısı skins)
+
+
+def next_streak_skin(weeks):
+    """(skin id, completed weeks it needs) of the next Seri skin after `weeks` full runs, None when all are owned."""
+    later = sorted((need, sid) for sid, need in STREAK_SKIN_WEEKS.items() if need > weeks)
+    return (later[0][1], later[0][0]) if later else None
+
+
+def weeks_done(save):
+    return int(state(save).get("weeks", 0))
 
 
 def today_str(now=None):
@@ -44,6 +57,13 @@ def claim(save, today=None):
     st.update(last=today, streak=streak, days=int(st.get("days", 0)) + 1, best=max(int(st.get("best", 0)), streak))
     gems = LOGIN_REWARDS[day - 1]
     stars = WEEKLY_STARS if day == 7 else 0
+    st["new_skins"] = []
+    if day == 7:                                # a full run: the Seri skins it reaches are opened (the server grants them too)
+        st["weeks"] = weeks_done(save) + 1
+        for sid, need in STREAK_SKIN_WEEKS.items():
+            if st["weeks"] >= need and not save.is_skin_unlocked(sid):
+                save.grant_skin(sid)
+                st["new_skins"].append(sid)
     save.earn("login", today, gems)
     if stars:
         save.add_star_coins(stars)

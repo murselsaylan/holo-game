@@ -53,7 +53,7 @@ def main():
     
     sector_results = {1: [], 2: [], 3: [], 4: [], 5: []}
     
-    for lid in range(1, 101):
+    for lid in range(1, 141):
         sector = (lid - 1) // 20 + 1
         t0 = time.time()
         ok, state, frames, res = play_level(game, lid)

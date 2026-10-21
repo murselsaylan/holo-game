@@ -22,7 +22,7 @@ class Layout:
         self.slots = None       # optional family specific hazard sites (x, y, horizontal, span)
         self.data = {
             "reverse_walls": [], "moving_walls": [], "lasers": [], "spinners": [], "circles": [],
-            "growth_zones": [], "shrink_zones": [], "boost_pads": [], "shields": [], "stars": [],
+            "growth_zones": [], "shrink_zones": [], "boost_pads": [], "slow_zones": [], "stretch_zones": [], "shields": [], "stars": [],
             "breakables": [], "chasers": [], "barriers": [],
         }
 

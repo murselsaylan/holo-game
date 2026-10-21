@@ -2,14 +2,23 @@
 import { LevelData, replay, SIM_VERSION, MAX_LEVELS } from "./sim.ts";
 import type { Assist, Result } from "./sim.ts";
 import { LEVELS, DIGESTS, LEGACY } from "./levels_data.ts";
-import { WEEK_PRIZES, DIAMOND_EVERY_M, DIAMONDS_PER_DAY, ENDLESS_VERSIONS, MAX_STEPS as ENDLESS_MAX_STEPS, poolDigest, replayEndless, seedOf, weekOf, weekStart, assistDigest, MAX_REVIVES as ENDLESS_MAX_REVIVES } from "./endless.ts";
-import { accountTag, dailyDeal, earnClaim, IMPORT_CAP, productValue, spendPrice } from "./wallet.ts";
+import { GOALS as ENDLESS_GOALS, WEEK_PRIZES, DIAMOND_EVERY_M, DIAMONDS_PER_DAY, ENDLESS_VERSIONS, MAX_STEPS as ENDLESS_MAX_STEPS, poolDigest, replayEndless, seedOf, weekOf, weekStart, assistDigest, MAX_REVIVES as ENDLESS_MAX_REVIVES } from "./endless.ts";
+import { accountTag, dailyDeal, earnClaim, freeShieldDay, IMPORT_CAP, productValue, spendPrice, streakSkins } from "./wallet.ts";
 import { devPurchases, googleVerifier } from "./play.ts";
 import { googleConfigured, maskEmail, verifyGoogleIdToken } from "./google_id.ts";
 import type { Verifier } from "./play.ts";
 import { appleVerifier } from "./apple.ts";
 import type { AppleVerifier } from "./apple.ts";
 import type { WalletStore } from "./wallet.ts";
+import { friendsOp, settleInvite } from "./friends.ts";
+import type { FriendStore } from "./friends.ts";
+import { crowdAdd, crowdOp, weeklyClear } from "./crowd.ts";
+import type { CrowdStore } from "./crowd.ts";
+import { bonusStars, campaignStars, endlessStars, LOGIN_STARS, rankedOp } from "./ranked.ts";
+import type { RankedStore } from "./ranked.ts";
+import { shopOp } from "./shopx.ts";
+import type { ShopStore } from "./shopx.ts";
+import { EVENTS } from "./wallet_data.ts";
 
 export const COUNTRIES = new Set(["TR", "US", "DE", "GB", "JP", "KR", "FR", "BR", "CA", "AU", "IT", "ES", "NL", "AZ", "SE", "GX"]);
 const MAX_BODY = 256 * 1024;
@@ -19,16 +28,25 @@ const NAME_RE = /^[A-Z0-9İŞĞÜÖÇ _\-.]{1,12}$/u;
 
 export interface Player { id: string; secret: string; name: string; country: string; levels: number; score: number; stars: number }
 export interface Ranks { rank: number; country_rank: number; levels: number; score: number; stars: number; country?: string }
-export interface Row { rank: number; id: string; name: string; country: string; levels: number; score: number; stars: number }
+export interface Row { rank: number; id: string; name: string; country: string; levels: number; score: number; stars: number;
+  /** Prestige (1.0.9 shop): the equipped profile frame and title ids, "" = none. */ frame?: string; title?: string }
 
 export interface Best { level: number; score: number; stars: number; time: number; swaps: number; rank: string }
-export interface EndlessRow { rank: number; id: string; name: string; country: string; metres: number; points?: number }
+export interface EndlessRow { rank: number; id: string; name: string; country: string; metres: number; points?: number; frame?: string; title?: string }
 export interface EndlessStanding { rank: number; metres: number; points?: number; total: number }
 export interface Restored { player: Player; data: string | null; bests: Best[] }
 
 export type Ghost = { id: string; name: string; score: number; taps: number[] };
 
-export interface Store extends WalletStore {
+export interface Store extends WalletStore, FriendStore {
+  /** The shared weekly goal (1.0.9, live_pg.ts); absent in stores that predate it. */
+  live?: CrowdStore;
+  /** Star wallet and daily level (1.0.9, ranked_pg.ts); absent in stores that predate it. */
+  ranked?: RankedStore;
+  /** Shop extras (1.0.9): prestige ownership and the equipped frame / title (store_pg.ts). */
+  walletReasons?(pid: string, prefix: string): Promise<string[]>;
+  getPrestige?(pid: string): Promise<{ frame: string; title: string }>;
+  setPrestige?(pid: string, frame: string, title: string): Promise<void>;
   ensure(): Promise<void>;
   /** Cloud save of the whole local save file (account recovery). */
   saveCloud(pid: string, data: string, now: number): Promise<void>;
@@ -64,7 +82,7 @@ export interface Store extends WalletStore {
    *  already accepted is ok again (a retried upload is not charged twice). */
   useAssists(pid: string, revives: number, shields: number, ref: string, now: number): Promise<boolean>;
   endlessStanding(pid: string, week: string): Promise<EndlessStanding | null>;
-  endlessBoard(week: string, offset: number, limit: number): Promise<{ rows: EndlessRow[]; total: number }>;
+  endlessBoard(week: string, offset: number, limit: number, country?: string): Promise<{ rows: EndlessRow[]; total: number }>;
 }
 
 export interface Reply { status: number; body: Record<string, unknown> }
@@ -120,6 +138,8 @@ export const signEndless = (secret: string, pid: string, week: string, nonce: st
 export const signGoogleLink = (secret: string, pid: string, ts: number, tokenDigest: string) =>
   hmacHex(secret, `${pid}|glink|${ts}|${tokenDigest}`);
 export const googleHash = (sub: string) => sha256Hex("holo-google|" + sub);
+export const signFriends = (secret: string, pid: string, ts: number, op: string, arg: string) =>
+  hmacHex(secret, `${pid}|friends|${ts}|${op}|${arg}`);
 export const signWallet = (secret: string, pid: string, ts: number, op: string, key: string, ref: string) =>
   hmacHex(secret, `${pid}|wallet|${ts}|${op}|${key}|${ref}`);
 
@@ -238,7 +258,8 @@ export async function handle(store: Store, method: string, path: string, query: 
       const lim = Math.max(1, Math.min(100, Math.trunc(Number(query.get("limit") ?? 100)) || 100));
       const pid = (query.get("player_id") ?? "").slice(0, 64);
       const me = pid ? await store.endlessStanding(pid, week) : null;
-      const { rows, total } = await store.endlessBoard(week, 0, lim);
+      const country = (query.get("country") ?? "").slice(0, 4).toUpperCase();
+      const { rows, total } = await store.endlessBoard(week, 0, lim, COUNTRIES.has(country) ? country : undefined);
       return R(200, { scope: "endless", week, rows, total, me: me ?? {} });
     }
     return R(404, { error: "not found" });
@@ -267,6 +288,10 @@ export async function handle(store: Store, method: string, path: string, query: 
     if (route === "/api/cloud/restore") return await cloudRestore(store, d, ip, nowMs);
     if (route === "/api/submit") return await submit(store, d, ip, nowMs);
     if (route === "/api/wallet") return await wallet(store, d, ip, nowMs);
+    if (route === "/api/friends") return await friends(store, d, ip, nowMs);
+    if (route === "/api/crowd") return await crowd(store, d, ip, nowMs);
+    if (route === "/api/ranked") return await ranked(store, d, ip, nowMs);
+    if (route === "/api/shop") return await shop(store, d, ip, nowMs);
     if (route === "/api/endless/submit") return await endlessSubmit(store, d, ip, nowMs);
     if (route === "/api/account/google/link") return await googleLink(store, d, ip, nowMs);
     if (route === "/api/account/google/restore") return await googleRestore(store, d, ip, nowMs);
@@ -381,26 +406,32 @@ async function submit(store: Store, d: Record<string, unknown>, ip: string, nowM
     if (!old) return R(409, { error: "level version mismatch - update the game" });
     lvl = old;
   }
-  // paid help (1.0.4+): [[step, "S"|"R"|"R2"], ...] (R2 = the 1.0.6 slow-spin shielded revive) - replayed exactly, and it must have been paid for in diamonds
+  // paid help (1.0.4+): [[step, "S"|"R"|"R2"|"R3"|"C"], ...] (C = 1.0.9 free resume from a checkpoint) (R2 = the 1.0.6 slow-spin shielded revive) - replayed exactly, and it must have been paid for in diamonds
   let assists: Assist[] = [];
   if (d.assists !== undefined) {
     if (!Array.isArray(d.assists) || d.assists.length > MAX_ASSISTS) return R(400, { error: "bad assists" });
     for (const a of d.assists) {
-      if (!Array.isArray(a) || a.length !== 2 || !Number.isInteger(a[0]) || a[0] < 0 || (a[1] !== "S" && a[1] !== "R" && a[1] !== "R2" && a[1] !== "R3")) {
+      if (!Array.isArray(a) || a.length !== 2 || !Number.isInteger(a[0]) || a[0] < 0 || (a[1] !== "S" && a[1] !== "R" && a[1] !== "R2" && a[1] !== "R3" && a[1] !== "C")) {
         return R(400, { error: "bad assists" });
       }
     }
-    assists = (d.assists as [number, "S" | "R" | "R2" | "R3"][]).map((a) => [a[0], a[1]] as Assist);
+    assists = (d.assists as [number, "S" | "R" | "R2" | "R3" | "C"][]).map((a) => [a[0], a[1]] as Assist);
     if (assists.length && !safeEqual(String(d.asig ?? ""), await signAssisted(pl.secret, pid, level, ts, taps, assists))) {
       return R(403, { error: "bad signature" });
     }
   }
   const revives = assists.filter((a) => a[1] === "R" || a[1] === "R2" || a[1] === "R3").length;
-  const limitS = Math.max(90.0, lvl.parTime * 8) + revives * 30.0;          // each revive may add a retry's worth of time
+  const resumes = assists.filter((a) => a[1] === "C").length;           // 1.0.9: free checkpoint resumes ("C", not paid, not ranked as a clean run)
+  const limitS = Math.max(90.0, lvl.parTime * 8) + (revives + resumes) * 30.0;          // each revive may add a retry's worth of time
   const { result } = replay(lvl, taps, limitS, assists);
   if (!result) return R(422, { error: "replay did not clear the level" });
+  const scoreBefore = pl.score;
   const rec = await store.record(pid, level, result, taps, assists);
   if (rec.unpaid) return R(402, { error: "help not paid" });
+  if (typeof (store as unknown as FriendStore).inviteGet === "function") await settleInvite(store, pid, rec.levels, Math.floor(nowMs / 1000));      // the invite reward of a new pilot's first clear
+  await crowdAdd(store.live, pid, result.stars, nowMs);            // the shared weekly goal (crowd.ts)
+  const starsAdded = await campaignStars(store.ranked, pid, level, result.stars, Math.floor(nowMs / 1000));   // star wallet (ranked.ts)
+  await weeklyClear(store.live, pid, level, nowMs);                // this week's featured level (crowd.ts)
   const ranks = (await store.ranks(pid)) ?? ({} as Partial<Ranks>);
   return R(200, {
     ok: true, level_score: result.level_total, stars: result.stars, improved: rec.improved, levels: rec.levels,
@@ -433,7 +464,7 @@ async function endlessSubmit(store: Store, d: Record<string, unknown>, ip: strin
   for (let k = 1; k < ts_.length; k++) if (ts_[k] - ts_[k - 1] < MIN_TAP_GAP) return R(422, { error: "implausible input" });
   if (ts_.length && (ts_[0] < 0 || ts_[ts_.length - 1] > end)) return R(422, { error: "implausible input" });
   const ev = Number(d.v);                     // v2 (1.0.6) and v3 (1.0.7+, faster start) are both replayed
-  if (!ENDLESS_VERSIONS.includes(ev) || String(d.pool ?? "") !== poolDigest()) return R(409, { error: "update the game" });
+  if (!ENDLESS_VERSIONS.includes(ev) || String(d.pool ?? "") !== poolDigest(ev)) return R(409, { error: "update the game" });
   const now = Math.floor(nowMs / 1000);
   const current = weekOf(now), previous = weekOf(now - 7 * 86_400);
   if (week !== current && !(week === previous && now - weekStart(now) < 12 * 3600)) return R(410, { error: "week closed" });
@@ -473,9 +504,84 @@ async function endlessSubmit(store: Store, d: Record<string, unknown>, ip: strin
       capped = true;
     }
   }
+  // v5 metre goals: [metres, diamonds] each paid once per player and week, by the height the replay measured
+  const goals: [number, number][] = [];
+  if (ev >= 5 && balance !== null) {
+    for (const [gm, gd] of ENDLESS_GOALS) {
+      if (metres < gm) continue;
+      const r = await store.walletChange(pl.id, gd, "endless_goal", `${week}:${gm}`, now);
+      if (!r.dup) { goals.push([gm, gd]); balance = r.balance; }
+    }
+  }
+  await crowdAdd(store.live, pl.id, Math.min(stars, 3), nowMs);    // the shared weekly goal (crowd.ts)
+  const starsAdded = await endlessStars(store.ranked, pl.id, `${week}:${nonce}:${digest.slice(0, 16)}`, stars, now);
   const st = await store.endlessStanding(pl.id, week);
   return R(200, { ok: true, metres, stars, points, best: rec.best, improved: rec.improved, rank: st?.rank ?? 0, total: st?.total ?? 0,
-                  added, capped, balance, next_gem: DIAMOND_EVERY_M - (metres % DIAMOND_EVERY_M), steps: run.n });
+                  added, capped, balance, next_gem: DIAMOND_EVERY_M - (metres % DIAMOND_EVERY_M), steps: run.n, goals });
+}
+
+// ---- friends (1.0.9, friends.ts) ----------------------------------------------------------------------------
+// {op, arg}: list | add <code> | accept <pid> | remove <pid> | gift <pid> | poke <pid> | challenge <pid>:<level> |
+// claim <msg id> | help_ask <level> | help_send <request id> | ghost <level>[|<level digest>]
+async function friends(store: Store, d: Record<string, unknown>, ip: string, nowMs: number): Promise<Reply> {
+  if (limited(`fr|${ip}`, 90, nowMs)) return R(429, { error: "slow down" });
+  const op = String(d.op ?? ""), arg = String(d.arg ?? "").slice(0, 200);
+  const pl = await authed(store, d, nowMs, (secret) => signFriends(secret, String(d.player_id), Number(d.ts), op, arg));
+  if (!pl) return R(403, { error: "bad signature" });
+  if (op === "add" && limited(`fa|${pl.id}`, 12, nowMs, 3_600_000)) return R(429, { error: "slow down" });   // code guessing
+  if (op === "ghost") {
+    const [lv, digest = ""] = arg.split("|");
+    const level = Math.trunc(Number(lv));
+    if (!Number.isFinite(level) || level < 1 || level > 10_000) return R(400, { error: "bad level" });
+    const lvl = versionFor(level, digest);
+    if (!lvl) return R(200, { level });
+    // the best friend run that really wins on the asker's version of the level (other versions would fly into walls)
+    for (const g of await store.friendBests(pl.id, level, 12)) {
+      if (replay(lvl, g.taps, 400.0).result) return R(200, { level, ...g });
+    }
+    return R(200, { level });
+  }
+  return await friendsOp(store, pl, op, arg, nowMs);
+}
+
+// ---- shared weekly goal (1.0.9, crowd.ts) -------------------------------------------------
+export const signLive = (secret: string, pid: string, ts: number, what: string, op: string, arg: string, tapsDigest: string) =>
+  hmacHex(secret, `${pid}|${what}|${ts}|${op}|${arg}|${tapsDigest}`);
+
+async function crowd(store: Store, d: Record<string, unknown>, ip: string, nowMs: number): Promise<Reply> {
+  if (!store.live) return R(404, { error: "not found" });
+  if (limited(`cw|${ip}`, 90, nowMs)) return R(429, { error: "slow down" });
+  const op = String(d.op ?? ""), arg = String(d.arg ?? "").slice(0, 40);
+  const pl = await authed(store, d, nowMs, (secret) => signLive(secret, String(d.player_id), Number(d.ts), "crowd", op, arg, ""));
+  if (!pl) return R(403, { error: "bad signature" });
+  const r = await crowdOp(store.live, store, pl.id, op, arg, nowMs);
+  return R(r.status, r.body);
+}
+
+// ---- shop extras (1.0.9, shopx.ts): weekly showcase, packs, prestige, Star Market, Star Chest ----------------------
+async function shop(store: Store, d: Record<string, unknown>, ip: string, nowMs: number): Promise<Reply> {
+  if (!store.ranked || !store.walletReasons || !store.getPrestige || !store.setPrestige) return R(404, { error: "not found" });
+  if (limited(`sh|${ip}`, 120, nowMs)) return R(429, { error: "slow down" });
+  const op = String(d.op ?? ""), arg = String(d.arg ?? "").slice(0, 80);
+  const pl = await authed(store, d, nowMs, (secret) => signLive(secret, String(d.player_id), Number(d.ts), "shop", op, arg, ""));
+  if (!pl) return R(403, { error: "bad signature" });
+  const r = await shopOp({ rs: store.ranked, ws: store as unknown as ShopStore, salt: shopSalt(), sha256: sha256Hex }, pl.id, op, arg, nowMs);
+  return R(r.status, r.body);
+}
+/** The chest's dice are seeded with (this secret, player, chest number): a player cannot work the outcomes out ahead. */
+const shopSalt = () => String((globalThis as any).Deno?.env?.get?.("SHOP_SALT") ?? "holo-chest-v1");
+
+// ---- star wallet, daily level (1.0.9, ranked.ts) -----------------------------------------------------
+async function ranked(store: Store, d: Record<string, unknown>, ip: string, nowMs: number): Promise<Reply> {
+  if (!store.ranked) return R(404, { error: "not found" });
+  if (limited(`rk|${ip}`, 90, nowMs)) return R(429, { error: "slow down" });
+  const op = String(d.op ?? ""), arg = String(d.arg ?? "").slice(0, 80);
+  const taps = Array.isArray(d.taps) ? (d.taps as unknown[]).map((x) => Number(x)) : [];
+  const digest = op === "daily_submit" ? await sha256Hex(taps.join(",")) : "";
+  const pl = await authed(store, d, nowMs, (secret) => signLive(secret, String(d.player_id), Number(d.ts), "ranked", op, arg, digest));
+  if (!pl) return R(403, { error: "bad signature" });
+  const r = await rankedOp({ rs: store.ranked, ws: store, level: getLevel, sha256: sha256Hex }, pl.id, op, arg, { ...d, taps }, nowMs);
+  return R(r.status, r.body);
 }
 
 // ---- diamond wallet -------------------------------------------------------------------------------------------
@@ -496,6 +602,7 @@ async function wallet(store: Store, d: Record<string, unknown>, ip: string, nowM
   if (op === "sync") {
     const local = Math.max(0, Math.trunc(Number(d.local ?? 0)) || 0);
     const w = await store.walletOpen(pl.id, local, IMPORT_CAP, now);
+    await settleInvite(store, pl.id, (await store.player(pl.id))?.levels ?? 0, now);       // an open invite waiting for a wallet
     // last week's climb prize (top 10), paid once - the wallet log's (reason, ref) keeps it single
     let prize: { week: string; rank: number; diamonds: number } | null = null, balance = w.balance;
     const lastWeek = weekOf(now - 7 * 86400);
@@ -507,7 +614,9 @@ async function wallet(store: Store, d: Record<string, unknown>, ip: string, nowM
     }
     const first = store.packPurchases ? (await store.packPurchases(pl.id)) === 0 : false;
     return R(200, { ok: true, balance, gift: w.gift, imported: w.imported, skins: await store.walletSkins(pl.id),
-                    account: await accountTag(pl.id), first_bonus: first, deal: dailyDeal(nowMs), prize });
+                    account: await accountTag(pl.id), first_bonus: first, deal: dailyDeal(nowMs), prize,
+                    free_shield: !(await store.walletRefs(pl.id, "freeshield", now - 2 * 86400)).includes(freeShieldDay(nowMs)),
+                    credits: { shield: await store.friendCredits(pl.id, "shield"), revive: await store.friendCredits(pl.id, "revive") } });
   }
   const bal = await store.walletBalance(pl.id);
   if (bal === null) return R(409, { error: "sync first" });
@@ -518,12 +627,40 @@ async function wallet(store: Store, d: Record<string, unknown>, ip: string, nowM
     const c = await earnClaim(store, pl.id, key, ref, nowMs);
     if ("error" in c) return R(c.status, { error: c.error, balance: bal });
     const r = await store.walletChange(pl.id, c.amount, c.reason, c.ref, now);
+    if (c.week) {
+      // a completed 7-day login run: counted once per date (zero-delta row), the Seri skins it reaches are owned from
+      // then on (a zero-delta "spend:skin:" row is what walletSkins reads back after a reinstall)
+      await store.walletChange(pl.id, 0, "loginweek", c.ref, now);
+      await bonusStars(store.ranked, pl.id, "login", c.ref, LOGIN_STARS, now);
+      const weeks = (await store.walletRefs(pl.id, "loginweek", 0)).length;
+      for (const sid of streakSkins(weeks)) await store.walletChange(pl.id, 0, "spend:skin:" + sid, "streak", now);
+      return R(200, { ok: true, balance: r.balance, added: r.dup ? 0 : c.amount, weeks, skins: streakSkins(weeks) });
+    }
+    if (key === "event") {
+      const m = /^([a-z0-9]+)_(\d)$/.exec(ref);
+      const st = m ? (EVENTS as Record<string, { stars: readonly number[] }>)[m[1]]?.stars[Number(m[2])] ?? 0 : 0;
+      await bonusStars(store.ranked, pl.id, "event", ref, st, now);
+    }
     return R(200, { ok: true, balance: r.balance, added: r.dup ? 0 : c.amount });
   }
   if (op === "spend") {
     const price = spendPrice(key, nowMs);
     if (price === null) return R(400, { error: "unknown item", balance: bal });
     if (!/^[0-9a-f]{16,32}$/.test(ref)) return R(400, { error: "bad ref", balance: bal });
+    // a shield / revive a friend gave is used before any diamonds are charged (a zero-delta row still counts as "paid help")
+    if ((key === "revive" || key === "shield") && (await store.friendCredits(pl.id, key)) > 0) {
+      const f = await store.walletChange(pl.id, 0, "spend:" + key, ref, now);       // a retried ref is a dup: still free
+      return R(200, { ok: true, balance: f.balance, price: 0, free: true });
+    }
+    // the day's first shield is free (1.0.9): the "freeshield" row (ref = the UTC date) is unique per player, so a
+    // second one the same day (or a retried request) falls through to the normal price
+    if (key === "shield") {
+      const m = await store.walletChange(pl.id, 0, "freeshield", freeShieldDay(nowMs), now);
+      if (m.ok && !m.dup) {
+        const f = await store.walletChange(pl.id, 0, "spend:shield", ref, now);
+        return R(200, { ok: true, balance: f.balance, price: 0, free: true, daily: true });
+      }
+    }
     const r = await store.walletChange(pl.id, -price, "spend:" + key, ref, now);
     if (!r.ok) return R(402, { error: "insufficient", balance: r.balance });
     return R(200, { ok: true, balance: r.balance, price });

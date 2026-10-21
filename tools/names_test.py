@@ -51,7 +51,7 @@ def tap(x, y):
 
 
 def row_y(i):
-    return lb.top + 60 + i * lb.ROW_H + 40
+    return lb._lt() + 60 + i * lb.ROW_H + 40
 
 
 tap(500, row_y(2))

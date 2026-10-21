@@ -2,15 +2,15 @@ BAŞLIK (max 30 karakter)
 HOLO: İki Küre, Tek Nabız
 
 KISA AÇIKLAMA (max 80 karakter)
-Tek dokunuşla oynanan zor refleks oyunu: 100 bölüm, sonsuz mod, dünya sıralaması
+Tek dokunuşla oynanan zor refleks oyunu: 140 bölüm, sonsuz mod, dünya sıralaması
 
 TAM AÇIKLAMA (max 4000 karakter)
 Tek dokunuş. İki küre. Sinir bozucu derecede zor.
 
 HOLO, tek dokunuşla oynanan bir refleks ve ritim oyunu. Birbirine bağlı iki küreyi kontrol edersin: ekrana her dokunduğunda küreler yer değiştirir ve dönüş yönü tersine döner. Kontrol bu kadar basit; ama dar koridorlar, dönen lazerler, iki eksende gezen duvarlar ve seni kovalayan tehlikeler arasında tam doğru anda dokunmak gerçek bir beceri işi.
 
-★ 100 BÖLÜM, ADIM ADIM ZORLAŞAN
-Kolay başlar, yavaş yavaş seni zorlar. Her bölüm aynı dokunuşu farklı bir şekilde sınar: küçülme ve büyüme bölgeleri, kalkanlar, enerji bariyerleri, hızlandırıcılar, kırılan duvarlar. Her bölümü 3 yıldızla bitirmeye çalış.
+★ 7 SEKTÖRDE 140 BÖLÜM
+Kolay başlar, yavaş yavaş seni zorlar; artık zamanı da büküyor: yeni CHRONO RIFT sektöründe yavaşlatan zaman alanları, STRING THEORY'de gerilen ve kısalan bağ. Her bölüm aynı dokunuşu farklı bir şekilde sınar: küçülme, büyüme ve gerilme bölgeleri, kalkanlar, enerji bariyerleri, hızlandırıcılar, kırılan duvarlar. Her bölümü 3 yıldızla bitirmeye çalış.
 
 ★ SONSUZ MOD
 Her denemede yeni bir harita. Yükseldikçe hız artar, yeni tehlikeler çıkar. Her 100 metrede elmas kazan, kendi rekor çizgini geç, haftalık sıralamada zirveye oyna. Haftanın ilk 10'una ödül var.

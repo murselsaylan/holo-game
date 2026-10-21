@@ -51,6 +51,8 @@ def build(kind, W, param, H=2300):
         G.gate_shield(L, ctx, site)
     elif kind == "boost":
         G.gate_boost(L, ctx, site, chaser_speed=param)
+    elif kind == "slow":
+        G.gate_slow(L, ctx, site, pitch=param)
     d = L.to_level(1, "LAB", s, e, 1.1, 0.2)
     return d
 
@@ -76,6 +78,12 @@ if __name__ == "__main__":
     elif kind == "shield":
         d = build("shield", 280, 0)
         print("with shield@10:", solved(d, 10.0), "| without shield@0:", solved(strip(d, ["shields"]), 0.0))
+    elif kind == "slow":
+        for pitch in (260, 220, 190, 165, 145, 125):
+            d = build("slow", 280, pitch)
+            a = solved(d, 6.0)
+            b = solved(strip(d, ["slow_zones"]), 0.0)
+            print(f"pitch {pitch}: with slow@6px solvable={a[0]} | without slow@0px solvable={b[0]}  ({time.time()-t0:.0f}s)", flush=True)
     elif kind == "boost":
         for v in (70, 90, 110, 130, 150, 175):
             d = build("boost", 280, v)

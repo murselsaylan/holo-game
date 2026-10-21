@@ -1,0 +1,9 @@
+
+=== 2026-10-21 02:39:55 ===
+Traceback (most recent call last):
+  File "C:\Users\mürselsaylan\Desktop\holo\main.py", line 121, in <module>
+    HoloGame().run()
+    ~~~~~~~~~~~~~~^^
+  File "C:\Users\mürselsaylan\Desktop\holo\holo.py", line 2763, in run
+    ms = self.clock.tick(cap)
+KeyboardInterrupt

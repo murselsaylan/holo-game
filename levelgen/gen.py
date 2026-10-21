@@ -64,29 +64,40 @@ def pick(pts, prog, window, min_clear=18.0, prefer_low=True, avoid=()):
         if cands:
             cands.sort(key=lambda p: p["clear"])
             return cands[0] if prefer_low else cands[-1]
+    # last resort: the points are ON the winning line anyway - take the one closest to the wanted progress that keeps its
+    # distance from the other stars (a gate throat can leave no point with clearance in the usual window)
+    spaced = [p for p in pts if all(math.hypot(p["x"] - a[0], p["y"] - a[1]) > 60 for a in avoid)]
+    if spaced:
+        return min(spaced, key=lambda p: abs(p["prog"] - prog))
     return None
 
 
-GATE_KEYS = {"gshrink": "shrink_zones", "ggrow": "growth_zones", "gshield": "shields", "gboost": "boost_pads"}
+GATE_KEYS = {"gshrink": "shrink_zones", "ggrow": "growth_zones", "gshield": "shields", "gboost": "boost_pads",
+             "gslow": "slow_zones", "gstretchl": "stretch_zones", "gstretchs": "stretch_zones"}
 
 
 def optional_gate(d, pl, beam):
     """Name of a placed gate whose pickup is NOT needed (level still solvable without it), else None."""
     for kind in dict.fromkeys(pl.get("placed", [])):
+        if kind == "gstretchl":
+            continue                 # 1.0.9: the long tether keeps the tip speed (only the stride grows) - no chaser speed makes it a KEY any more
         d2 = dict(d)
         d2[GATE_KEYS[kind]] = []
         if kind == "gshield":
             d2["shields"] = []
         # a gate must hold even against a very fast tapper (12 taps/s): the small-angle 'wiggle' can slip through a loose throat
-        fast = dict(min_delay=5, stride=2) if kind == "gshrink" else {}
-        if S.solve(LevelData(d2), margin=0.0, beam=max(64, beam), max_layers=320, **fast).solved:
+        fast = dict(min_delay=5, stride=2) if kind in ("gshrink", "gstretchs") else {}
+        if kind == "gslow":
+            fast = dict(min_delay=6, stride=1)       # frame-exact: the slow gate is about timing tolerance
+        # slow gate: half speed is worth 2x the pixel slack, so 'not needed' is tested at 12 px (the with-field margin is 6 px)
+        if S.solve(LevelData(d2), margin=12.0 if kind == "gslow" else 0.0, beam=max(64, beam), max_layers=320, **fast).solved:
             return kind
     return None
 
 
-def make(i, seed=0, beam=48, verbose=False, roamers=0):
+def make(i, seed=0, beam=48, verbose=False, roamers=0, tight_offset=0.0):
     t0 = time.time()
-    tight = max(0.0, P.difficulty(i) + float(os.environ.get("HOLO_TIGHT_OFFSET", 0.0)))
+    tight = max(0.0, P.difficulty(i) + float(os.environ.get("HOLO_TIGHT_OFFSET", 0.0)) + tight_offset)
     pl0 = P.plan(i)
     kit_factor = 1.0
     if "spin" in pl0["kit"] or "twin" in pl0["kit"]:
@@ -98,10 +109,14 @@ def make(i, seed=0, beam=48, verbose=False, roamers=0):
     elif "laser" in pl0["kit"]:
         kit_factor = 0.85
     floor = max(5.0, 0.7 * P.margin_target(i) * kit_factor)
+    if i > 100:
+        floor = min(floor, 8.0)                  # gentle rise past 100: not stricter than the shipped levels 99/100 (8 px)
     if "gshrink" in pl0["gates"]:
         floor = min(floor, 11.0)                 # a pinched throat caps the safety margin by design
     if "gboost" in pl0["gates"]:
         floor = min(floor, 16.0)
+    if "gslow" in pl0["gates"]:
+        floor = min(floor, 7.0)                  # the slow throat is calibrated for with@6px / without@12px (slow_lab3)
     gk = 0
     best = None
     log = []
@@ -208,6 +223,11 @@ def make(i, seed=0, beam=48, verbose=False, roamers=0):
                 if best_rate >= 0.75:
                     break
             log.append(("jitter_rate", round(best_rate, 2)))
+        # NOTE: open-loop tap jitter is only logged, never a hard gate - even the shipped levels 45/70/85/100 score 0/10 at +-1 frame
+        # (a real player re-aims every tap; levelgen/humanness-style closed-loop models are the right yardstick)
+        jit = round(best_rate, 2)
+    else:
+        jit = None
     pts, _ = S.trajectory(lvl, sol.taps, margin=0.0)
 
     # stars along the winning line at the riskiest safe spots
@@ -239,7 +259,7 @@ def make(i, seed=0, beam=48, verbose=False, roamers=0):
     sim, res = replay(lvl2, sol.taps)
     if res is None or res["stars"] < 3:
         return None, {"level": i, "error": f"replay failed stars={res and res['stars']}", "log": log}
-    rep = {"level": i, "title": d["title"], "family": pl["family"], "tight": round(tight, 3), "margin": round(m, 1),
+    rep = {"level": i, "title": d["title"], "family": pl["family"], "tight": round(tight, 3), "margin": round(m, 1), "jitter": jit,
            "gates": pl.get("placed", []), "gk": gk, "W": round(ctx.W), "swaps": sol.swaps, "time": round(sol.time_s, 1), "speed": d["speed"],
            "haz": {k: len(d[k]) for k in ("moving_walls", "lasers", "spinners", "circles", "reverse_walls",
                                             "growth_zones", "shrink_zones", "boost_pads", "shields", "breakables", "chasers", "barriers")},
@@ -250,7 +270,11 @@ def make(i, seed=0, beam=48, verbose=False, roamers=0):
 def _work(args):
     i, seed = args
     try:
-        d, rep = make(i, seed)
+        d, rep = None, None
+        for off in ((0.0, -0.07, -0.14, -0.21, -0.28) if i > 100 else (0.0,)):      # 101+: loosen until a human can play it
+            d, rep = make(i, seed, tight_offset=off)
+            if d is not None or rep.get("error") != "jitter":
+                break
     except Exception as e:  # pragma: no cover
         import traceback
         return i, None, {"level": i, "error": repr(e), "tb": traceback.format_exc()}
@@ -268,10 +292,11 @@ def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     lo = int(args[0]) if args else 1
     hi = int(args[1]) if len(args) > 1 else lo
-    jobs = [(i, 0) for i in range(lo, hi + 1)]
+    SEED = int(os.environ.get("HOLO_SEED", 0))
+    jobs = [(i, SEED) for i in range(lo, hi + 1)]
     for a in sys.argv[1:]:
         if a.startswith("--only="):
-            jobs = [(int(x), 0) for x in a[7:].split(",") if x]
+            jobs = [(int(x), SEED) for x in a[7:].split(",") if x]
     reports = {}
     if "--show" in sys.argv:
         for i, _ in jobs:

@@ -249,10 +249,11 @@ def gate_sites(L, ctx, kinds, count):
         legs.append({"idx": idx, "lg": lg, "usable": usable, "u": (ux, uy), "w": lw, "edge": edge})
     want = [kinds[i % len(kinds)] for i in range(count)]
     order = sorted(range(len(want)), key=lambda i: -sum(G.EXTENT[want[i]]))     # hardest to fit first
-    # a long leg is cut into slots (>= ~800 px) so it can carry more than one gate
+    need = max(sum(G.EXTENT[k]) for k in want) if want else 0.0
+    # a long leg is cut into slots (>= ~800 px, or the biggest gate's extent) so it can carry more than one gate
     slots = []
     for leg in legs:
-        n = max(1, int(leg["usable"] // 800))
+        n = max(1, int(leg["usable"] // max(800.0, need)))          # a slot must be able to hold the biggest gate asked for
         size = leg["usable"] / n
         for k in range(n):
             slots.append({"leg": leg, "a": leg["edge"] + k * size, "size": size, "id": (leg["idx"], k)})
@@ -307,6 +308,12 @@ def apply_gates(L, ctx, kinds, count):
             ok = G.gate_grow(L, ctx, site)
         elif kind == "gshield":
             ok = G.gate_shield(L, ctx, site)
+        elif kind == "gslow":
+            ok = G.gate_slow(L, ctx, site, throat_w=max(142.0, min(lerp(150.0, 146.0, ctx.tight) - 2.0 * gk, span - 40.0)))   # lab: <=150 px is a KEY at with@6 / without@12
+        elif kind == "gstretchs":
+            ok = G.gate_stretch_short(L, ctx, site, throat_w=max(90.0, min(lerp(108.0, 98.0, ctx.tight) - 6.0 * gk, span - 40.0)))
+        elif kind == "gstretchl":
+            ok = G.gate_stretch_long(L, ctx, site, chaser_speed=155.0 * (ctx.speed / 1.1) * (1.0 + 0.08 * gk))
         else:
             ok = G.gate_boost(L, ctx, site, chaser_speed=130.0 * (ctx.speed / 1.1) * (1.0 + 0.12 * gk))
         if ok:

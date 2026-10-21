@@ -7,6 +7,8 @@ SECTORS = {
     3: ("QUANTUM PUZZLES", "Küçülme boğazları • kaçış koşuları • kırılan duvarlar"),
     4: ("EVENT HORIZON", "Lazer kapıları • döner kollar • ritim pencereleri"),
     5: ("OMEGA VOID", "Her şey bir arada • uzun dayanıklılık • tek hata yok"),
+    6: ("CHRONO RIFT", "Yavaşlatma alanları • hassas boğazlar • zamanı bük"),
+    7: ("STRING THEORY", "İp esneticiler • uzun ve kısa ip • iki yönlü anahtarlar"),
 }
 
 ADJ = {
@@ -20,11 +22,16 @@ ADJ = {
         "PHOTON", "SCARLET", "RELENTLESS", "BLADED", "EVENT", "SHADOWLESS", "HORIZON", "DEEP-STROBE", "FINAL", "CORE"],
     5: ["OMEGA", "HYBRID", "ENDLESS", "IRON-BLOOM", "CHAOS", "KNIFE-EDGE", "GAUNTLET", "ZERO", "BLACK", "LAST",
         "ABYSSAL", "MERCILESS", "COLLAPSE", "TWIN-PROP", "THE-WALL", "ETERNAL", "APOCALYPTIC", "NIRVANA", "TRIAL", "COSMIC"],
+    6: ["CHRONO", "DRIFTING", "SLOW-BURN", "TIDAL", "DILATED", "LINGERING", "AMBER", "HOURGLASS", "STILL", "EBBING",
+        "GLACIAL", "PATIENT", "SUSPENDED", "TEMPORAL", "FADING", "LAGGED", "SILENT-CLOCK", "ECHOING", "FROZEN", "EVENT-TIME"],
+    7: ["STRING", "ELASTIC", "TAUT", "VIBRATING", "LOOSE", "TENSION", "SPRUNG", "STRETCHED", "COILED", "RESONANT",
+        "SNAPPING", "WOVEN", "TWANGING", "HARMONIC", "TETHERED", "BOWED", "KNOTTED", "PLUCKED", "UNBOUND", "FINAL-NOTE"],
 }
 FAMNAME = {"arena": "TRIAL", "wander": "PASSAGE", "snake_h": "SERPENTINE", "snake_v": "COLUMNS", "zigzag": "ZIGZAG", "spiral": "SPIRAL", "maze": "LABYRINTH",
            "gates": "GATEWAY", "mines": "MINEFIELD", "chambers": "CHAMBERS", "custom": "PASSAGE"}
 SPECIAL = {1: "FIRST ORBIT", 2: "LONG JOG", 3: "U-TURN", 100: "COSMIC APEX", 20: "ALPHA APEX", 40: "PULSAR CORE",
-           60: "SINGULARITY", 80: "EVENT HORIZON CORE"}
+           60: "SINGULARITY", 80: "EVENT HORIZON CORE",
+           120: "CHRONO CORE", 140: "STRING THEORY"}
 
 
 def sector_of(i):
@@ -33,8 +40,13 @@ def sector_of(i):
 
 def difficulty(i):
     """tight in [0,1]: grows across the whole campaign, with a soft reset at the start of each sector."""
-    base = ((i - 1) / 99.0) ** 0.85
     local = (i - 1) % 20
+    if i > 100:
+        # past 100 the rise is GENTLE (user, 2026-10-15: about half the slope there): start where level 100 effectively sits
+        # (its corridor came out ~232 px) and add 0.0025 per level; speed, height and hazard count carry the rest
+        wave = -0.05 * (1.0 - local / 19.0) if local < 6 else 0.0
+        return max(0.02, min(1.0, 0.66 + 0.0025 * (i - 100) + wave + (0.03 if local == 19 else 0.0)))
+    base = ((i - 1) / 99.0) ** 0.85
     wave = -0.07 * (1.0 - local / 19.0) if local < 6 else 0.0
     boss = 0.04 if local == 19 else 0.0
     return max(0.02, min(1.0, 0.04 + 0.94 * base + wave + boss))
@@ -47,6 +59,8 @@ def speed_of(i):
     """Pair speed by level (1.0.8): slow early, rising later over the planned 200 levels - level 75 runs at ~85 % of the
     old 100-level curve (0.92 + 0.62 x^0.85; 75 % felt too slow), level 100 at 1.33, then up to a 1.65 ceiling (~150).
     levelgen/respeed.py re-times existing levels to it."""
+    if i > 100:                  # 1.0.9 feedback: 121-140 ran too fast - past 100 the speed rises only +0.003 a level (140: ~1.45)
+        return round(speed_of(100) + 0.003 * (i - 100), 3)
     x = min(1.0, (i - 1) / float(CAMPAIGN - 1))
     return round(min(1.65, 0.92 + 1.084 * x ** 1.394), 3)
 
@@ -56,7 +70,7 @@ def ramp_of(i):
     slowly, to 0.55 at the planned end."""
     if i <= 100:
         return round(0.22 + 0.26 * ((i - 1) / 99.0) ** 0.9, 3)
-    return round(0.48 + 0.07 * min(1.0, (i - 100) / float(CAMPAIGN - 100)), 3)
+    return 0.42                    # 1.0.9: the hidden end-of-level sprint stays gentler past 100
 
 
 def margin_target(i):
@@ -78,15 +92,18 @@ import copy
 import random
 
 # Families available to fill the campaign. Each sector uses (approximately) this mix so no layout dominates.
-ARENA_LEVELS = {6, 13, 16, 26, 34, 43, 47, 53, 57, 66, 74, 84, 88, 94}      # open-field trials (no power-up gates)
+ARENA_LEVELS = {6, 13, 16, 26, 34, 43, 47, 53, 57, 66, 74, 84, 88, 94, 108, 117, 127, 135}      # open-field trials (no power-up gates)
 ARENA_KINDS = {1: ["slider", "bars", "pillars", "bounce"], 2: ["slider", "bars", "laser", "shutter", "bounce"], 3: ["pillars", "bars", "slider", "shutter", "bounce"],
-               4: ["laser", "spin", "slider", "shutter", "bounce"], 5: ["laser", "spin", "slider", "shutter", "bars", "pillars", "bounce"]}
+               4: ["laser", "spin", "slider", "shutter", "bounce"], 5: ["laser", "spin", "slider", "shutter", "bars", "pillars", "bounce"],
+               6: ["pillars", "bars", "slider", "shutter", "bounce"], 7: ["laser", "spin", "slider", "shutter", "bars", "pillars", "bounce"]}
 FAMILY_MIX = {
     1: {"wander": 8, "snake_h": 2, "zigzag": 2, "spiral": 2, "gates": 3, "chambers": 2, "mines": 1},
     2: {"wander": 9, "snake_h": 2, "zigzag": 2, "spiral": 2, "gates": 2, "chambers": 2, "mines": 1},
     3: {"wander": 8, "snake_h": 1, "zigzag": 2, "spiral": 2, "gates": 2, "chambers": 3, "mines": 2},
     4: {"wander": 8, "snake_h": 2, "zigzag": 2, "spiral": 2, "gates": 2, "chambers": 2, "mines": 2},
     5: {"wander": 9, "snake_h": 1, "zigzag": 2, "spiral": 2, "gates": 2, "chambers": 2, "mines": 2},
+    6: {"wander": 11, "snake_h": 1, "zigzag": 2, "spiral": 1, "gates": 2, "chambers": 2, "mines": 1},      # slow gates need long straight legs
+    7: {"wander": 9, "snake_h": 1, "zigzag": 2, "spiral": 1, "gates": 2, "chambers": 3, "mines": 2},
 }
 KIT_POOL = {
     1: ["pillar", "micro", "baffle"],
@@ -94,6 +111,8 @@ KIT_POOL = {
     3: ["micro", "funnel", "baffle", "pillar", "sweep", "shutter"],
     4: ["laser", "spin", "twin", "sweep", "shutter", "funnel"],
     5: ["laser", "spin", "twin", "sweep", "shutter", "funnel", "baffle", "micro", "pillar"],
+    6: ["micro", "baffle", "funnel", "pillar", "sweep", "shutter", "laser"],
+    7: ["laser", "spin", "twin", "sweep", "shutter", "funnel", "baffle", "micro", "pillar"],
 }
 # level -> re-roll counter; bump a level's number here when the similarity report says it looks like another level
 VARIANT = {}
@@ -107,10 +126,18 @@ except Exception:
     VARIANT = {}
 # levels that came out far easier than their neighbours (2026-10 smoothing): power-up gates added after the schedule,
 # so the family schedule of every other level stays as it was
-GATE_OVERRIDE = {90: (["gshield", "ggrow", "gshrink"], 3)}
+GATE_OVERRIDE = {112: ([], 0), 90: (["gshield", "ggrow", "gshrink"], 3),
+                 118: (["gslow", "ggrow"], 2),                       # 3 gates + 9 hazards + a bumper on one route was not solvable
+                 139: (["gstretchl", "gstretchs"], 2),
+                 114: (["gslow", "gshrink"], 2),                     # five-gate mixes left no room for the gap-filling hazards
+                 136: (["gstretchl", "gslow"], 2)}
 BOSS = {20: ("wander", {"legs": 8, "long_bias": 0.6}), 40: ("wander", {"legs": 10, "long_bias": 0.5}), 60: ("wander", {"legs": 12, "long_bias": 0.55}),
-        80: ("wander", {"legs": 12, "long_bias": 0.5}), 100: ("wander", {"legs": 16, "long_bias": 0.7})}
-TUTORIAL_GATES = {7: "ggrow", 11: "gshield", 15: "gshrink", 18: "gboost"}
+        80: ("wander", {"legs": 12, "long_bias": 0.5}), 100: ("wander", {"legs": 16, "long_bias": 0.7}),
+        120: ("wander", {"legs": 14, "long_bias": 0.7}), 140: ("wander", {"legs": 16, "long_bias": 0.7})}
+TUTORIAL_GATES = {7: "ggrow", 11: "gshield", 15: "gshrink", 18: "gboost",
+                  101: "gslow", 121: "gstretchs", 124: "gstretchl"}      # each new mechanic is introduced alone, once
+FORCE_WANDER = {121, 102}     # 121: lab-calibrated throat; 102/104/110: the room levels left long empty stretches no tool could fill                                                        # the short-tether tutorial uses the lab-calibrated straight-leg throat
+LONG_LEG_GATES = ("gboost", "gslow", "gstretchl")                           # gates that need a long straight leg (no door families)
 DOOR_FAMILIES = ("gates", "chambers")
 
 
@@ -127,6 +154,14 @@ def _gate_program(i, sec, loc):
         kinds = {0: ["gshrink"], 1: ["gboost", "gshrink"], 2: ["ggrow", "gshrink"], 3: ["gshrink", "gboost", "ggrow"],
                  4: ["gboost", "gshrink", "gshield"]}[k]
         return kinds, 1 + k // 2 + (1 if loc % 3 == 2 else 0)
+    if sec == 6:                      # chrono rift: the slow gate leads, the older gates season it
+        order = ["gslow", "gshrink", "gslow", "ggrow", "gshield", "gboost"]
+        r = loc % len(order)
+        return order[r:] + order[:r], 1 + (1 if loc >= 8 else 0) + (1 if loc >= 15 else 0)
+    if sec == 7:                      # string theory: long and short tether, with the slow gate and the older gates
+        order = ["gstretchs", "gstretchl", "gslow", "gstretchs", "gshield", "gstretchl", "gshrink"]
+        r = loc % len(order)
+        return order[r:] + order[:r], 2 + (1 if loc >= 8 else 0)
     order = ["gshield", "gboost", "gshrink", "ggrow"] if sec == 4 else ["gshrink", "gboost", "gshield", "ggrow"]
     r = loc % 4
     kinds = order[r:] + order[:r]
@@ -140,7 +175,7 @@ def _family_schedule():
     """Deterministic family per level (weighted by the sector mix, no repeats back to back)."""
     if _SCHEDULE:
         return _SCHEDULE
-    for sec in range(1, 6):
+    for sec in range(1, 8):
         rng = random.Random(9000 + sec)
         remain = dict(FAMILY_MIX[sec])
         prev = None
@@ -155,7 +190,7 @@ def _family_schedule():
             if kinds:
                 allowed -= {"arena"}
                 allowed &= {"wander", "zigzag", "spiral", "gates", "chambers"}
-                if "gboost" in [kinds[j % len(kinds)] for j in range(max(1, cnt))]:
+                if i in FORCE_WANDER or any(k_ in LONG_LEG_GATES for k_ in [kinds[j % len(kinds)] for j in range(max(1, cnt))]):
                     allowed &= {"wander"}
             opts = [f for f in allowed if f != prev and f != "spiral"] or ["wander"]
             if not opts:
@@ -214,7 +249,7 @@ def plan(i):
         lb = rng.uniform(0.25, 0.9)
         if need_long:
             wanted = [p["gates"][j % len(p["gates"])] for j in range(max(1, p["gcount"]))]
-            lb = max(lb, 0.95 if "gboost" in wanted else 0.7)
+            lb = max(lb, 0.95 if any(k_ in LONG_LEG_GATES for k_ in wanted) else 0.7)
         base = dict(legs=4 + int(g * 8) + rng.randint(0, 3), long_bias=round(lb, 3), wvar=wv, flip=flip, reach=round(rng.uniform(0.55, 0.85), 2))
         if need_long:
             from levelgen import gates as G
@@ -239,7 +274,7 @@ def plan(i):
     elif fam == "mines":
         fkw = {"rows": 3 + int(g * 7) + rng.randint(0, 1), "start_bottom": rng.random() < 0.6}
     if fam in DOOR_FAMILIES and p["gates"]:
-        allowed = [k for k in p["gates"] if k != "gboost"] or ["gshield"]
+        allowed = [k for k in p["gates"] if k not in LONG_LEG_GATES] or ["gshield"]      # (FORCE_WANDER levels never get here)
         fkw["door_kinds"] = [allowed[j % len(allowed)] if j < max(1, p["gcount"]) else None for j in range(fkw["n"])]
         p["gcount"] = 0                                    # the doors already carry the gates
     p.update(family=fam, fkw=fkw)
@@ -247,21 +282,24 @@ def plan(i):
 
     # hazard kit: a random distinct subset of the sector's pool, so levels of a sector differ in kind, not just in count
     pool = KIT_POOL[sec]
-    n_kinds = {1: 0 if loc < 6 else rng.randint(1, 2), 2: rng.randint(2, 3), 3: rng.randint(2, 4), 4: 3, 5: rng.randint(4, 5)}[sec]
+    n_kinds = {1: 0 if loc < 6 else rng.randint(1, 2), 2: rng.randint(2, 3), 3: rng.randint(2, 4), 4: 3, 5: rng.randint(4, 5),
+               6: rng.randint(2, 3), 7: rng.randint(3, 4)}[sec]
     p["kit"] = rng.sample(pool, min(n_kinds, len(pool)))
     k = loc // 4
     cnt = {1: 0 if loc < 6 else 1 + (loc - 6) // 5, 2: 1 + k + (1 if loc >= 10 else 0), 3: 1 + k + (1 if loc % 2 else 0),
-           4: 2 + k + (1 if loc % 3 == 0 else 0), 5: 3 + k + (1 if loc % 2 else 0)}[sec]
+           4: 2 + k + (1 if loc % 3 == 0 else 0), 5: 3 + k + (1 if loc % 2 else 0),
+           6: 2 + k // 2 + (1 if loc % 3 == 0 else 0), 7: 3 + k // 2 + (1 if loc % 2 else 0)}[sec]
     p["count"] = cnt
     # kinetic bumpers (bounce + speed kick): now a regular part of every sector, more of them later on
     p["bumpers"] = {1: 0 if loc < 6 else 1 + (loc - 6) // 5, 2: (1 if loc % 3 == 1 else 0) + (1 if loc >= 14 else 0),
-                    3: 1 if loc % 4 == 2 else 0, 4: 1 if loc % 3 == 0 else 0, 5: (1 + (1 if loc >= 12 else 0)) if loc % 2 == 1 else 0}[sec]
+                    3: 1 if loc % 4 == 2 else 0, 4: 1 if loc % 3 == 0 else 0, 5: (1 + (1 if loc >= 12 else 0)) if loc % 2 == 1 else 0,
+                    6: 1 if loc % 4 == 1 else 0, 7: (1 if loc % 3 == 1 else 0) + (1 if loc >= 14 else 0)}[sec]
     if fam in ("arena",):
         p["kit"], p["count"], p["bumpers"] = [], 0, 0
     if fam in ("mines",):
         p["kit"] = [x for x in p["kit"] if x in ("sweep", "laser", "spin", "twin")][:2]
         p["count"] = 1 + k // 2
-    if sec == 5 and not p["kit"]:
+    if sec >= 5 and not p["kit"]:
         p["kit"] = ["laser"]
     scale = 0.5 + 0.5 * height_of(i) / 1470.0
     p["count"] = int(round(p["count"] * scale))
@@ -269,7 +307,7 @@ def plan(i):
         p["kit"] = ["spin", "laser", "sweep", "micro", "twin", "shutter"]
         p["count"] = 14
     # a spare shield would let the player skip a shield gate
-    p["shields"] = 0 if any(x == "gshield" for x in p["gates"]) or fam in DOOR_FAMILIES else (1 if loc in (3, 8, 13, 18) and sec in (2, 4, 5) else 0)
+    p["shields"] = 0 if any(x == "gshield" for x in p["gates"]) or fam in DOOR_FAMILIES else (1 if loc in (3, 8, 13, 18) and sec in (2, 4, 5, 6, 7) else 0)
     # style: every level's hazards move / size differently
     p["style"] = {"sp": round(rng.uniform(0.82, 1.25), 3), "lp": round(rng.uniform(0.85, 1.2), 3), "sz": round(rng.uniform(0.88, 1.15), 3)}
     return p

@@ -16,6 +16,10 @@ THEMES = {
             wall=(40, 22, 18), wall2=(62, 34, 26), accent=(255, 115, 25)),
     5: dict(top=(10, 4, 14), bot=(28, 6, 24), neb=[(190, 30, 70), (100, 30, 130), (210, 160, 40)], hero="supernova",
             wall=(24, 16, 32), wall2=(40, 26, 52), accent=(255, 35, 75)),
+    6: dict(top=(14, 10, 4), bot=(36, 24, 8), neb=[(210, 150, 30), (150, 90, 20), (90, 140, 170)], hero="rift",
+            wall=(34, 28, 16), wall2=(56, 46, 24), accent=(255, 200, 60)),
+    7: dict(top=(4, 6, 22), bot=(12, 14, 50), neb=[(60, 80, 220), (120, 70, 210), (40, 150, 220)], hero="strings",
+            wall=(16, 20, 46), wall2=(28, 34, 76), accent=(110, 140, 255)),
 }
 
 
@@ -123,6 +127,32 @@ def draw_hero(surface, kind, cx, cy, r, seed=1):
             d = r * rng.uniform(1.1, 2.4)
             pygame.draw.circle(tmp, (255, rng.randint(120, 220), 70, rng.randint(90, 200)), (c + math.cos(a) * d, c + math.sin(a) * d), rng.randint(1, 4))
         pygame.draw.circle(tmp, (255, 235, 200, 220), (c, c), max(3, int(r * 0.2)))
+    elif kind == "rift":                  # a clock face swallowed by a time vortex
+        for k in range(5):
+            pygame.draw.circle(tmp, (255, 200, 70, 70 - k * 11), (c, c), int(r * (0.7 + 0.3 * k)), max(2, int(r * 0.04)))
+        for i in range(12):
+            a = i * math.pi / 6
+            r1, r2 = r * 1.45, r * (1.66 if i % 3 == 0 else 1.55)
+            pygame.draw.line(tmp, (255, 225, 120, 210), (c + math.cos(a) * r1, c + math.sin(a) * r1), (c + math.cos(a) * r2, c + math.sin(a) * r2), max(2, int(r * 0.04)))
+        for arm in range(3):
+            pts = [(c + math.cos(u + arm * 2.094) * (r * 0.08 + r * 0.9 * u / 12.0), c + math.sin(u + arm * 2.094) * (r * 0.08 + r * 0.9 * u / 12.0))
+                   for u in [k * 0.25 for k in range(0, 49)]]
+            pygame.draw.lines(tmp, (255, 235, 160, 190), False, pts, max(2, int(r * 0.05)))
+        for ang, ln in ((-1.1, 0.85), (0.5, 0.6)):
+            pygame.draw.line(tmp, (255, 245, 210, 235), (c, c), (c + math.cos(ang) * r * ln, c + math.sin(ang) * r * ln), max(3, int(r * 0.06)))
+        pygame.draw.circle(tmp, (255, 250, 230, 255), (c, c), max(3, int(r * 0.1)))
+    elif kind == "strings":                # vibrating strings with bead nodes
+        for k in range(7):
+            col = (150, 180, 255, 170) if k % 2 == 0 else (210, 150, 255, 150)
+            pts = []
+            for x in range(-int(r * 2.2), int(r * 2.2) + 1, 6):
+                env = max(0.0, 1.0 - abs(x) / (r * 2.3))
+                pts.append((c + x, c + (k - 3) * r * 0.3 + math.sin(x / (r * 0.34) + k * 0.9) * r * 0.24 * env))
+            pygame.draw.lines(tmp, col, False, pts, max(2, int(r * 0.035)))
+            for j in range(0, len(pts), 16):
+                pygame.draw.circle(tmp, (235, 240, 255, 230), pts[j], max(2, int(r * 0.045)))
+        pygame.draw.circle(tmp, (255, 255, 255, 240), (c, c), max(3, int(r * 0.12)))
+        pygame.draw.circle(tmp, (160, 190, 255, 110), (c, c), int(r * 0.3), 2)
     surface.blit(tmp, (int(cx - pad), int(cy - pad)))
 
 
@@ -157,7 +187,7 @@ def make_far_layer(sector, seed, w, h, hero_pos=None):
     hx = hero_pos[0] if hero_pos else rng.choice([rng.randint(120, 300), rng.randint(600, 780)])
     hy = hero_pos[1] if hero_pos else rng.randint(int(h * 0.22), int(h * 0.55))
     draw_hero(surf, th["hero"], hx, hy, rng.randint(120, 170), seed)
-    other = {1: "crystal", 2: "supernova", 3: "ringed", 4: "pulsar", 5: "blackhole"}[sector]
+    other = {1: "crystal", 2: "supernova", 3: "ringed", 4: "pulsar", 5: "blackhole", 6: "strings", 7: "rift"}[sector]
     draw_hero(surf, other, w - hx + rng.randint(-60, 60), min(h - 200, hy + rng.randint(500, 900)), rng.randint(50, 80), seed + 7)
     return surf
 
@@ -227,6 +257,32 @@ def make_wall_texture(sector, w, h, seed):
             pygame.draw.lines(tex, (255, 220, 120), False, pts, 1)
         for _ in range(int(w * h / 12000)):
             pygame.draw.circle(tex, (255, rng.randint(120, 200), 40), (rng.randrange(w), rng.randrange(h)), rng.randint(1, 2))
+    elif sector == 6:    # brass clockwork: gears and ticking dials
+        for _ in range(int(w * h / 55000)):
+            gx, gy, rr = rng.randrange(w), rng.randrange(h), rng.randint(36, 110)
+            teeth = max(8, rr // 7)
+            pts = []
+            for k in range(teeth * 2):
+                a = k * math.pi / teeth
+                rad = rr if k % 2 == 0 else rr * 0.82
+                pts.append((gx + math.cos(a) * rad, gy + math.sin(a) * rad))
+            pygame.draw.polygon(tex, _scale(th["wall2"], rng.uniform(0.85, 1.2)), pts)
+            pygame.draw.polygon(tex, _scale(acc, 0.5), pts, 2)
+            pygame.draw.circle(tex, _scale(th["wall"], 0.6), (gx, gy), rr // 3)
+            pygame.draw.circle(tex, _scale(acc, 0.7), (gx, gy), rr // 3, 2)
+            pygame.draw.circle(tex, acc, (gx, gy), max(3, rr // 10))
+        for _ in range(int(w * h / 16000)):
+            pygame.draw.circle(tex, (255, 230, 150), (rng.randrange(w), rng.randrange(h)), 1)
+    elif sector == 7:    # a lattice of humming strings
+        for y0 in range(0, h, 34):
+            ph, am = rng.uniform(0, 6.28), rng.uniform(3, 9)
+            pts = [(x, y0 + math.sin(x / 46.0 + ph) * am) for x in range(0, w + 12, 12)]
+            pygame.draw.lines(tex, _scale(acc, rng.uniform(0.22, 0.45)), False, pts, 2)
+        for _ in range(int(w * h / 14000)):
+            pygame.draw.circle(tex, (210, 225, 255), (rng.randrange(w), rng.randrange(h)), rng.randint(1, 2))
+        for _ in range(int(w * h / 90000)):
+            x, y, rr = rng.randrange(w), rng.randrange(h), rng.randint(20, 54)
+            pygame.draw.circle(tex, _scale(acc, 0.5), (x, y), rr, 2)
     else:                # obsidian with red fractures and gold dust
         for _ in range(int(w * h / 34000)):
             x, y = rng.randrange(w), rng.randrange(h)

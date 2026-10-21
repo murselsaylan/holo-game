@@ -1,5 +1,7 @@
 import { handle, signWallet } from "../handler.ts";
-import { dailyReward } from "../wallet.ts";
+import { dailyDeal, dailyReward } from "../wallet.ts";
+import { weeklySkins } from "../rotation.ts";
+import { SKIN_COST } from "../wallet_data.ts";
 import { MemStore } from "./mem.ts";
 import assert from "node:assert/strict";
 
@@ -58,9 +60,21 @@ let bal = (await w("sync", { local: 0 })).body.balance as number;
 const ref1 = rnd();
 r = await w("spend", { item: "revive", ref: ref1 }); assert.equal(r.body.balance, bal - 20);
 r = await w("spend", { item: "revive", ref: ref1 }); assert.equal(r.body.balance, bal - 20);   // retried request
-r = await w("spend", { item: "skin:big_bang", ref: rnd() }); assert.equal(r.body.price, 500);
+// a 500-diamond skin outside this week's showcase and today's deal costs its full price; one in the showcase costs the weekly price
+const wkSkins = weeklySkins(now), dealSkin = dailyDeal(now).skin;
+const full500 = Object.keys(SKIN_COST).find((k) => (SKIN_COST as any)[k] === 500 && !k.includes("prestige") && k !== dealSkin && !wkSkins.some((x) => x.skin === k))!;
+r = await w("spend", { item: "skin:" + full500, ref: rnd() }); assert.equal(r.body.price, 500);
+r = await w("spend", { item: "skin:" + wkSkins[0].skin, ref: rnd() }); assert.ok(r.body.price <= wkSkins[0].price && r.body.price < wkSkins[0].full, "weekly showcase price");
 assert.equal((await w("spend", { item: "skin:nope", ref: rnd() })).status, 400);
 assert.equal((await w("spend", { item: "revive", ref: "short" })).status, 400);
+// the day's first shield is free (once per UTC day, a retried ref is not charged); the next one costs SHIELD_COST
+assert.equal((await w("sync", { local: 0 })).body.free_shield, true, "free shield offered");
+bal = (await w("sync", { local: 0 })).body.balance as number;
+const sref = rnd();
+r = await w("spend", { item: "shield", ref: sref }); assert.equal(r.status, 200); assert.equal(r.body.price, 0); assert.equal(r.body.free, true); assert.equal(r.body.balance, bal);
+r = await w("spend", { item: "shield", ref: sref }); assert.equal(r.body.balance, bal, "retried free request is not charged");
+assert.equal((await w("sync", { local: 0 })).body.free_shield, false, "used up for today");
+r = await w("spend", { item: "shield", ref: rnd() }); assert.equal(r.body.price, 10); assert.equal(r.body.balance, bal - 10);
 store.players.get(pid).diamonds = 5;
 r = await w("spend", { item: "shield", ref: rnd() }); assert.equal(r.status, 402); assert.equal(r.body.balance, 5);
 // stale timestamp

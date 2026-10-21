@@ -41,7 +41,7 @@ def main():
     game.save_mgr.save = lambda *a, **k: None          # never touch the real save file
     game.online.submit = lambda *a, **k: None
     problems = []
-    levels = [int(a) for a in sys.argv[1:]] or list(range(1, 101))
+    levels = [int(a) for a in sys.argv[1:]] or list(range(1, 141))
     for lid in levels:
         try:
             game.load_and_play_level(lid)

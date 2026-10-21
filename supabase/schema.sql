@@ -73,3 +73,54 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_players_google ON players (google) WHERE g
 CREATE TABLE IF NOT EXISTS reports(id BIGSERIAL PRIMARY KEY, player_id TEXT NOT NULL, kind TEXT NOT NULL,
   platform TEXT NOT NULL, version TEXT NOT NULL, body TEXT NOT NULL, created BIGINT NOT NULL);
 ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+
+-- friends (1.0.9): invite code, friendships (one row per pair, low < high), and the friends messages
+-- (daily gifts, pokes, level challenges, "I am stuck" help requests). RLS on, no policies: only the function reads them.
+ALTER TABLE players ADD COLUMN IF NOT EXISTS friend_code TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_players_friend_code ON players (friend_code) WHERE friend_code IS NOT NULL;
+CREATE TABLE IF NOT EXISTS friendships(
+  low TEXT NOT NULL, high TEXT NOT NULL, requester TEXT NOT NULL, status TEXT NOT NULL, created BIGINT NOT NULL,
+  PRIMARY KEY(low, high));
+CREATE INDEX IF NOT EXISTS idx_friendships_high ON friendships(high);
+ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
+CREATE TABLE IF NOT EXISTS friend_msgs(
+  id BIGSERIAL PRIMARY KEY,
+  from_id TEXT NOT NULL, to_id TEXT NOT NULL DEFAULT '',
+  kind TEXT NOT NULL, level INTEGER NOT NULL DEFAULT 0, item TEXT NOT NULL DEFAULT '', amount INTEGER NOT NULL DEFAULT 0,
+  day INTEGER NOT NULL, created BIGINT NOT NULL, claimed BIGINT NOT NULL DEFAULT 0, answered_by TEXT NOT NULL DEFAULT '');
+CREATE UNIQUE INDEX IF NOT EXISTS idx_fmsg_daily ON friend_msgs(from_id, to_id, kind, day) WHERE kind IN ('gift', 'poke', 'challenge');
+CREATE UNIQUE INDEX IF NOT EXISTS idx_fmsg_help ON friend_msgs(from_id, level, day) WHERE kind = 'help';
+CREATE INDEX IF NOT EXISTS idx_fmsg_to ON friend_msgs(to_id, claimed);
+ALTER TABLE friend_msgs ENABLE ROW LEVEL SECURITY;
+
+-- shared weekly goal (1.0.9). RLS on, no policies: only the function reads them.
+CREATE TABLE IF NOT EXISTS crowd_weeks(week TEXT PRIMARY KEY, goal INTEGER NOT NULL, stars BIGINT NOT NULL DEFAULT 0, created BIGINT NOT NULL);
+ALTER TABLE crowd_weeks ENABLE ROW LEVEL SECURITY;
+CREATE TABLE IF NOT EXISTS crowd_contrib(week TEXT NOT NULL, player_id TEXT NOT NULL, stars INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(week, player_id));
+ALTER TABLE crowd_contrib ENABLE ROW LEVEL SECURITY;
+CREATE TABLE IF NOT EXISTS weekly_clears(week TEXT NOT NULL, player_id TEXT NOT NULL, PRIMARY KEY(week, player_id));
+ALTER TABLE weekly_clears ENABLE ROW LEVEL SECURITY;
+
+-- invite reward (1.0.9): one row per invitee (the primary key = once per account); paid = when the reward was settled
+CREATE TABLE IF NOT EXISTS friend_invites(invitee TEXT PRIMARY KEY, inviter TEXT NOT NULL, created BIGINT NOT NULL, paid BIGINT NOT NULL DEFAULT 0);
+ALTER TABLE friend_invites ENABLE ROW LEVEL SECURITY;
+
+-- star wallet, daily level (1.0.9). RLS on, no policies: only the function reads them.
+-- star_log: one row per (player, reason, ref); balance = SUM(delta), "earned" = SUM of the positive deltas.
+CREATE TABLE IF NOT EXISTS star_log(
+  player_id TEXT NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  reason TEXT NOT NULL, ref TEXT NOT NULL, delta INTEGER NOT NULL, created BIGINT NOT NULL,
+  PRIMARY KEY(player_id, reason, ref));
+ALTER TABLE star_log ENABLE ROW LEVEL SECURITY;
+CREATE TABLE IF NOT EXISTS daily_runs(
+  day INTEGER NOT NULL, player_id TEXT NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  level INTEGER NOT NULL, started BIGINT NOT NULL, finished BIGINT NOT NULL DEFAULT 0,
+  score INTEGER NOT NULL DEFAULT 0, stars INTEGER NOT NULL DEFAULT 0, "time" REAL NOT NULL DEFAULT 0, taps TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY(day, player_id));
+CREATE INDEX IF NOT EXISTS idx_daily_board ON daily_runs(day, score DESC, "time" ASC) WHERE finished > 0;
+ALTER TABLE daily_runs ENABLE ROW LEVEL SECURITY;
+
+-- shop extras (1.0.9): the equipped prestige frame / title ('' = none; owned items live in wallet_log as spend:prestige:<id>)
+-- RUN THIS BEFORE deploying the function that reads players.frame / players.title (the leaderboard query selects them).
+ALTER TABLE players ADD COLUMN IF NOT EXISTS frame TEXT NOT NULL DEFAULT '';
+ALTER TABLE players ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT '';

@@ -1,5 +1,6 @@
 """Portrait, touch-first UI for HOLO. Logical screen: VW x VH (900 x >=1620)."""
 import math
+import time
 import pygame
 
 import gfx
@@ -23,16 +24,17 @@ import paths
 import achievements as ach_mod
 import skin_catalog as catalog
 import skin_text
+from shop_art import product_art
 import name_filter
 
 VW = 900
 VH = 1620
 HUD_H = 150
 
-SECTOR_COL = {1: (0, 210, 255), 2: (210, 60, 255), 3: (35, 245, 140), 4: (255, 130, 35), 5: (255, 45, 85)}
+SECTOR_COL = {1: (0, 210, 255), 2: (210, 60, 255), 3: (35, 245, 140), 4: (255, 130, 35), 5: (255, 45, 85), 6: (255, 200, 60), 7: (110, 140, 255)}
 
 
-_HERO_KIND = {1: "ringed", 2: "pulsar", 3: "crystal", 4: "blackhole", 5: "supernova"}
+_HERO_KIND = {1: "ringed", 2: "pulsar", 3: "crystal", 4: "blackhole", 5: "supernova", 6: "rift", 7: "strings"}
 _ICONS = {}
 
 
@@ -321,6 +323,15 @@ def draw_diamond_icon(surface, cx, cy, size=16, color=(0, 230, 255)):
     pygame.draw.polygon(surface, (255, 255, 255), outer_pts, 1)
 
 
+def draw_shield_icon(surface, cx, cy, radius=26, active=True):
+    """Original gameplay shield: a blue hexagon with a white centre."""
+    pts = [(cx + math.cos(math.pi / 6 + k * math.pi / 3) * radius,
+            cy + math.sin(math.pi / 6 + k * math.pi / 3) * radius) for k in range(6)]
+    pygame.draw.polygon(surface, (60, 190, 255) if active else (40, 60, 90), pts)
+    pygame.draw.polygon(surface, (170, 240, 255), pts, max(1, round(radius * 3 / 26)))
+    pygame.draw.circle(surface, (255, 255, 255), (round(cx), round(cy)), max(1, round(radius * 5 / 26)))
+
+
 def draw_diamond_badge(surface, cx, cy, amount):
     """Pill badge showing diamond icon and amount."""
     s_txt = str(amount)
@@ -563,6 +574,9 @@ class Button:
             label(self.text, self.font_size, sh, (x0 + tw / 2.0, cy + 2), max_w=w - 90)
             label(self.text, self.font_size, col, (x0 + tw / 2.0, cy), max_w=w - 90)
             draw_diamond_icon(comp, int(x0 + tw + 30) + _PAD, cy + _PAD, max(10, int(self.font_size * 0.45)), (0, 230, 255))
+        elif self.icon in ("shield", "revive"):
+            product_art(comp, self.icon, (42 + _PAD, cy + _PAD), min(h - 6, 64))
+            label(self.text, self.font_size, col, (cx + 25, cy), max_w=w - 100)
         elif self.sub:
             label(self.text, self.font_size, sh, (cx, cy - h * 0.16 + 2), max_w=w - 30)
             label(self.text, self.font_size, col, (cx, cy - h * 0.16), max_w=w - 30)
@@ -801,6 +815,8 @@ class HUD:
         self.shield_stock = 0
         self.diamonds = 0
         self.shield_active = 0                                   # shields currently on the pair
+        self.shield_free = False                                 # today's first shield is free
+        self.shield_hint = False                                 # a shield is ready and the run has not started: light the button
 
     def hit_pause(self, pos):
         return self.pause_rect.inflate(10, 20).collidepoint(pos)
@@ -813,7 +829,8 @@ class HUD:
         # Everything but the progress bar only changes a few times per second: keep it as one opaque sprite and
         # re-render it on change (its text blits are the slowest part of a gameplay frame on phones).
         key = (level_id, max_levels, stars_collected, shields, sector_title, sector, attempts, title,
-               min(100, max(0, int(progress * 100))), self.shield_stock, self.shield_active, get_language(), VW)
+               min(100, max(0, int(progress * 100))), self.shield_stock, self.shield_active, self.shield_free, self.shield_hint,
+               get_language(), VW)
         if getattr(self, "_key", None) != key:
             if getattr(self, "_img", None) is None or self._img.get_width() != VW:
                 self._img = gfx.cv(pygame.Surface((VW, HUD_H + 1)))   # +1: the 2 px bottom rule spills one row
@@ -857,14 +874,14 @@ class HUD:
         """Next to pause: tap = put a shield on the pair (own stock, or buy one for 10 diamonds)."""
         sr = self.shield_rect
         on = self.shield_active > 0
-        panel(surface, sr, (14, 44, 66) if on else (24, 30, 46), (90, 230, 255) if on else (70, 88, 122), 20, 3 if on else 2)
+        lit = self.shield_hint and not on                        # ready to arm before the first swap: lit frame
+        panel(surface, sr, (14, 44, 66) if (on or lit) else (24, 30, 46), (90, 230, 255) if (on or lit) else (70, 88, 122), 20, 4 if lit else (3 if on else 2))
         cx, cy = sr.centerx, sr.y + 40
-        hexp = [(cx + math.cos(math.pi / 6 + k * math.pi / 3) * 26, cy + math.sin(math.pi / 6 + k * math.pi / 3) * 26) for k in range(6)]
-        pygame.draw.polygon(surface, (60, 190, 255) if on else (40, 60, 90), hexp)
-        pygame.draw.polygon(surface, (170, 240, 255), hexp, 3)
-        pygame.draw.circle(surface, (255, 255, 255), (cx, cy), 5)
+        draw_shield_icon(surface, cx, cy, 26, active=on or lit)
         if self.shield_stock > 0 or on:
             draw_text(surface, f"x{max(self.shield_stock, self.shield_active)}", 26, (150, 240, 255), (cx, sr.y + 82))
+        elif self.shield_free:
+            draw_text(surface, t("shield_free_tag"), 22, (255, 225, 110), (cx, sr.y + 82), max_w=sr.w - 8)
         else:
             draw_text(surface, "10", 24, (120, 235, 255), (cx - 8, sr.y + 82))
             draw_vector_gem(surface, cx + 16, sr.y + 82, 8)
@@ -1108,6 +1125,7 @@ class MainMenu:
         self.btn_daily = None
         self.btn_ach = None
         self.enter = 1.0                       # 0..1 while the start-up intro slides the edge icons in
+        self.extra_badges = None               # () -> extra rewards waiting on the daily screen (team goal, level of the week)
         self.build()
 
     # ------------------------------------------------------------------ layout
@@ -1131,7 +1149,7 @@ class MainMenu:
         prim = Button((cx - w // 2, top, w, 150), t("continue_lvl", lvl=cl) if started else t("start_run"), 46,
                       bg_color=(0, 214, 255), hover_color=(90, 236, 255), text_color=white, callback=self.on_continue)
         # the game modes share the second row (the levels page opens from the progress bar above)
-        modes = [m for m in ("endless", "arena") if self.callbacks[m]]
+        modes = [m for m in ("endless", "arena") if self.callbacks.get(m)]
         self.buttons = [prim]
         if modes:
             bw = (w - 24 * (len(modes) - 1)) // len(modes)
@@ -1141,6 +1159,8 @@ class MainMenu:
                                            hover_color=hov, text_color=tc, callback=self.callbacks[cb]))
         self.progress_rect = pygame.Rect(cx - 330, self._chip_y() + 34, 660, 80)
         self._progress_down = False
+        self.track_page = None            # first sector shown on the progress track (4 at a time, swipe to scroll)
+        self._track_drag = None
         self.card_bottom = top - 14                    # the current-level card sits between progress and PLAY
 
         # round icons in the four corners
@@ -1214,8 +1234,13 @@ class MainMenu:
         # the progress line + sector track opens the levels page
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             self._progress_down = self.progress_rect.collidepoint(event.pos)
+            self._track_drag = event.pos[0] if self._progress_down else None
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             was, self._progress_down = self._progress_down, False
+            start, self._track_drag = self._track_drag, None
+            if was and start is not None and abs(event.pos[0] - start) > 45:     # a horizontal swipe scrolls the sectors
+                self._track_shift(1 if event.pos[0] < start else -1)
+                return None
             if was and self.progress_rect.collidepoint(event.pos):
                 return self.callbacks["levels"]
         return None
@@ -1302,7 +1327,7 @@ class MainMenu:
     def _draw_level_card(self, surface):
         """Where the pilot is now: sector emblem, sector name + theme, and the level's own title."""
         cl = min(MAX_LEVELS, max(1, self.save_mgr.campaign_level))
-        sec = min(5, max(1, (cl - 1) // 20 + 1))
+        sec = min(7, max(1, (cl - 1) // 20 + 1))
         col = SECTOR_COL[sec]
         cx = VW // 2
         title = self.level_title(cl)
@@ -1325,10 +1350,31 @@ class MainMenu:
         info = self.rank_provider() if self.rank_provider else None
         return (get_language(), VW, VH, id(backdrop), sm.player_name, sm.player_country, sm.levels_cleared,
                 sm.get_total_stars(), (info or {}).get("rank"), sm.campaign_level, sm.diamonds,
-                (sm.daily_claimable_count() + _login_due(sm)) if self.btn_daily else 0,
+                self._daily_badge(),
                 _event_due(sm) if self.btn_ach else 0,
                 tuple((b.sprite() or (None,))[0] for b in self.buttons),
-                tuple((b.pressed, b.offset) for b in self.icons), self.chip.pressed)
+                tuple((b.pressed, b.offset) for b in self.icons), self.chip.pressed, self._track_first())
+
+    TRACK_SHOW = 4                                    # sectors visible on the menu's progress track
+
+    def _track_first(self):
+        """First visible sector (0-based): follows the pilot's current sector until the player swipes."""
+        last = max(0, 7 - self.TRACK_SHOW)
+        if self.track_page is None:
+            cur = (max(1, self.save_mgr.campaign_level) - 1) // 20
+            return max(0, min(last, cur - self.TRACK_SHOW + 1 if cur >= self.TRACK_SHOW else 0))
+        return max(0, min(last, self.track_page))
+
+    def _track_shift(self, d):
+        first = self._track_first()
+        self.track_page = max(0, min(7 - self.TRACK_SHOW, first + d))
+
+    def _extra(self):
+        return int(self.extra_badges() or 0) if self.extra_badges else 0
+
+    def _daily_badge(self):
+        """Rewards ready on the daily screen: login reward, missions, the team goal and the level of the week."""
+        return (self.save_mgr.daily_claimable_count() + _login_due(self.save_mgr) + self._extra()) if self.btn_daily else 0
 
     def _ui_rects(self):
         """Screen areas the plate's UI covers: drifting rocks pass behind them."""
@@ -1380,7 +1426,7 @@ class MainMenu:
         self.draw_title(surface, skin_data, self.title_center(), orbs=not static, sparkles=not static)
         sm = self.save_mgr
 
-        # pilot chip, progress line + five sector segments
+        # pilot chip, progress line + seven sector segments
         y = self._chip_y()
         self._draw_pilot_chip(surface, y)
         y += 60
@@ -1389,16 +1435,20 @@ class MainMenu:
         if info and info.get("rank"):
             line += f"   •   {t('rank_world', rank=info['rank'])}"
         draw_text(surface, line, 26, TEXT_MUTED, (cx, y), bold=False, max_w=780)
-        track_w, gap = 500, 8
-        segment_w = (track_w - 4 * gap) // 5
-        for index in range(5):
-            track = pygame.Rect(cx - track_w // 2 + index * (segment_w + gap), y + 30, segment_w, 6)
-            pygame.draw.rect(surface, (32, 42, 62), track, border_radius=3)
+        track_w, gap = 520, 10
+        show = self.TRACK_SHOW
+        first = self._track_first()
+        segment_w = (track_w - (show - 1) * gap) // show
+        for slot in range(show):
+            index = first + slot
+            track = pygame.Rect(cx - track_w // 2 + slot * (segment_w + gap), y + 30, segment_w, 8)
+            pygame.draw.rect(surface, (32, 42, 62), track, border_radius=4)
             fraction = max(0.0, min(1.0, (sm.levels_cleared - index * 20) / 20.0))
             if fraction:
                 pygame.draw.rect(surface, SECTOR_COL[index + 1],
-                                 (track.x, track.y, max(2, int(track.w * fraction)), track.h), border_radius=3)
-        ax, ay = cx + track_w // 2 + 26, y + 33            # a chevron: the track opens the levels page
+                                 (track.x, track.y, max(2, int(track.w * fraction)), track.h), border_radius=4)
+            draw_text(surface, str(index + 1), 18, SECTOR_COL[index + 1] if fraction else TEXT_MUTED, (track.centerx, track.bottom + 14))
+        ax, ay = cx + track_w // 2 + 26, y + 34            # a chevron: the track opens the levels page
         pygame.draw.lines(surface, ACCENT_CYAN, False, [(ax - 6, ay - 10), (ax + 4, ay), (ax - 6, ay + 10)], 4)
 
         if backdrop is not None:        # the big buttons sit straight on the static space backdrop
@@ -1410,7 +1460,7 @@ class MainMenu:
         for b in self.icons:
             b.draw(surface)
         self._draw_diamonds(surface)
-        for btn, n in ((self.btn_daily, self.save_mgr.daily_claimable_count() + _login_due(self.save_mgr)),
+        for btn, n in ((self.btn_daily, self._daily_badge()),
                        (self.btn_ach, _event_due(self.save_mgr))):
             if btn is None or n <= 0:
                 continue
@@ -1422,7 +1472,7 @@ class MainMenu:
         draw_text(surface, t("footer", ver=__version__), 20, (90, 100, 125), (cx, VH - 22), bold=False)
         if config.test_tools():
             pill = pygame.Rect(0, 0, 640, 46)
-            pill.midbottom = (cx, self.dock_rect.y - 14)
+            pill.midbottom = (cx, VH - 48 - self.DOCK_H - 14)    # just above the bottom icon dock (same `base` as build())
             pygame.draw.rect(surface, (70, 20, 30), pill, border_radius=23)
             pygame.draw.rect(surface, (255, 90, 110), pill, 2, border_radius=23)
             draw_text(surface, t("dev_badge"), 24, (255, 170, 180), pill.center, max_w=610)
@@ -1738,28 +1788,103 @@ class DailyMissionsScreen(_ClaimMixin):
     weekly_missions.py). Claiming pays diamonds through the wallet. The seasonal event is on the achievements screen."""
     ROW_H = 150
 
-    def __init__(self, save_manager, on_back, audio_manager=None):
+    TABS = ("missions", "daily", "crowd")
+
+    def __init__(self, save_manager, on_back, audio_manager=None, online=None):
         self.save_mgr = save_manager
         self.on_back = on_back
         self.audio = audio_manager
+        self.online = online
         self.time_val = 0.0
         self.btn_back = back_button(on_back)
         self.claim_buttons = []          # the claim buttons shown this frame
         self._claim_btns = {}            # key -> Button, kept across frames so a touch that starts in one
                                          # frame and ends in a later one still counts as a press
+        # sections: missions (below), daily level (ranked_ui.RankedPanel), team goal + level of the week (crowd_ui.CrowdPanel)
+        self.tab = "missions"
+        self.on_play_daily = None        # holo: starts the daily level once the server gave out today's try
+        self.on_play_level = None        # holo: starts the level of the week
+        self._ranked = None
+        self._crowd = None
+        self.toast = ("", 0.0)
+        self.tab_btns = []
+        self._build_tabs()
+
+    def _build_tabs(self):
+        names = [("missions", t("goals_tab_missions")), ("daily", t("rk_tab_daily")), ("crowd", t("cw_title"))]
+        w = (VW - 80 - 2 * 12) // 3
+        self.tab_btns = [(k, Button((40 + i * (w + 12), 134, w, 76), n, 22,
+                                    bg_color=(30, 58, 92) if k == self.tab else BTN_NORMAL,
+                                    border_color=ACCENT_CYAN if k == self.tab else BORDER_COLOR,
+                                    callback=lambda k=k: self.set_tab(k))) for i, (k, n) in enumerate(names)]
+
+    def _view(self):
+        return pygame.Rect(30, 232, VW - 60, VH - 232 - 30)
+
+    def set_tab(self, tab):
+        if tab == "daily" and not self.save_mgr.stars_unlocked:
+            self.toast = (t("stars_locked_btn"), 2.4)    # the daily level opens with level 3
+            return
+        self.tab = tab if tab in self.TABS else "missions"
+        self._build_tabs()
+        p = self._panel()
+        if p is not None:
+            p.refresh()
+
+    def _panel(self):
+        """The body panel of the current section (built on first use; None on the missions section)."""
+        if self.tab == "missions" or not self.online:
+            return None
+        if self.tab == "crowd":
+            if self._crowd is None:
+                import crowd_ui
+                self._crowd = crowd_ui.CrowdPanel(self.save_mgr, self.online, self._view(),
+                                                  lambda lv: self.on_play_level and self.on_play_level(lv))
+            return self._crowd
+        if self._ranked is None:
+            import ranked_ui
+            self._ranked = ranked_ui.RankedPanel(self.save_mgr, self.online, self._view(),
+                                                 lambda lv: self.on_play_daily and self.on_play_daily(lv))
+        return self._ranked
 
     def refresh_texts(self):
         self.btn_back.text = t("back")
+        self._ranked = self._crowd = None                # their texts and buttons are built per language
+        self._build_tabs()
+
+    def sig_extra(self):
+        return time.time() if self.tab != "missions" else (self.tab, self.toast[1] > 0)
 
     def update(self, mouse_pos, dt=1.0):
         self.time_val += 0.04 * dt
+        if self.toast[1] > 0:
+            self.toast = (self.toast[0], self.toast[1] - dt / 60.0)
+        p = self._panel()
+        if p is not None and getattr(p, "confirm", False):
+            p.update(mouse_pos, dt)                      # the one-try card of the daily level is modal
+            return
         self.btn_back.update(mouse_pos, dt)
+        for _, b in self.tab_btns:
+            b.update(mouse_pos, dt)
+        if p is not None:
+            p.update(mouse_pos, dt)
+            return
         for b in self.claim_buttons:
             b.update(mouse_pos, dt)
 
     def handle_event(self, event):
+        p = self._panel()
+        if p is not None and getattr(p, "confirm", False):
+            p.handle_event(event)
+            return None
         if self.btn_back.handle_event(event):
             return self.on_back
+        for k, b in self.tab_btns:
+            if b.handle_event(event):
+                return b.callback
+        if p is not None:
+            p.handle_event(event)
+            return None
         for b in self.claim_buttons:
             if b.handle_event(event):
                 return b.callback
@@ -1794,9 +1919,20 @@ class DailyMissionsScreen(_ClaimMixin):
     def draw(self, surface):
         sm = self.save_mgr
         header(surface, t("goals_title"), self.btn_back, None)
+        for _, b in self.tab_btns:
+            b.draw(surface)
+        p = self._panel()
+        if p is not None:
+            self.claim_buttons = []
+            p.draw(surface)
+            if self.toast[1] > 0:
+                tr = pygame.Rect(80, VH // 2 - 50, VW - 160, 100)
+                panel(surface, tr, (20, 44, 34), ACCENT_GREEN, 20, 2)
+                draw_text(surface, self.toast[0], 30, TEXT_WHITE, tr.center, max_w=tr.w - 40)
+            return
         self.claim_buttons = []
         missions, progress, claimed, streak = sm.daily_missions()
-        y = 166
+        y = 232
         section_title(surface, y, t("daily_section"), ACCENT_CYAN, t("daily_streak", n=streak) if streak > 0 else None)
         y += 30
         for m in missions:
@@ -1936,6 +2072,25 @@ class LevelSelectScreen:
 
 
 # ============================================================================================ leaderboard
+_FRIEND_ERRORS = {
+    "daily limit": "fr_err_limit", "already sent today": "fr_err_already", "already asked for this level today": "fr_err_already",
+    "unknown code": "fr_err_unknown", "bad code": "fr_err_unknown", "that is your own code": "fr_err_self",
+    "friend list full": "fr_err_full", "offline": "fr_err_offline", "friend already cleared it": "fr_challenge_none",
+    "clear the level first": "fr_challenge_none", "level not cleared yet": "fr_challenge_notyet",
+    "someone already helped": "fr_help_taken", "request gone": "fr_help_taken", "no friends": "fr_help_none",
+}
+
+
+def friend_text(reply, ok_key, **kw):
+    """The toast for a friends answer: `ok_key` (formatted) on success, else the matching error line."""
+    if isinstance(reply, dict) and reply.get("ok") and "error" not in reply:
+        return t(ok_key, **kw)
+    err = reply.get("error", "") if isinstance(reply, dict) else ""
+    if err == "daily limit" and ok_key == "fr_claimed":
+        return t("fr_claim_limit")
+    return t(_FRIEND_ERRORS.get(err, "fr_err_generic"))
+
+
 class LeaderboardScreen:
     ROW_H = 112
     _ROWS = {}                  # rendered ranking rows (see _row_sprite)
@@ -1948,11 +2103,20 @@ class LeaderboardScreen:
         self.btn_back = back_button(on_back)
         self.scope = "global"
         self.scroll = Scroller()
-        self.top = 300
+        self.top = 268                  # below the tab row; the switch pushes the list further down
         self.bottom_h = 290
         self.tabs = []
         self.btn_refresh = Button((VW - 200, 34, 170, 88), t("refresh"), 30, callback=self.refresh)
         self.btn_profile = Button((VW // 2 - 240, VH - 150, 480, 84), t("profile_btn"), 30, callback=on_edit_profile)
+        self.country_only = False       # "MY COUNTRY" button: the world / endless list limited to my country (friends: filtered)
+        self.on_friends = None          # holo: opens the friends window (code, requests, gifts, help requests)
+        # [WORLD | MY COUNTRY]: one full-width two-way switch under the tabs of the general and endless pages
+        half = (VW - 80) // 2
+        self.btn_world = Button((40, self.top, half, self.SEG_H - 8), t("tab_world"), 28, callback=self.show_world)
+        self.btn_country = Button((40 + half, self.top, half, self.SEG_H - 8), t("tab_country"), 28, callback=self.show_country)
+        self.btn_friends = Button((VW // 2 - 300, VH - 150, 600, 84), t("fr_manage_btn"), 30,
+                                  callback=lambda: self.on_friends and self.on_friends())
+        self._me_rank = 0
         self.sel = None                 # the row whose actions are open (hide / report / name filter)
         self.sel_btns = []
         self._down = None
@@ -1960,25 +2124,90 @@ class LeaderboardScreen:
         self._build_tabs()
 
     def _build_tabs(self):
-        names = [("global", t("tab_world")), ("country", t("tab_country")), ("around", t("tab_around")),
-                 ("endless", t("tab_endless"))]
-        w = (VW - 80 - 3 * 12) // 4
-        self.tabs = [(k, Button((40 + i * (w + 12), 172, w, 84), n, 26,
-                                bg_color=(30, 58, 92) if k == self.scope else BTN_NORMAL,
-                                border_color=ACCENT_CYAN if k == self.scope else BORDER_COLOR,
+        names = [("global", t("tab_general")), ("endless", t("tab_endless")),
+                 ("friends", t("tab_friends") + (" •" if self.friends_waiting() else ""))]
+        w = (VW - 80 - (len(names) - 1) * 12) // len(names)
+        cur = self.scope
+        self.tabs = [(k, Button((40 + i * (w + 12), 172, w, 84), n, 22,
+                                bg_color=(30, 58, 92) if k == cur else BTN_NORMAL,
+                                border_color=ACCENT_CYAN if k == cur else BORDER_COLOR,
                                 callback=lambda k=k: self.set_scope(k))) for i, (k, n) in enumerate(names)]
 
     def refresh_texts(self):
         self.btn_back.text = t("back")
         self.btn_refresh.text = t("refresh")
         self.btn_profile.text = t("profile_btn")
+        self.btn_world.text = t("tab_world")
+        self.btn_country.text = t("tab_country")
+        self.btn_friends.text = t("fr_manage_btn")
         self._build_tabs()
+
+    # ---- friends tab (1.0.9): the board is me + my accepted friends, ranked like the world list
+    def friends_waiting(self):
+        """Things waiting for me from friends (requests, gifts, help requests) - a dot on the tab."""
+        f = getattr(self.online, "friends", None) or {}
+        return (sum(1 for x in f.get("friends", []) if x.get("status") == "incoming") + len(f.get("inbox", []))
+                + len(f.get("help", [])))
+
+    @property
+    def board_key(self):
+        """The server board this screen shows (the friends tab is built from the friends list instead)."""
+        if self.scope == "endless":
+            return "endless_country" if self.country_only else "endless"
+        if self.scope == "global":
+            return "country" if self.country_only else "global"
+        return self.scope
+
+    def toggle_country(self):
+        self.country_only = not self.country_only
+        self.scroll.y = 0
+        self.refresh()
+
+    def show_world(self):
+        if self.country_only:
+            self.toggle_country()
+
+    def show_country(self):
+        if not self.country_only:
+            self.toggle_country()
+
+    def _loading(self):
+        if not self.online:
+            return False
+        if self.scope == "friends":
+            return self.online.friends_status == "loading"
+        return self.online.is_loading(self.board_key)
+
+    def sig_extra(self):
+        o = self.online
+        f = getattr(o, "friends", None)
+        return (self.scope, self.country_only, id(f), getattr(o, "friends_status", ""), self.friends_waiting(), self.toast[1] > 0)
+
+    def _friend_rows(self):
+        sm = self.save_mgr
+        f = getattr(self.online, "friends", None) or {}
+        rows = [dict(x) for x in f.get("friends", []) if x.get("status") == "friend"]
+        rows.append({"id": sm.player_id, "name": sm.player_name, "country": sm.player_country, "levels": sm.highest_cleared,
+                     "score": sm.total_score, "stars": sm.get_total_stars(), "me": True,
+                     "frame": sm.prestige_frame, "title": sm.prestige_title})
+        rows.sort(key=lambda r: (-r.get("score", 0), -r.get("levels", 0), r.get("name", "")))
+        rank = 0
+        for i, r in enumerate(rows):
+            r["rank"] = i + 1
+            if r.get("me"):
+                rank = i + 1
+        self._me_rank = rank
+        return rows
 
     def on_open(self):
         self.scroll.y = 0
         self.refresh()
 
     def set_scope(self, scope):
+        if scope == "country":                       # old name of the world list limited to my country
+            scope, self.country_only = "global", True
+        elif scope == "around":
+            scope = "global"
         self.scope = scope
         self.scroll.y = 0
         self._build_tabs()
@@ -1987,11 +2216,51 @@ class LeaderboardScreen:
     def refresh(self):
         if self.online:
             self.online.flush_pending()
-            # "around me": just the 5 pilots right above and the 5 right below you, so it differs from the world list
-            self.online.fetch(self.scope, limit=11 if self.scope == "around" else 100)
+            if self.scope == "friends":
+                self.online.friends_refresh()
+            else:
+                self.online.fetch(self.board_key, limit=100)
 
     # ---- a row's actions: hide the pilot (only for me), report the name, switch the offensive-name filter
+    def _open_friend(self, e):
+        self.sel = e
+        cx, w = VW // 2, VW - 240
+        y = VH // 2 - 160
+        sent = e.get("sent") or []
+        specs = [(t("fr_gift"), "gift", (180, 70, 160)), (t("fr_poke"), "poke", (60, 120, 200)),
+                 (t("fr_challenge"), "challenge", (200, 130, 30)), (t("fr_remove"), "remove", (150, 40, 60))]
+        self.sel_btns = []
+        for i, (label, op, col) in enumerate(specs):
+            done = op in sent
+            b = Button((cx - w // 2, y + i * 104, w, 92), label, 30, bg_color=(40, 44, 58) if done else col,
+                       callback=lambda op=op: self._friend_action(op))
+            b.enabled = not done
+            self.sel_btns.append(b)
+        self.sel_btns.append(Button((cx - w // 2, y + 4 * 104 + 8, w, 92), t("close"), 32, bg_color=(0, 214, 255),
+                                    hover_color=(90, 236, 255), callback=self._close_row))
+
+    def _friend_action(self, op):
+        e, o = self.sel, self.online
+        self.sel = None
+        if not o or not e:
+            return
+        pid = e.get("id")
+        if op == "challenge":
+            mine = {int(k) for k in self.save_mgr.stats}
+            lvl = next((n for n in sorted(mine) if n > int(e.get("levels", 0))), 0)
+            if not lvl:
+                self.toast = (t("fr_challenge_none"), 2.8)
+                return
+            o.friends_op("challenge", f"{pid}:{lvl}", lambda r: setattr(self, "toast", (friend_text(r, "fr_challenge_sent", level=lvl), 2.8)))
+        elif op == "remove":
+            o.friends_op("remove", pid, lambda r: setattr(self, "toast", (friend_text(r, "fr_removed"), 2.4)))
+        else:
+            o.friends_op(op, pid, lambda r: setattr(self, "toast", (friend_text(r, "fr_gift_sent" if op == "gift" else "fr_poke_sent"), 2.4)))
+
     def _open_row(self, e):
+        if self.scope == "friends":
+            self._open_friend(e)
+            return
         self.sel = e
         cx, w = VW // 2, VW - 240
         y = VH // 2 - 160
@@ -2026,10 +2295,10 @@ class LeaderboardScreen:
         self._open_row(self.sel)
 
     def _row_at(self, pos):
-        view = pygame.Rect(30, self.top, VW - 60, VH - self.top - self.bottom_h)
+        view = pygame.Rect(30, self._lt(), VW - 60, VH - self._lt() - self.bottom_h)
         if not view.collidepoint(pos):
             return None
-        y = pos[1] - (self.top + 60) + self.scroll.y
+        y = pos[1] - (self._lt() + 60) + self.scroll.y
         i = int(y // self.ROW_H)
         rows = self._rows()
         return rows[i] if y >= 0 and 0 <= i < len(rows) else None
@@ -2045,14 +2314,30 @@ class LeaderboardScreen:
         self.btn_refresh.update(mouse_pos, dt)
         for _, b in self.tabs:
             b.update(mouse_pos, dt)
-        if self.on_edit_profile:
+        if self._seg_visible():
+            self.btn_world.update(mouse_pos, dt)
+            self.btn_country.update(mouse_pos, dt)
+        if self.scope == "friends":
+            self.btn_friends.update(mouse_pos, dt)
+        elif self.on_edit_profile:
             self.btn_profile.update(mouse_pos, dt)
         rows = self._rows()
-        self.scroll.update(len(rows) * self.ROW_H + 20, VH - self.top - self.bottom_h, dt)
+        self.scroll.update(len(rows) * self.ROW_H + 20, VH - self._lt() - self.bottom_h, dt)
+
+    SEG_H = 76                     # the world / country switch plus its gap
+
+    def _seg_visible(self):
+        return self.scope in ("global", "endless")
+
+    def _lt(self):
+        """Top of the list area."""
+        return self.top + (self.SEG_H if self._seg_visible() else 0)
 
     def _rows(self):
+        if self.scope == "friends":
+            return self._friend_rows()
         if self.online:
-            board = self.online.boards.get(self.scope)
+            board = self.online.boards.get(self.board_key)
             if board and board.get("rows"):
                 return board["rows"]
         return []
@@ -2070,11 +2355,19 @@ class LeaderboardScreen:
         for k, b in self.tabs:
             if b.handle_event(event):
                 return b.callback
-        if self.on_edit_profile and self.btn_profile.handle_event(event):
+        if self._seg_visible():
+            if self.btn_world.handle_event(event):
+                return self.show_world
+            if self.btn_country.handle_event(event):
+                return self.show_country
+        if self.scope == "friends":
+            if self.btn_friends.handle_event(event):
+                return self.btn_friends.callback
+        elif self.on_edit_profile and self.btn_profile.handle_event(event):
             return self.on_edit_profile
         if event.type == pygame.MOUSEWHEEL:
             self.scroll.wheel(event.y)
-        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self.top < event.pos[1] < VH - self.bottom_h:
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and self._lt() < event.pos[1] < VH - self.bottom_h:
             self.scroll.on_down(event.pos)
             self._down = event.pos
         elif event.type == pygame.MOUSEMOTION and event.buttons[0]:
@@ -2097,7 +2390,7 @@ class LeaderboardScreen:
         if name is None:
             name = t("lb_hidden_pilot")
         key = (w, rk, i % 2, is_me, e.get("country", "GX"), name, e.get("levels", 0), e.get("stars", 0),
-               e.get("score", 0), e.get("metres"))
+               e.get("score", 0), e.get("metres"), e.get("frame", ""), e.get("title", ""), get_language())
         cache = LeaderboardScreen._ROWS
         spr = cache.get(key)
         if spr is not None:
@@ -2112,14 +2405,22 @@ class LeaderboardScreen:
         rc = ACCENT_GOLD if rk == 1 else ((205, 220, 240) if rk == 2 else ((200, 135, 75) if rk == 3 else TEXT_MUTED))
         draw_text(spr, f"{rk}", 36 if rk < 1000 else 28, rc, (r.x + 48, r.centery))
         draw_country_badge(spr, e.get("country", "GX"), r.x + 158, r.centery, width=96, height=42)
+        ny = r.centery
+        if e.get("frame") or e.get("title"):                  # prestige from the shop: a frame round the flag, a title under the name
+            from shop_ui_extra import draw_frame, title_text, draw_title_badge
+            if e.get("frame"):
+                draw_frame(spr, pygame.Rect(r.x + 158 - 55, r.centery - 27, 110, 54), e["frame"])
+            if e.get("title") and title_text(e["title"]):
+                ny = r.centery - 14
+                draw_title_badge(spr, pygame.Rect(r.x + 230, r.centery + 8, 230, 28), e["title"], 17)
         if endless:
-            draw_text(spr, name, 34, TEXT_WHITE, (r.x + 230, r.centery), anchor="midleft", max_w=330)
+            draw_text(spr, name, 34, TEXT_WHITE, (r.x + 230, ny), anchor="midleft", max_w=330)
             draw_text(spr, fmt_int(e.get("points", e.get("metres", 0))), 34, ACCENT_GOLD, (r.right - 20, r.centery), anchor="midright")
             if len(cache) > 400:
                 cache.clear()
             cache[key] = spr
             return spr
-        draw_text(spr, name, 34, TEXT_WHITE, (r.x + 230, r.centery), anchor="midleft", max_w=220)
+        draw_text(spr, name, 34, TEXT_WHITE, (r.x + 230, ny), anchor="midleft", max_w=220)
         draw_text(spr, f"{e.get('levels', 0)}", 40, ACCENT_CYAN, (r.right - 215, r.centery - 8))
         draw_text(spr, f"{e.get('stars', 0)}", 22, ACCENT_GOLD, (r.right - 205, r.centery + 26), anchor="midleft", bold=False)
         draw_vector_star(spr, r.right - 226, r.centery + 26, radius=9, filled=True)
@@ -2131,16 +2432,17 @@ class LeaderboardScreen:
 
     def draw(self, surface):
         on = self.online
-        board = on.boards.get(self.scope) if on else None
+        board = on.boards.get(self.board_key) if on and self.scope != "friends" else None
         rows = self._rows()
         me_id = self.save_mgr.player_id
 
         # list
-        view = pygame.Rect(30, self.top, VW - 60, VH - self.top - self.bottom_h)
+        lt = self._lt()
+        view = pygame.Rect(30, lt, VW - 60, VH - lt - self.bottom_h)
         panel(surface, view, (16, 20, 32), (45, 65, 100), 20, 2)
         surface.set_clip(view.inflate(-4, -4))
         # column header
-        hy = self.top + 8
+        hy = lt + 8
         draw_text(surface, "#", 24, ACCENT_CYAN, (view.x + 60, hy + 22))
         draw_text(surface, t("col_player"), 24, ACCENT_CYAN, (view.x + 250, hy + 22), anchor="midleft")
         if self.scope == "endless":
@@ -2151,16 +2453,18 @@ class LeaderboardScreen:
         base = hy + 52
         for i, e in enumerate(rows):
             y = int(base + i * self.ROW_H - self.scroll.y)
-            if y + self.ROW_H < self.top or y > VH - self.bottom_h:
+            if y + self.ROW_H < lt or y > VH - self.bottom_h:
                 continue
             is_me = bool(e.get("me") or e.get("id") == me_id)
             surface.blit(self._row_sprite(e, i, is_me, view.w - 24), (view.x + 12, y))
         surface.set_clip(None)
 
+        if self.scope == "friends" and len(rows) <= 1 and on and on.friends_status != "loading":
+            draw_paragraph(surface, t("lb_friends_empty"), 30, TEXT_MUTED, view.x + 40, self.top + 330, view.w - 80, center=True)
         if not rows:
             msg = t("loading")
             if on:
-                if on.is_loading(self.scope):
+                if self._loading():
                     pass
                 elif on.status == "offline":
                     msg = t("offline")
@@ -2168,7 +2472,7 @@ class LeaderboardScreen:
                     msg = t("online_disabled")
                 elif board is not None:
                     msg = t("lb_empty")
-            draw_text(surface, msg, 34, TEXT_MUTED, (VW // 2, self.top + 240), max_w=760)
+            draw_text(surface, msg, 34, TEXT_MUTED, (VW // 2, lt + 240), max_w=760)
 
         # own standing (pinned)
         me = board.get("me") if board else None
@@ -2189,29 +2493,22 @@ class LeaderboardScreen:
             sc_ = me.get("score", sm.total_score) if me and me.get("rank") else sm.total_score
             draw_text(surface, f"{t('col_level')} {lv_}  •  {fmt_int(sc_)}", 26, ACCENT_GOLD,
                       (mp.x + 150, mp.centery + 22), anchor="midleft", bold=False)
-        if me and me.get("rank"):
+        if self.scope == "friends":
+            draw_text(surface, f"#{self._me_rank}", 46, ACCENT_CYAN, (mp.right - 24, mp.centery), anchor="midright")
+        elif me and me.get("rank"):
             draw_text(surface, f"#{fmt_int(me['rank'])}", 46, ACCENT_CYAN, (mp.right - 24, mp.centery), anchor="midright")
         else:
             draw_text(surface, "#-", 46, TEXT_MUTED, (mp.right - 24, mp.centery), anchor="midright")
-        if self.on_edit_profile:
+        if self.scope == "friends":
+            self.btn_friends.text = t("fr_manage_btn") + (f"  ({self.friends_waiting()})" if self.friends_waiting() else "")
+            self.btn_friends.rect.y = VH - 150
+            self.btn_friends.draw(surface)
+        elif self.on_edit_profile:
             self.btn_profile.rect.y = VH - 150
             self.btn_profile.draw(surface)
 
-        pygame.draw.rect(surface, (10, 12, 18), (0, 0, VW, self.top - 10))
-        header(surface, t("lb_title"), self.btn_back)
-        self.btn_refresh.draw(surface)
-        for _, b in self.tabs:
-            b.draw(surface)
-        if on:
-            status = "loading" if on.is_loading(self.scope) else on.status
-            st = {"ok": t("status_online"), "loading": t("loading"), "offline": t("status_offline"),
-                  "disabled": t("online_disabled"), "idle": ""}.get(status, "")
-            col = ACCENT_GREEN if status == "ok" else (255, 160, 90 if status != "loading" else 200)
-            draw_text(surface, st, 24, col, (VW // 2, 280), bold=False)
-        if self.toast[1] > 0:
-            tr = pygame.Rect(80, VH // 2 - 50, VW - 160, 100)
-            panel(surface, tr, (20, 44, 34), ACCENT_GREEN, 20, 2)
-            draw_text(surface, self.toast[0], 30, TEXT_WHITE, tr.center, max_w=tr.w - 40)
+        self._draw_head(surface)
+        self._draw_toast(surface)
         if self.sel is not None:
             dim(surface, 215)
             card = pygame.Rect(60, VH // 2 - 330, VW - 120, 720)
@@ -2221,6 +2518,43 @@ class LeaderboardScreen:
             draw_text(surface, nm, 44, TEXT_WHITE, (VW // 2, card.y + 140), max_w=card.w - 80)
             for b in self.sel_btns:
                 b.draw(surface)
+
+    def _draw_segment(self, surface):
+        """[ WORLD | MY COUNTRY ]: one piece with a thin divider; the chosen half is filled and outlined like a tab."""
+        w, c = self.btn_world.rect, self.btn_country.rect
+        halves = ((w, not self.country_only, dict(border_top_left_radius=22, border_bottom_left_radius=22)),
+                  (c, self.country_only, dict(border_top_right_radius=22, border_bottom_right_radius=22)))
+        for r, on_, rad in sorted(halves, key=lambda h: h[1]):           # the chosen half last, so its outline is whole
+            pygame.draw.rect(surface, (30, 58, 92) if on_ else BTN_NORMAL, r, **rad)
+            pygame.draw.rect(surface, ACCENT_CYAN if on_ else BORDER_COLOR, r, 3 if on_ else 2, **rad)
+            draw_text(surface, self.btn_world.text if r is w else self.btn_country.text, 28,
+                      TEXT_WHITE if on_ else TEXT_MUTED, r.center, max_w=r.w - 30)
+        pygame.draw.line(surface, BORDER_COLOR, (c.x, c.y + 10), (c.x, c.bottom - 10), 2)
+
+    def _draw_head(self, surface):
+        """Title, back / refresh, the two tab rows, the country switch and the connection status."""
+        on = self.online
+        pygame.draw.rect(surface, (10, 12, 18), (0, 0, VW, self.top - 10))
+        header(surface, t("lb_title_short"), self.btn_back)
+        self.btn_refresh.draw(surface)
+        for _, b in self.tabs:
+            b.draw(surface)
+        if self._seg_visible():
+            self._draw_segment(surface)
+        if on:
+            status = "loading" if self._loading() else on.status
+            if self.scope == "friends" and status != "loading":
+                status = {"idle": "ok", "ok": "ok"}.get(on.friends_status, on.friends_status)
+            st = {"ok": t("status_online"), "loading": t("loading"), "offline": t("status_offline"),
+                  "disabled": t("online_disabled"), "idle": ""}.get(status, "")
+            col = ACCENT_GREEN if status == "ok" else (255, 160, 90 if status != "loading" else 200)
+            draw_text(surface, st, 22, col, (VW // 2 + 40, 118), bold=False)
+
+    def _draw_toast(self, surface):
+        if self.toast[1] > 0:
+            tr = pygame.Rect(80, VH // 2 - 50, VW - 160, 100)
+            panel(surface, tr, (20, 44, 34), ACCENT_GREEN, 20, 2)
+            draw_text(surface, self.toast[0], 30, TEXT_WHITE, tr.center, max_w=tr.w - 40)
 
 
 # ================================================================================================ skins
@@ -2273,11 +2607,25 @@ class SkinScreen:
             return
         kind, val = catalog.source(sid)
         if kind == "star":
-            if sm.spend_star_coins(val):
-                sm.grant_skin(sid)
-                sm.equipped_skin = sid
-                if self.audio:
-                    self.audio.play_sfx("sfx_star")
+            rk = getattr(getattr(sm, "wallet", None), "ranked", None)
+            if rk is None:                                  # tools / tests without a server: the old local wallet
+                if sm.spend_star_coins(val):
+                    sm.grant_skin(sid)
+                    sm.equipped_skin = sid
+                    if self.audio:
+                        self.audio.play_sfx("sfx_star")
+            elif sm.star_coins >= val and not getattr(self, "_star_wait", False):
+                self._star_wait = True                      # the server charges the stars (ranked.ts "spend skin:<id>")
+
+                def done(r, sid=sid):
+                    self._star_wait = False
+                    if isinstance(r, dict) and r.get("ok"):
+                        sm.grant_skin(sid)
+                        sm.equipped_skin = sid
+                        if self.audio:
+                            self.audio.play_sfx("sfx_star")
+
+                rk.buy_skin(sid, done)
             return
         if kind == "shop":
             if sm.diamonds >= val:
@@ -2343,6 +2691,10 @@ class SkinScreen:
             pygame.draw.rect(surface, ACCENT_GOLD, pill, 2, border_radius=22)
             draw_vector_star(surface, pill.centerx - 44, pill.centery, radius=12, filled=True)
             draw_text(surface, f"{val}", 24, (255, 240, 190), (pill.centerx + 6, pill.centery))
+        elif kind == "streak":
+            pygame.draw.rect(surface, (58, 30, 22), pill, border_radius=22)
+            pygame.draw.rect(surface, (255, 140, 80), pill, 2, border_radius=22)
+            draw_text(surface, t("src_streak", n=val), 20, (255, 200, 150), pill.center, max_w=196)
         elif kind == "ach":
             a = ach_mod.BY_ID.get(val)
             pygame.draw.rect(surface, (64, 50, 24), pill, border_radius=22)
@@ -2441,11 +2793,15 @@ class SkinScreen:
         self.btn_prev.draw(surface)
         self.btn_next.draw(surface)
         n = self.max_pages
-        gap = min(18, 300 // max(1, n))
-        x0 = VW // 2 - (n - 1) * gap // 2
-        for i in range(n):
+        show = min(n, 9)                                       # a window of at most 9 dots that follows the page: never overflows
+        first = max(0, min(n - show, self.cat - show // 2))
+        gap = 20
+        x0 = VW // 2 - (show - 1) * gap // 2
+        for k in range(show):
+            i = first + k
+            edge = (k == 0 and first > 0) or (k == show - 1 and first + show < n)      # a smaller dot: more pages that way
             on = i == self.cat
-            pygame.draw.circle(surface, ACCENT_CYAN if on else (60, 78, 112), (x0 + i * gap, VH - 74), 6 if on else 4)
+            pygame.draw.circle(surface, ACCENT_CYAN if on else (60, 78, 112), (x0 + k * gap, VH - 74), 6 if on else (2 if edge else 4))
         draw_text(surface, f"{self.cat + 1} / {n}", 22, TEXT_MUTED, (VW // 2, VH - 44), bold=False)
 
 
@@ -2475,10 +2831,10 @@ class ShopScreen:
     """Diamonds are the shop currency. One scrolling page (1.0.6): the selected skin's preview and buy buttons stay at
     the top, below them every shop skin, the diamond packs and the shield scroll in one list. The list is rendered
     into one surface and only re-rendered when what it shows changes - scrolling just copies a window of it."""
-    COLS, CARD_W, CARD_H, GAP_X, GAP_Y = 3, 262, 172, 17, 16      # one catalogue per row, full width
+    COLS, CARD_W, CARD_H, GAP_X, GAP_Y = 3, 262, 224, 17, 18
     HEAD_H = 60
-    VIEW_Y = 640
-    PACK_W, PACK_H, PACK_GAP = 194, 82, 16
+    VIEW_Y = 696
+    PACK_W, PACK_H, PACK_GAP = 194, 170, 16
 
     def __init__(self, save_manager, shop, on_back, audio_manager=None):
         self.save_mgr = save_manager
@@ -2499,8 +2855,8 @@ class ShopScreen:
         self.btn_restore = Button((VW // 2 - 160, VH - 78, 320, 52), "", 22, bg_color=(120, 150, 215), hover_color=(160, 184, 240),
                                   callback=self._restore)
         # in the scrolling list (list coordinates; tapped through _list_tap)
-        self.btn_shield = Button((VW // 2 - 250, 0, 500, 56), "", 25, bg_color=(0, 170, 230), hover_color=(90, 220, 255),
-                                 border_color=(60, 220, 255), callback=self._buy_shield)
+        self.btn_shield = Button((VW // 2 - 330, 0, 660, 76), "", 25, bg_color=(17, 45, 65), hover_color=(30, 75, 100),
+                                 border_color=(60, 220, 255), callback=self._buy_shield, icon="shield")
         # ads (ads.py): a rewarded video for diamonds, and the one-time "remove ads" purchase (set by HoloGame)
         self.ads = None
         self.on_watch_ad = None
@@ -2509,7 +2865,48 @@ class ShopScreen:
         self.btn_noads = Button((VW // 2 - 250, 0, 500, 56), "", 24, bg_color=(255, 170, 40), hover_color=(255, 205, 100),
                                 border_color=(255, 220, 140), callback=self._buy_noads)
         self.pack_buttons = []
+        self.nav_buttons = [
+            Button((32 + i * 282, 638, 272, 44), "", 21,
+                   callback=lambda n=i: self._jump_section(n))
+            for i in range(3)
+        ]
+        # weekly showcase, supplies, prestige, Star Market, Star Chest (shop_ui_extra.py): drawn below the packs
+        from shop_ui_extra import ShopExtra
+        self.extra = ShopExtra(save_manager, shop, audio_manager, on_change=self._content_dirty)
         self.refresh_texts()
+
+    def _content_dirty(self):
+        self._content_key = None
+
+    def _jump_section(self, section):
+        target = (0, self._grid_h(), self._extra_y())[section]
+        self._scroll.y = float(min(target, max(0, self._content_h() - self._view_h())))
+        self._scroll.vel = 0.0
+        self._click()
+
+    def _draw_nav(self, surface):
+        sy = self._scroll.y
+        active = 2 if sy >= self._extra_y() - 2 else 1 if sy >= self._grid_h() - 2 else 0
+        for i, b in enumerate(self.nav_buttons):
+            b.text = t(("shop_nav_skins", "shop_nav_gems", "shop_nav_extras")[i])
+            chosen = i == active
+            b.bg_color = (29, 65, 85) if chosen else (17, 25, 42)
+            b.hover_color = (35, 78, 100)
+            b.border_color = ACCENT_CYAN if chosen else (48, 62, 87)
+            b.text_color = TEXT_WHITE if chosen else (153, 174, 202)
+            b.draw(surface)
+
+    def _extra_y(self):
+        bottom = self.btn_shield.rect.bottom
+        if self._ad_ready():
+            bottom = max(bottom, self.btn_ad.rect.bottom)
+        if self._noads_offer():
+            bottom = max(bottom, self.btn_noads.rect.bottom)
+        return bottom + 42
+
+    def _select_week_skin(self, sid):
+        if sid in self.skins:
+            self.selected = sid
 
     # ---- layout (list coordinates: 0 = top of the scrolling list): the skins grouped by catalogue, a title row
     # above each catalogue's cards, then the diamond packs and the shield
@@ -2553,7 +2950,7 @@ class ShopScreen:
         return self._layout()[2]
 
     def _content_h(self):
-        return self._grid_h() + 440
+        return self._extra_y() + self.extra.height()
 
     def _view_h(self):
         return VH - 96 - self.VIEW_Y
@@ -2574,8 +2971,11 @@ class ShopScreen:
                        callback=(lambda p=pid: self._buy_pack(p)))
             b.pack = pack
             self.pack_buttons.append(b)
-        self.btn_shield.rect.y = gy + (180 if self.shop.sells_money else 30)
-        self.btn_ad.rect.y = self.btn_shield.rect.y + 72
+        # the single "buy a shield" row is gone (the Supplies section sells shield packs); the button stays only as the
+        # zero-height anchor the rows below it are placed from
+        self.btn_shield.rect.y = gy + (self.PACK_H + 98 if self.shop.sells_money else 30)
+        self.btn_shield.rect.height = 0
+        self.btn_ad.rect.y = self.btn_shield.rect.bottom
         self.btn_noads.rect.y = self.btn_ad.rect.y + 72
         self._sold_money = self.shop.sells_money
         self._content_key = None
@@ -2587,6 +2987,8 @@ class ShopScreen:
     def show_top(self):
         """Opened from the menu: the list at the top, the first skin of today's showcase selected."""
         self._layout()
+        self.extra.open()
+        self.extra.clear_item()
         if self._feat:
             self.selected = self._feat[0]
         self._scroll.y = 0.0
@@ -2594,6 +2996,8 @@ class ShopScreen:
 
     def select(self, sid):
         """Jump to a skin (used when the skin screen sends the player here)."""
+        self.extra.open()
+        self.extra.clear_item()
         if sid in self.skins:
             self.selected = sid
             r = self._card_rect(self.skins.index(sid))
@@ -2604,6 +3008,8 @@ class ShopScreen:
         return (lambda ok: self.audio and ok and self.audio.play_sfx("sfx_coin"))
 
     def _buy_selected(self):
+        if self.extra.item:                                  # a weekly / supply / prestige / market product is selected
+            return self.extra.press()
         sid = self.selected
         if self.save_mgr.is_skin_unlocked(sid):
             self.save_mgr.equipped_skin = sid
@@ -2630,6 +3036,8 @@ class ShopScreen:
 
     def _split_buy(self):
         """Premium skin not owned yet: two buttons (diamonds | money) instead of one (only where money is sold)."""
+        if self.extra.item:
+            return False
         sid = self.selected
         return self.shop.sells_money and self.shop.is_premium(sid) and not self.save_mgr.is_skin_unlocked(sid)
 
@@ -2660,10 +3068,13 @@ class ShopScreen:
     def update(self, mouse_pos, dt=1.0):
         self.time_val += 0.035 * dt
         self.shop.poll()
+        self.extra.update()
         if self.shop.sells_money != getattr(self, "_sold_money", None):     # iOS: App Store prices arrive later
             self._sold_money = self.shop.sells_money
             self.refresh_texts()
         for b in (self.btn_back, self.buy_button, self.btn_gems, self.btn_money, self.btn_restore):
+            b.update(mouse_pos, dt)
+        for b in self.nav_buttons:
             b.update(mouse_pos, dt)
         self._scroll.update(self._content_h(), self._view_h(), dt)
 
@@ -2677,25 +3088,31 @@ class ShopScreen:
         for sid, r in self._feat_rects.items():
             if r.collidepoint(lp):
                 self.selected = sid
+                self.extra.clear_item()
                 return self._click
         for i, sid in enumerate(self.skins):
             if self._card_rect(i).collidepoint(lp):
                 self.selected = sid
+                self.extra.clear_item()
                 return self._click
         for b in self.pack_buttons:
             if b.rect.collidepoint(lp):
                 return b.callback
-        if self.btn_shield.rect.collidepoint(lp):
-            return self._buy_shield
         if self._ad_ready() and self.btn_ad.rect.collidepoint(lp):
             return self.btn_ad.callback
         if self._noads_offer() and not self.save_mgr.no_ads and self.btn_noads.rect.collidepoint(lp):
             return self._buy_noads
-        return None
+        return self.extra.tap(lp, self._extra_y(), self._select_week_skin)
 
     def handle_event(self, event):
+        if self.extra.anim is not None:                      # the chest is opening: every touch belongs to it
+            self.extra.anim_event(event)
+            return None
         if self.btn_back.handle_event(event):
             return self.on_back
+        for b in self.nav_buttons:
+            if b.handle_event(event):
+                return b.callback
         if self._split_buy():
             if self.btn_gems.handle_event(event):
                 return self._buy_selected_gems
@@ -2720,26 +3137,29 @@ class ShopScreen:
     def draw_dynamic(self, surface):
         """Drawn every frame over the cached screen: the scrolling list window and the animated preview."""
         self._draw_list(surface)
-        sk = SKINS[self.selected]
-        cx, cy, d = VW // 2, 272, 105
-        for k in range(6):
-            tw = 0.5 + 0.5 * math.sin(self.time_val * 2.4 + k * 1.3)
-            sparkle(surface, cx + (-330 if k % 2 else 330) + (k // 2) * (28 if k % 2 else -28), 200 + k * 34, 6 + 8 * tw, (200, 235, 255))
-        p1 = (cx + math.cos(self.time_val) * d, cy + math.sin(self.time_val) * d * 0.55)
-        p2 = (cx + math.cos(self.time_val + math.pi) * d, cy + math.sin(self.time_val + math.pi) * d * 0.55)
-        draw_tether(surface, p1, p2, sk, self.time_val)
-        draw_orb(surface, p1, 34, sk["color1"], sk["glow1"], False, sk, self.time_val)
-        draw_orb(surface, p2, 34, sk["color2"], sk["glow2"], True, sk, self.time_val)
+        self._draw_nav(surface)
+        if self.extra.item_info() is not None:               # a product of the extra sections is in the preview panel
+            self.extra.draw_item_art(surface, self.time_val)
+        else:
+            sk = SKINS[self.selected]
+            cx, cy, d = VW // 2, 334, 146
+            p1 = (cx + math.cos(self.time_val) * d, cy + math.sin(self.time_val) * d * 0.22)
+            p2 = (cx + math.cos(self.time_val + math.pi) * d, cy + math.sin(self.time_val + math.pi) * d * 0.22)
+            draw_tether(surface, p1, p2, sk, self.time_val)
+            draw_orb(surface, p1, 48, sk["color1"], sk["glow1"], False, sk, self.time_val)
+            draw_orb(surface, p2, 48, sk["color2"], sk["glow2"], True, sk, self.time_val)
+        self.extra.draw_overlay(surface)                     # the chest opening (nothing when it is not open)
 
     def sig_extra(self):
-        return (self.save_mgr.shield_stock, self.save_mgr.rev)
+        return (self.save_mgr.shield_stock, self.save_mgr.rev, self.extra.sig())
 
     def _content(self):
         """The whole scrolling list as one opaque surface, rebuilt only when something on it changes."""
         sm = self.save_mgr
         key = (self.selected, getattr(self, "_feat_day", None), tuple(sm.is_skin_unlocked(s) for s in self.skins), sm.shield_stock,
                self._ad_ready(), self._noads_offer(), sm.no_ads, sm.ad_diamonds_left(shop_mod.AD_PER_DAY),
-               tuple(self.shop.pack_price(p[0], p[2]) for p in shop_mod.DIAMOND_PACKS), get_language(), VW)
+               tuple(self.shop.pack_price(p[0], p[2]) for p in shop_mod.DIAMOND_PACKS), get_language(), VW, self.extra.sig(),
+               self._extra_y())
         if getattr(self, "_content_key", None) == key and getattr(self, "_content_img", None) is not None:
             return self._content_img
         img = gfx.cv(pygame.Surface((VW, self._content_h())))
@@ -2762,36 +3182,42 @@ class ShopScreen:
             got = sm.is_skin_unlocked(sid)
             prem = self.shop.is_premium(sid)
             tc = catalog.TIERS[catalog.tier(sid)]["color"]
-            edge = (0, 230, 255) if sel else ((170, 130, 50) if prem else (46, 68, 108))
+            edge = tc if sel else tuple(max(28, int(c * .42)) for c in tc)
             if sel:
-                img.blit(neon_halo(r.w, r.h, (0, 230, 255), 22), (r.x - 12, r.y - 12))
-            img.blit(cockpit_surface(r.w, r.h, (26, 38, 66) if sel else (20, 28, 50), (8, 12, 26), edge, 22), r.topleft)
-            thumb = skin_thumbnail(sid, width=170, height=88, radius=18)
-            img.blit(thumb, thumb.get_rect(center=(r.centerx, r.y + 58)))
-            pygame.draw.rect(img, tc, (r.x + 22, r.y + r.h - 9, r.w - 44, 3), border_radius=2)   # rarity stripe
-            if prem:
-                draw_vector_star(img, r.right - 24, r.y + 24, radius=12, filled=True, color=(255, 200, 70))
+                img.blit(neon_halo(r.w, r.h, tc, 22), (r.x - 12, r.y - 12))
+            img.blit(cockpit_surface(r.w, r.h, (28, 40, 63) if sel else (19, 27, 44), (10, 15, 27), edge, 22), r.topleft)
+            draw_text(img, catalog.tier_name(catalog.tier(sid), lang), 16, tc,
+                      (r.x + 16, r.y + 23), anchor="midleft", max_w=145)
+            if sel:
+                pygame.draw.circle(img, tc, (r.right - 23, r.y + 23), 10)
+                pygame.draw.lines(img, (12, 18, 30), False,
+                                  [(r.right - 28, r.y + 23), (r.right - 24, r.y + 27), (r.right - 18, r.y + 19)], 2)
+            thumb = skin_thumbnail(sid, width=220, height=110, radius=28)
+            img.blit(thumb, thumb.get_rect(center=(r.centerx, r.y + 91)))
+            pygame.draw.rect(img, tc, (r.x + 22, r.bottom - 8, r.w - 44, 2), border_radius=1)
             if sid == self._featured:
-                rib = pygame.Rect(r.x + 10, r.y + 10, 96, 26)
-                pygame.draw.rect(img, (35, 200, 140), rib, border_radius=12)
-                draw_text(img, t("shop_featured_tag").replace("✨ ", ""), 15, (255, 255, 255), rib.center, max_w=90)
-            draw_text(img, s["name"], 24, TEXT_WHITE, (r.centerx, r.y + 116), max_w=r.w - 24)
-            pill = pygame.Rect(0, 0, 150, 34)
-            pill.center = (r.centerx, r.y + 146)
+                pygame.draw.circle(img, (110, 240, 185), (r.right - 48, r.y + 23), 4)
+            draw_text(img, s["name"], 24, TEXT_WHITE, (r.centerx, r.y + 154), max_w=r.w - 24)
+            pill = pygame.Rect(0, 0, 154, 34)
+            pill.center = (r.centerx, r.y + 190)
+            deal = self.shop.daily_deal()
+            if not got and sid == deal[0]:
+                pill.w = 128
+                pill.centerx = r.centerx - 27
             if got:
                 img.blit(cockpit_surface(pill.w, pill.h, (30, 90, 70), (16, 50, 40), (80, 220, 150), 17), pill.topleft)
-                draw_text(img, t("owned"), 20, (235, 255, 245), pill.center)
+                draw_text(img, t("equipped") if sm.equipped_skin == sid else t("owned"), 18,
+                          (235, 255, 245), pill.center, max_w=pill.w - 16)
             else:
                 img.blit(cockpit_surface(pill.w, pill.h, (24, 60, 96), (12, 30, 54), (0, 220, 255), 17), pill.topleft)
                 draw_diamond_icon(img, pill.centerx - 34, pill.centery, 10, (0, 230, 255))
                 draw_text(img, f"{self.shop.diamond_cost(sid)}", 23, (230, 248, 255), (pill.centerx + 10, pill.centery))
-                deal = self.shop.daily_deal()
                 if sid == deal[0]:                      # today's deal: a red ribbon and the old price struck through
-                    rib = pygame.Rect(r.right - 150, r.y + 10, 140, 26)
+                    rib = pygame.Rect(r.x + 14, r.y + 117, r.w - 28, 23)
                     pygame.draw.rect(img, (225, 60, 80), rib, border_radius=12)
                     draw_text(img, t("deal_tag"), 14, (255, 255, 255), rib.center, max_w=132)
                     old = pygame.Rect(0, 0, 70, 20)
-                    old.center = (pill.right + 34, pill.centery)
+                    old.center = (r.right - 38, pill.centery)
                     draw_text(img, str(deal[2]), 18, (170, 180, 200), old.center, bold=False)
                     pygame.draw.line(img, (225, 60, 80), (old.x + 12, old.centery), (old.right - 12, old.centery), 2)
         gy = self._grid_h()
@@ -2799,24 +3225,19 @@ class ShopScreen:
             draw_diamond_icon(img, VW // 2 - 150, gy + 36, 14, (0, 230, 255))
             draw_text(img, t("diamond_packs_title"), 28, (0, 230, 255), (VW // 2, gy + 36))
             draw_diamond_icon(img, VW // 2 + 150, gy + 36, 14, (0, 230, 255))
-        for b in self.pack_buttons:
+        for i, b in enumerate(self.pack_buttons):
             b.draw(img)
             pid, amt, def_price, lbl = b.pack
             price = self.shop.pack_price(pid, def_price)
-            draw_diamond_icon(img, b.rect.centerx, b.rect.y + 24, 14, (0, 230, 255))
-            draw_text(img, f"{amt} {t('diamonds').upper()}", 24, (255, 255, 255), (b.rect.centerx, b.rect.y + 46))
-            draw_text(img, price, 22, (255, 215, 120), (b.rect.centerx, b.rect.y + 68), bold=False)
+            product_art(img, "gems", (b.rect.centerx, b.rect.y + 57), 94, level=i + 1)
+            draw_text(img, f"{amt} {t('diamonds').upper()}", 23, (255, 255, 255), (b.rect.centerx, b.rect.y + 115), max_w=b.rect.w - 16)
+            pygame.draw.line(img, (35, 76, 100), (b.rect.x + 20, b.rect.y + 134), (b.rect.right - 20, b.rect.y + 134))
+            draw_text(img, price, 24, (255, 215, 120), (b.rect.centerx, b.rect.y + 151), bold=False)
             if getattr(self.shop, "first_bonus", False):    # 1.0.8: the account's first pack pays double
                 tag = pygame.Rect(0, 0, min(b.rect.w - 8, 170), 24)
                 tag.midbottom = (b.rect.centerx, b.rect.y + 4)
                 pygame.draw.rect(img, (255, 170, 40), tag, border_radius=11)
                 draw_text(img, t("first_bonus_tag"), 14, (40, 20, 0), tag.center, max_w=tag.w - 10)
-        full = sm.shield_stock >= sm.SHIELD_STOCK_MAX
-        sb = self.btn_shield
-        sb.text = t("shield_buy_btn", n=sm.shield_stock, cost=shop_mod.SHIELD_COST)
-        sb.bg_color = (45, 52, 60) if full else (0, 170, 230)
-        sb.hover_color = (55, 62, 70) if full else (90, 220, 255)
-        sb.draw(img)
         if self._ad_ready():
             ab = self.btn_ad
             ab.text = t("ad_watch_btn", n=shop_mod.AD_REWARD, left=sm.ad_diamonds_left(shop_mod.AD_PER_DAY))
@@ -2828,6 +3249,7 @@ class ShopScreen:
             else:
                 nb.text = t("noads_btn", price=self.shop.price_label_product(shop_mod.REMOVE_ADS, shop_mod.REMOVE_ADS_PRICE))
             nb.draw(img)
+        self.extra.draw(img, self._extra_y())
         self._content_key, self._content_img = key, img
         return img
 
@@ -2836,22 +3258,28 @@ class ShopScreen:
         header(surface, t("shop_title"), self.btn_back, None)
         draw_diamond_badge(surface, VW - 100, 74, sm.diamonds)
 
+        info = self.extra.item_info()
+        if info is not None:
+            self._draw_item_panel(surface, info)
+            return
         # preview of the selected skin
         sk = SKINS[self.selected]
         premium = self.shop.is_premium(self.selected)
         panel_r = pygame.Rect(40, 160, VW - 80, 320)
-        pc = (255, 200, 90) if premium else (0, 200, 240)
+        tier = catalog.tier(self.selected)
+        pc = catalog.TIERS[tier]["color"]
         surface.blit(neon_halo(panel_r.w, panel_r.h, pc, 30), (panel_r.x - 12, panel_r.y - 12))
         surface.blit(cockpit_surface(panel_r.w, panel_r.h, (20, 30, 58), (6, 10, 24), pc, 30), panel_r.topleft)
         cx = VW // 2
+        draw_text(surface, catalog.tier_name(tier, get_language()), 18, pc,
+                  (panel_r.x + 28, 189), anchor="midleft")
+        draw_text(surface, catalog.theme_name(catalog.theme_index(self.selected), get_language()), 18,
+                  (155, 178, 207), (panel_r.right - 28, 189), anchor="midright", max_w=330)
+        pygame.draw.ellipse(surface, (29, 43, 65), (cx - 245, 292, 490, 84), 1)
         if not getattr(self, "_static", False):
             self.draw_dynamic(surface)
-        draw_text(surface, sk["name"], 44, TEXT_WHITE, (cx, 384))
-        draw_text(surface, skin_text.desc(self.selected, sk), 24, (160, 195, 235), (cx, 426), bold=False, max_w=760)
-        if premium:
-            draw_text(surface, t("premium_tag"), 20, (255, 210, 110), (cx, 456), bold=True)
-        if self.selected == self._featured:
-            draw_text(surface, t("shop_featured_tag"), 22, (140, 255, 190), (cx, 484), bold=True)
+        draw_text(surface, sk["name"], 42, TEXT_WHITE, (cx, 237), max_w=740)
+        draw_text(surface, skin_text.desc(self.selected, sk), 23, (160, 185, 215), (cx, 443), bold=False, max_w=740)
 
         owned = sm.is_skin_unlocked(self.selected)
         eb = self.buy_button
@@ -2880,6 +3308,33 @@ class ShopScreen:
         if eb is not None:
             eb.text_color = (255, 255, 255)
             eb.draw(surface)
+        self._draw_tail(surface)
+
+    def _draw_item_panel(self, surface, info):
+        """The preview panel for a product of the extra sections (weekly frame, supplies, prestige, Star Market): the
+        art is drawn by draw_dynamic, the name / text / buy button here - the same layout as a skin."""
+        stars = bool(info.get("stars"))
+        pc = (255, 200, 60) if stars else (0, 200, 240)
+        panel_r = pygame.Rect(40, 160, VW - 80, 320)
+        surface.blit(neon_halo(panel_r.w, panel_r.h, pc, 30), (panel_r.x - 12, panel_r.y - 12))
+        surface.blit(cockpit_surface(panel_r.w, panel_r.h, (20, 30, 58), (6, 10, 24), pc, 30), panel_r.topleft)
+        if not getattr(self, "_static", False):
+            self.draw_dynamic(surface)
+        draw_text(surface, info["name"], 42, TEXT_WHITE, (VW // 2, 395), max_w=740)
+        draw_text(surface, info["desc"], 22, (160, 185, 215), (VW // 2, 440), bold=False, max_w=760)
+        if info.get("note"):
+            draw_text(surface, info["note"], 19, (130, 160, 200), (VW // 2, 466), bold=False, max_w=760)
+        eb = self.buy_button
+        eb.text = info["label"]
+        if info["ok"]:
+            eb.bg_color, eb.hover_color = ((230, 150, 20), (255, 190, 60)) if stars else ((0, 190, 235), (40, 225, 255))
+        else:
+            eb.bg_color, eb.hover_color = (70, 76, 96), (90, 96, 116)
+        eb.text_color = (255, 255, 255)
+        eb.draw(surface)
+        self._draw_tail(surface)
+
+    def _draw_tail(self, surface):
         msg = self.shop.current_message()
         if msg:
             draw_text(surface, t(msg), 26, (255, 232, 160), (VW // 2, 616), max_w=820)
@@ -2890,6 +3345,7 @@ class ShopScreen:
 
         if not getattr(self, "_static", False):
             self._draw_list(surface)                 # (cached screens get it from draw_dynamic every frame)
+            self._draw_nav(surface)
         if self.shop.sells_money:
             self.btn_restore.draw(surface)
 
@@ -2927,8 +3383,12 @@ class ProfileModal:
         self.selected_country = save_manager.player_country
         self.input_active = True
         self.cursor_timer = 0.0
-        top = max(120, (VH - 1180) // 2)
-        self.box = pygame.Rect(50, top, VW - 100, 1180)
+        self.PRE_H = 250                      # the prestige block (frame / title pickers) between the flags and the buttons
+        box_h = 1180 + self.PRE_H
+        top = max(40, (VH - box_h) // 2)
+        self.box = pygame.Rect(50, top, VW - 100, box_h)
+        self.on_equip = None                  # on_equip(slot, id, done(ok)): wear a frame / title (HoloGame wires the shop's client)
+        self._pre_init()
         self.input_rect = pygame.Rect(self.box.x + 60, self.box.y + 230, self.box.w - 120, 100)
         self.cards = []
         cw, ch, gx, gy = 178, 80, 12, 14
@@ -2938,7 +3398,7 @@ class ProfileModal:
             self.cards.append((c["code"], c["name"], pygame.Rect(x0 + (i % 4) * (cw + gx), y0 + (i // 4) * (ch + gy), cw, ch)))
         self.btn_confirm = Button((VW // 2 - 300, self.box.bottom - 140, 600, 100), t("profile_confirm"), 38,
                                   bg_color=(25, 70, 50), hover_color=ACCENT_GREEN, callback=self._confirm)
-        by, bw = self.box.y + 850, (self.box.w - 120 - 20) // 2
+        by, bw = self.box.y + 850 + self.PRE_H, (self.box.w - 120 - 20) // 2
         # account recovery = the pilot linked to a Google account (1.0.5; the old 12-letter codes are gone)
         mail = save_manager.data.get("google_email", "")
         self.btn_code = Button((self.box.x + 60, by, bw, 76), t("google_linked_btn", email=mail) if mail else t("google_link_btn"),
@@ -2950,6 +3410,75 @@ class ProfileModal:
             pygame.key.set_text_input_rect(self.input_rect)
         except Exception:
             pass
+
+    # ---- prestige: the frames / titles bought in the shop, worn with the arrows (each change goes to the server)
+    def _pre_init(self):
+        import shop_items as SI
+        sm = self.save_mgr
+        own = set(sm.prestige_owned)
+        self._pre_lists = {"frame": [""] + [f[0] for f in SI.FRAMES if f[0] in own],
+                           "title": [""] + [x[0] for x in SI.TITLES if x[0] in own]}
+        self._pre_cur = {"frame": sm.prestige_frame, "title": sm.prestige_title}
+        y = self.box.y + 850
+        mid_l, mid_r = self.box.x + 330, self.box.right - 60 - 70
+        self._pre_rows = {}
+        for k, slot in enumerate(("frame", "title")):
+            ry = y + 56 + k * 92
+            self._pre_rows[slot] = {"y": ry, "left": pygame.Rect(mid_l - 20, ry - 34, 70, 68), "right": pygame.Rect(mid_r, ry - 34, 70, 68),
+                                    "mid": ((mid_l + 50 + mid_r) // 2)}
+
+    def _pre_has_items(self):
+        return len(self._pre_lists["frame"]) > 1 or len(self._pre_lists["title"]) > 1
+
+    def _pre_step(self, slot, d):
+        lst = self._pre_lists[slot]
+        if len(lst) < 2 or self.on_equip is None:
+            return
+        cur = self._pre_cur[slot]
+        new = lst[(lst.index(cur) + d) % len(lst)] if cur in lst else ""
+        self._pre_cur[slot] = new
+        sm = self.save_mgr
+
+        def done(ok, _slot=slot):
+            if not ok:                                         # refused / offline: back to what the server has
+                self._pre_cur[_slot] = sm.prestige_frame if _slot == "frame" else sm.prestige_title
+        self.on_equip(slot, new, done)
+
+    def _draw_prestige(self, surface):
+        from shop_ui_extra import draw_frame, draw_title_badge, frame_name, title_text
+        b = self.box
+        y0 = b.y + 850
+        draw_text(surface, t("sx_profile_title"), 28, ACCENT_GOLD, (b.x + 60, y0 + 8), anchor="midleft")
+        if not self._pre_has_items():
+            draw_text(surface, t("sx_profile_empty"), 22, TEXT_MUTED, (VW // 2, y0 + 110), bold=False, max_w=b.w - 120)
+            return
+        for slot in ("frame", "title"):
+            row = self._pre_rows[slot]
+            has = len(self._pre_lists[slot]) > 1
+            draw_text(surface, t("sx_profile_frame" if slot == "frame" else "sx_profile_ti"), 22, TEXT_WHITE,
+                      (b.x + 60, row["y"]), anchor="midleft")
+            for key in ("left", "right"):
+                r = row[key]
+                pygame.draw.rect(surface, (32, 45, 70) if has else (22, 28, 44), r, border_radius=16)
+                pygame.draw.rect(surface, ACCENT_CYAN if has else (50, 60, 80), r, 2, border_radius=16)
+                cx, cy = r.center
+                sgn = -1 if key == "left" else 1
+                pygame.draw.polygon(surface, ACCENT_CYAN if has else (70, 80, 100),
+                                    [(cx + sgn * 12, cy), (cx - sgn * 8, cy - 16), (cx - sgn * 8, cy + 16)])
+            cur = self._pre_cur[slot]
+            mx = row["mid"]
+            if slot == "frame":
+                rect = pygame.Rect(0, 0, 150, 62)
+                rect.center = (mx, row["y"])
+                draw_country_badge(surface, self.selected_country, mx, row["y"], width=rect.w - 20, height=rect.h - 14)
+                if cur:
+                    draw_frame(surface, rect, cur)
+                draw_text(surface, frame_name(cur) if cur else t("sx_profile_none"), 17, (200, 215, 235), (mx, row["y"] + 41),
+                          bold=False, max_w=230)
+            elif cur:
+                draw_title_badge(surface, pygame.Rect(mx - 150, row["y"] - 28, 300, 56), cur, 22)
+            else:
+                draw_text(surface, t("sx_profile_none"), 24, TEXT_MUTED, (mx, row["y"]), bold=False)
 
     def close(self):
         try:
@@ -2975,7 +3504,7 @@ class ProfileModal:
 
     def dyn_key(self):
         blink = int(self.cursor_timer * 2.5) % 2 == 0 and self.input_active
-        return (self.name_text, self.selected_country, blink)
+        return (self.name_text, self.selected_country, blink, self._pre_cur["frame"], self._pre_cur["title"])
 
     def update(self, mouse_pos, dt=1.0):
         self.cursor_timer += 0.05 * dt
@@ -3005,6 +3534,13 @@ class ProfileModal:
                     pygame.key.stop_text_input()     # a tap anywhere else puts the on-screen keyboard away (iOS has
             except Exception:                        # no back key to close it, and it covers the confirm button)
                 pass
+            for slot, row in self._pre_rows.items():
+                if row["left"].collidepoint(event.pos):
+                    self._pre_step(slot, -1)
+                    return True
+                if row["right"].collidepoint(event.pos):
+                    self._pre_step(slot, 1)
+                    return True
             for code, _, r in self.cards:
                 if r.collidepoint(event.pos):
                     self.selected_country = code
@@ -3042,6 +3578,7 @@ class ProfileModal:
             pygame.draw.rect(surface, ACCENT_CYAN if sel else (50, 60, 80), r, 3 if sel else 1, border_radius=14)
             draw_flag_icon(surface, code, pygame.Rect(r.x + 12, r.centery - 15, 44, 30))
             draw_text(surface, code, 28, ACCENT_GOLD if sel else TEXT_WHITE, (r.x + 68, r.centery), anchor="midleft")
+        self._draw_prestige(surface)
         info = get_country_info(self.selected_country)
         draw_text(surface, f"{info['name']} ({info['code']})", 30, ACCENT_CYAN, (VW // 2, b.bottom - 190))
         rb = self._recovery_buttons()
@@ -3580,6 +4117,27 @@ class HowToModal:
             pygame.draw.circle(surface, c, (VW // 2 - 14 + i * 28, card.y + 130), 7)
 
 
+def shield_offer(sm):
+    """What the 'retry with shield' button of a death / result window does: 'stock' (own shield, free), 'free'
+    (today's free one), 'buy' (diamonds) or 'short' (not enough)."""
+    if sm.shield_stock > 0:
+        return "stock"
+    if sm.free_shield_today:
+        return "free"
+    return "buy" if sm.diamonds >= shop_mod.SHIELD_COST or sm.free_credit("shield") > 0 else "short"
+
+
+def shield_label(sm, mode):
+    """(button text, gem icon?) of the shield button; the gem is drawn, never typed (the font has no gem glyph)."""
+    if mode == "stock":
+        return t("shield_retry_stock", n=sm.shield_stock), None
+    if mode == "free":
+        return t("shield_retry_free"), None
+    if mode == "buy":
+        return t("shield_retry_buy", cost=shop_mod.SHIELD_COST), "gem"
+    return t("shield_retry_need", cost=shop_mod.SHIELD_COST), None
+
+
 class FailureModal:
     def __init__(self, level_id, progress_pct, stars_collected, combo_mult, attempts, on_retry, on_menu, on_levels=None, best_pct=0,
                  save_mgr=None, shop=None, on_revive=None, revive_cost=20, on_endless=None):
@@ -3593,31 +4151,40 @@ class FailureModal:
         self.shop = shop
         self.on_revive = on_revive
         self.revive_cost = revive_cost
+        self.on_help = None                  # HoloGame: ask the friends for help (3+ tries, only with friends)
+        self.help_probe = None               # () -> (has friends, already asked on this level)
         self.waiting = False                 # revive paid, waiting for the server's answer
+        self.on_shield = None                # HoloGame: retry with a shield (stock, or bought now - today's first is free)
+        self.on_shield_short = None          # HoloGame: not enough diamonds for the shield -> the shop
+        self.card_h = 966                    # the card (Olo sits on its top edge)
         cx = VW // 2
-        top = VH // 2 - 330
+        top = VH // 2 - 380
         self.top = top
+        self.btn_help = Button((VW // 2 + 110, top + 348, 240, 64), "", 20, bg_color=(45, 95, 190), hover_color=(70, 125, 225),
+                               border_color=(230, 140, 230), callback=self._help)
         self.btn_revive = Button((cx - 320, top + 425, 640, 96), "", 32, bg_color=(0, 190, 235), hover_color=(60, 225, 255),
                                  text_color=(255, 255, 255), callback=self._revive)
         self.pack_buttons = []
         pw, ph, pgap = 310, 78, 20
         for i, pack in enumerate(shop_mod.DIAMOND_PACKS[:2] if (shop is None or shop.sells_money) else ()):
-            b = Button((cx - pw - pgap // 2 + i * (pw + pgap), top + 530, pw, ph), "", 22, bg_color=(18, 38, 68),
+            b = Button((cx - pw - pgap // 2 + i * (pw + pgap), top + 644, pw, ph), "", 22, bg_color=(18, 38, 68),
                       hover_color=(30, 75, 135), border_color=(0, 214, 255), callback=(lambda p=pack[0]: self._buy_pack(p)))
             b.pack = pack
             self.pack_buttons.append(b)
-        self.btn_retry = Button((cx - 320, top + 626, 640, 100), t("retry_btn"), 38, bg_color=(255, 70, 100), hover_color=(255, 120, 140),
+        self.btn_shield = Button((cx - 320, top + 530, 640, 84), "", 30, bg_color=(0, 150, 215), hover_color=(60, 200, 255),
+                                 border_color=(150, 240, 255), text_color=(255, 255, 255), callback=self._shield)
+        self.btn_retry = Button((cx - 320, top + 738, 640, 100), t("retry_btn"), 38, bg_color=(255, 70, 100), hover_color=(255, 120, 140),
                                 callback=on_retry)
         # set by HoloGame when an ad can pay the revive: (callback, ready())
         self.ad_offer = None
-        self.btn_ad = Button((cx - 320, top + 530, 640, 78), "", 28, bg_color=(150, 70, 235), hover_color=(190, 120, 255),
+        self.btn_ad = Button((cx - 320, top + 644, 640, 78), "", 28, bg_color=(150, 70, 235), hover_color=(190, 120, 255),
                              border_color=(200, 150, 255), callback=self._ad_continue)
-        self.btn_levels = Button((cx - 320, top + 738, 310, 86), t("level_select_modal_btn"), 26, bg_color=(96, 140, 255), callback=on_levels)
-        self.btn_menu = Button((cx + 10, top + 738, 310, 86), t("menu"), 30, bg_color=(120, 150, 215), callback=on_menu)
+        self.btn_levels = Button((cx - 320, top + 850, 310, 86), t("level_select_modal_btn"), 26, bg_color=(96, 140, 255), callback=on_levels)
+        self.btn_menu = Button((cx + 10, top + 850, 310, 86), t("menu"), 30, bg_color=(120, 150, 215), callback=on_menu)
         self.on_retry, self.on_levels, self.on_menu = on_retry, on_levels, on_menu
         if on_levels is None:
             self.btn_levels.visible = False
-            self.btn_menu.rect = pygame.Rect(cx - 320, top + 738, 640, 86)
+            self.btn_menu.rect = pygame.Rect(cx - 320, top + 850, 640, 86)
         # stuck (3+ tries): the levels button becomes a way to the endless climb - diamonds and stars to come back with
         self.stuck = on_endless is not None and attempts >= 3
         if self.stuck:
@@ -3627,15 +4194,50 @@ class FailureModal:
         self.refresh_texts()
 
     def refresh_texts(self):
-        self.btn_retry.text = t("retry_btn")
+        self.btn_retry.text = t("cp_resume_btn") if getattr(self, "cp_resume", False) else t("retry_btn")
         self.btn_levels.text = t("endless_try_btn") if getattr(self, "stuck", False) else t("level_select_modal_btn")
         self.btn_menu.text = t("menu")
 
     def dyn_key(self):
-        return (self.save_mgr.diamonds if self.save_mgr else 0, self.waiting, self._enough(), self._ad_on())
+        return (self.save_mgr.diamonds if self.save_mgr else 0, self.waiting, self._enough(), self._ad_on(), self._help_state(),
+                self.shield_mode(), self._stock())
+
+    def _free(self):
+        return bool(self.save_mgr) and self.save_mgr.free_credit("revive") > 0
+
+    def _stock(self):
+        return self.save_mgr.revive_stock if self.save_mgr else 0         # revives from shop packs / Star Market / chests
 
     def _enough(self):
-        return bool(self.save_mgr) and self.save_mgr.diamonds >= self.revive_cost
+        return bool(self.save_mgr) and (self.save_mgr.diamonds >= self.revive_cost or self._free() or self._stock() > 0)
+
+    def shield_mode(self):
+        """'stock' (own shield, free), 'free' (today's free one), 'buy' (diamonds), 'short' (not enough) or None (no button)."""
+        sm = self.save_mgr
+        if not sm or not self.on_shield:
+            return None
+        return shield_offer(sm)
+
+    def _shield(self):
+        mode = self.shield_mode()
+        if self.waiting or mode is None:
+            return
+        if mode == "short":
+            if self.on_shield_short:
+                self.on_shield_short()
+            return
+        self.on_shield()
+
+    def _help_state(self):
+        """None = no button, False = can ask, True = already asked on this level."""
+        if not self.on_help or not self.help_probe or self.attempts < 3:
+            return None
+        has, asked = self.help_probe()
+        return asked if has else None
+
+    def _help(self):
+        if self._help_state() is False:
+            self.on_help()
 
     def _ad_on(self):
         return bool(self.ad_offer and not self.waiting and self.ad_offer[1]())
@@ -3655,6 +4257,10 @@ class FailureModal:
     def update(self, mouse_pos, dt=1.0):
         self.anim += dt
         buttons = [self.btn_retry, self.btn_levels, self.btn_menu, self.btn_revive]
+        if self.shield_mode() is not None:
+            buttons.append(self.btn_shield)
+        if self._help_state() is not None:
+            buttons.append(self.btn_help)
         if self._ad_on():
             buttons.append(self.btn_ad)
         elif not self._enough():
@@ -3665,6 +4271,10 @@ class FailureModal:
     def handle_event(self, event):
         cbs = [(self.btn_retry, self.on_retry), (self.btn_levels, self.on_levels), (self.btn_menu, self.on_menu),
               (self.btn_revive, self._revive)]
+        if self.shield_mode() is not None:
+            cbs.append((self.btn_shield, self._shield))
+        if self._help_state() is False:
+            cbs.append((self.btn_help, self._help))
         if self._ad_on():
             cbs.append((self.btn_ad, self._ad_continue))
         elif not self._enough():
@@ -3676,7 +4286,7 @@ class FailureModal:
 
     def draw(self, surface):
         dim(surface, 200, (12, 6, 12))
-        card = pygame.Rect(90, self.top, VW - 180, 850)
+        card = pygame.Rect(90, self.top, VW - 180, self.card_h)
         panel(surface, card, (24, 16, 24), (200, 40, 65), 26, 2)
         title_w = card.w - 40
         if self.save_mgr:
@@ -3699,17 +4309,27 @@ class FailureModal:
         eb.bg_color, eb.hover_color = ((0, 190, 235), (60, 225, 255)) if enough else ((55, 60, 72), (65, 70, 84))
         if self.waiting:
             eb.text, eb.icon = ". . .", None
+        elif self._free():
+            eb.text, eb.icon = t("fr_revive_free"), None
+        elif self._stock() > 0:
+            eb.text, eb.icon = t("sx_revive_stock", n=self._stock()), None
         elif enough:
             eb.text, eb.icon = t("revive_btn", cost=self.revive_cost), "gem"
         else:
             eb.text, eb.icon = t("revive_need", cost=self.revive_cost), None
         eb.draw(surface)
+        self._draw_shield(surface)
+        hs = self._help_state()
+        if hs is not None:
+            self.btn_help.text = t("fr_help_asked") if hs else t("fr_help_btn")
+            self.btn_help.bg_color = (60, 50, 70) if hs else (45, 95, 190)
+            self.btn_help.draw(surface)
         if self._ad_on():
             self.btn_ad.text = t("ad_continue_btn")
             self.btn_ad.draw(surface)
         elif not enough:
             have = self.save_mgr.diamonds if self.save_mgr else 0
-            draw_text(surface, t("revive_short", have=have, cost=self.revive_cost), 22, (255, 200, 160), (VW // 2, self.top + 500), bold=False)
+            draw_text(surface, t("revive_short", have=have, cost=self.revive_cost), 22, (255, 200, 160), (VW // 2, self.top + 628), bold=False)
             for b in self.pack_buttons:
                 b.draw(surface)
                 pid, amt, price, lbl = b.pack
@@ -3719,6 +4339,17 @@ class FailureModal:
         self.btn_retry.draw(surface)
         self.btn_levels.draw(surface)
         self.btn_menu.draw(surface)
+
+    def _draw_shield(self, surface):
+        """'Retry with a shield' under the continue button: free from the stock / today's free one, or 10 diamonds."""
+        mode = self.shield_mode()
+        if mode is None:
+            return
+        b, sm = self.btn_shield, self.save_mgr
+        b.text, b.icon = (". . .", None) if self.waiting else shield_label(sm, mode)
+        grey = mode == "short"
+        b.bg_color, b.hover_color = ((55, 60, 72), (65, 70, 84)) if grey else ((0, 150, 215), (60, 200, 255))
+        b.draw(surface)
 
 
 class VictoryModal:
@@ -3746,6 +4377,18 @@ class VictoryModal:
             self.btn_levels.visible = False
             self.btn_replay.rect = pygame.Rect(cx - 330, by + 112, 320, 88)
             self.btn_menu.rect = pygame.Rect(cx + 10, by + 112, 320, 88)
+        self.share_btns = []                 # share card buttons (set_share): [(Button, "story" | "square")]
+        self.on_share = None
+
+    def set_share(self, on_share):
+        """Offers the share card (1.0.9): two buttons above NEXT, one per picture shape; on_share(shape) runs on a tap."""
+        cx, y = VW // 2, self.top + 1076
+        self.on_share = on_share
+        self.share_btns = [
+            (Button((cx - 330, y, 320, 80), f"{t('sh_share')} • {t('sh_story')}", 25, bg_color=(70, 40, 100),
+                    hover_color=(150, 90, 220), border_color=(190, 120, 255)), "story"),
+            (Button((cx + 10, y, 320, 80), f"{t('sh_share')} • {t('sh_square')}", 25, bg_color=(70, 40, 100),
+                    hover_color=(150, 90, 220), border_color=(190, 120, 255)), "square")]
 
     def dyn_key(self):
         on = self.online
@@ -3758,8 +4401,13 @@ class VictoryModal:
         self.anim += dt
         for b in (self.btn_next, self.btn_replay, self.btn_levels, self.btn_menu):
             b.update(mouse_pos, dt)
+        for b, _shape in self.share_btns:
+            b.update(mouse_pos, dt)
 
     def handle_event(self, event):
+        for b, shape in self.share_btns:
+            if b.handle_event(event):
+                return lambda shape=shape: self.on_share(shape)
         for b, cb in zip((self.btn_next, self.btn_replay, self.btn_levels, self.btn_menu), self.cbs):
             if b.handle_event(event):
                 return cb
@@ -3830,6 +4478,8 @@ class VictoryModal:
             key = "submit_rejected" if info.get("rejected") else "submit_queued"
             draw_text(surface, t(key), 26, (255, 170, 90), (VW // 2, oy), bold=False, max_w=card.w - 60)
         for b in (self.btn_next, self.btn_replay, self.btn_levels, self.btn_menu):
+            b.draw(surface)
+        for b, _shape in self.share_btns:
             b.draw(surface)
 
 
@@ -3928,12 +4578,23 @@ class LoginRewardModal:
         surface.blit(cockpit_surface(r.w, r.h, top, (10, 12, 24), edge, 22), r.topleft)
         draw_text(surface, t("login_day", n=day), 22, gold if (is_today or big) else (150, 165, 195), (r.centerx, r.y + 28))
         if big:
-            draw_vector_gem(surface, r.centerx - 100, r.centery + 4, 24)
-            draw_text(surface, f"+{gems}", 40, (130, 235, 255), (r.centerx - 68, r.centery + 4), anchor="midleft")
-            draw_vector_star(surface, r.centerx + 52, r.centery + 4, radius=20, filled=True)
-            draw_text(surface, f"+{self.lr.WEEKLY_STARS}", 34, (255, 225, 120), (r.centerx + 78, r.centery + 4),
-                      anchor="midleft")
-            draw_text(surface, t("login_weekly"), 20, gold, (r.centerx, r.bottom - 26))
+            lx = r.x + 118                                    # left half: the diamonds and stars, right half: the Seri skin
+            draw_vector_gem(surface, lx - 62, r.centery - 22, 20)
+            draw_text(surface, f"+{gems}", 36, (130, 235, 255), (lx - 34, r.centery - 22), anchor="midleft")
+            draw_vector_star(surface, lx - 62, r.centery + 22, radius=17, filled=True)
+            draw_text(surface, f"+{self.lr.WEEKLY_STARS}", 32, (255, 225, 120), (lx - 34, r.centery + 22), anchor="midleft")
+            draw_text(surface, t("login_weekly"), 18, gold, (lx, r.bottom - 22), max_w=r.w // 2 - 20)
+            nxt = self.lr.next_streak_skin(self.lr.weeks_done(self.save_mgr)) if not done or today == 7 else None
+            sid = (nxt or (max(self.lr.STREAK_SKIN_WEEKS, key=self.lr.STREAK_SKIN_WEEKS.get), 0))[0]
+            sk = SKINS.get(sid)
+            if sk:
+                rx = r.right - 92
+                pygame.draw.line(surface, (90, 80, 50), (r.centerx + 6, r.y + 52), (r.centerx + 6, r.bottom - 18), 2)
+                draw_orb(surface, (rx - 24, r.centery - 14), 20, sk["color1"], sk["glow1"], False, sk, 0.65)
+                draw_orb(surface, (rx + 24, r.centery - 14), 20, sk["color2"], sk["glow2"], True, sk, 0.65)
+                draw_text(surface, t("login_skin"), 18, gold, (rx, r.bottom - 22), max_w=r.w // 2 - 20)
+                if nxt:
+                    draw_text(surface, f"{self.lr.weeks_done(self.save_mgr)}/{nxt[1]}", 20, (255, 235, 170), (rx, r.centery + 28))
         else:
             orbit_badge(surface, r.centerx, r.centery + 2, 30, gold if is_today else ACCENT_CYAN, "gem",
                         lit=is_today or done)
@@ -3967,6 +4628,9 @@ class LoginRewardModal:
             if stars:
                 draw_vector_star(surface, VW // 2 - 40, self.top + 690, radius=16, filled=True)
                 draw_text(surface, f"+{stars}", 30, (255, 225, 120), (VW // 2 - 16, self.top + 690), anchor="midleft", bg=bg)
+            for sid in self.lr.state(self.save_mgr).get("new_skins", [])[-1:]:
+                draw_text(surface, t("login_skin_got", name=SKINS[sid]["name"]), 28, (255, 190, 120), (VW // 2, self.top + 730),
+                          bg=bg, max_w=card.w - 60)
             self.btn_claim.text = t("login_great")
         elif taken:
             draw_text(surface, t("login_come_back"), 26, TEXT_MUTED, (VW // 2, self.top + 640), bold=False, bg=bg,
@@ -4005,7 +4669,7 @@ class EndlessReviveModal:
                              border_color=(200, 150, 255), callback=lambda: self._ad_on() and self.ad_offer[0]())
 
     def _enough(self):
-        return self.save_mgr.diamonds >= self.revive_cost
+        return self.save_mgr.diamonds >= self.revive_cost or self.save_mgr.revive_stock > 0
 
     def dyn_key(self):
         return (self.save_mgr.diamonds, self.waiting, self._ad_on())
@@ -4060,6 +4724,9 @@ class EndlessReviveModal:
         eb = self.btn_revive
         if self.waiting:
             eb.text, eb.icon = ". . .", None
+        elif self.save_mgr.revive_stock > 0:
+            eb.text, eb.icon = t("sx_revive_stock", n=self.save_mgr.revive_stock), None
+            eb.bg_color, eb.hover_color = (0, 190, 235), (60, 225, 255)
         elif self._enough():
             eb.text, eb.icon = t("revive_btn", cost=self.revive_cost), "gem"
             eb.bg_color, eb.hover_color = (0, 190, 235), (60, 225, 255)
@@ -4074,8 +4741,11 @@ class EndlessResultModal:
     """End of a climb: height, best, stage, diamonds (as the server grants them) and this week's world rank."""
 
     def __init__(self, metres, stage, week_best, all_best, new_best, sector, online, on_retry, on_menu, on_board,
-                 points=None, stars=0, wallet=0, on_skins=None):
+                 points=None, stars=0, wallet=0, on_skins=None, save_mgr=None, on_shield=None):
         self.metres, self.stage, self.sector = metres, stage, sector
+        self.save_mgr, self.on_shield = save_mgr, on_shield           # 'new climb with a shield' (1.0.9)
+        self.on_shield_short = None
+        self.waiting = False
         self.points = metres * 10 if points is None else points
         self.stars, self.wallet, self.on_skins = stars, wallet, on_skins
         self.week_best, self.all_best, self.new_best = week_best, all_best, new_best
@@ -4087,8 +4757,14 @@ class EndlessResultModal:
         by = self.top + 640
         self.btn_retry = Button((cx - 320, by, 640, 104), t("endless_again"), 40, bg_color=(0, 190, 235),
                                 hover_color=(60, 225, 255), callback=on_retry)
-        self.btn_board = Button((cx - 320, by + 120, 310, 88), t("lb_title"), 28, bg_color=(35, 150, 110), callback=on_board)
-        self.btn_menu = Button((cx + 10, by + 120, 310, 88), t("menu"), 30, bg_color=(120, 150, 215), callback=on_menu)
+        has_sh = save_mgr is not None and on_shield is not None
+        dy = 104 if has_sh else 0                  # the shield button sits under 'again', the rest moves down
+        self.btn_shield = Button((cx - 320, by + 120, 640, 84), "", 30, bg_color=(0, 150, 215), hover_color=(60, 200, 255),
+                                 border_color=(150, 240, 255), text_color=(255, 255, 255), callback=self._shield)
+        self.btn_shield.visible = has_sh
+        self.card_h = 900 + dy
+        self.btn_board = Button((cx - 320, by + 120 + dy, 310, 88), t("lb_title"), 28, bg_color=(35, 150, 110), callback=on_board)
+        self.btn_menu = Button((cx + 10, by + 120 + dy, 310, 88), t("menu"), 30, bg_color=(120, 150, 215), callback=on_menu)
         # the star wallet and what it buys
         self.btn_skins = Button((cx - 320, by - 96, 640, 76), t("endless_star_skins"), 26, bg_color=(120, 90, 20),
                                 hover_color=(170, 130, 40), border_color=ACCENT_GOLD, callback=on_skins)
@@ -4096,7 +4772,23 @@ class EndlessResultModal:
 
     def dyn_key(self):
         on = self.online
-        return (repr(on.endless_result) if on else None, on.enabled if on else False)
+        return (repr(on.endless_result) if on else None, on.enabled if on else False, self.shield_mode(), self.waiting,
+                self.save_mgr.diamonds if self.save_mgr else 0)
+
+    def shield_mode(self):
+        if self.save_mgr is None or self.on_shield is None:
+            return None
+        return shield_offer(self.save_mgr)
+
+    def _shield(self):
+        mode = self.shield_mode()
+        if self.waiting or mode is None:
+            return
+        if mode == "short":
+            if self.on_shield_short:
+                self.on_shield_short()
+            return
+        self.on_shield()
 
     def refresh_texts(self):
         self.btn_retry.text = t("endless_again")
@@ -4105,12 +4797,12 @@ class EndlessResultModal:
 
     def update(self, mouse_pos, dt=1.0):
         self.anim += dt
-        for b in (self.btn_retry, self.btn_board, self.btn_menu, self.btn_skins):
+        for b in (self.btn_retry, self.btn_board, self.btn_menu, self.btn_skins, self.btn_shield):
             b.update(mouse_pos, dt)
 
     def handle_event(self, event):
         for b, cb in ((self.btn_retry, self.on_retry), (self.btn_board, self.on_board), (self.btn_menu, self.on_menu),
-                      (self.btn_skins, self.on_skins)):
+                      (self.btn_skins, self.on_skins), (self.btn_shield, self._shield)):
             if b.visible and b.handle_event(event):
                 return cb
         return None
@@ -4118,7 +4810,7 @@ class EndlessResultModal:
     def draw(self, surface):
         dim(surface, 205, (5, 8, 16))
         col = SECTOR_COL.get(self.sector, ACCENT_CYAN)
-        card = pygame.Rect(80, self.top, VW - 160, 900)
+        card = pygame.Rect(80, self.top, VW - 160, self.card_h)
         bg = (14, 20, 34)
         panel(surface, card, bg, col, 26, 2)
         draw_text(surface, t("endless_over"), 44, col, (VW // 2, self.top + 64), max_w=card.w - 40)
@@ -4152,10 +4844,18 @@ class EndlessResultModal:
             if info.get("rank"):
                 draw_text(surface, t("endless_rank", rank=fmt_int(info["rank"]), total=fmt_int(info.get("total", 0))), 34,
                           ACCENT_GREEN, (VW // 2, y + 70), max_w=card.w - 60)
+            for gi, g in enumerate(info.get("goals") or []):            # v5 metre goals paid by this climb
+                draw_text(surface, t("endless_goal_diamonds", m=fmt_int(g[0]), n=g[1]), 28, (255, 150, 230),
+                          (VW // 2, y + 128 + 40 * gi), max_w=card.w - 60, bg=bg)
         else:
             key = "submit_rejected" if info.get("rejected") else "submit_queued"
             draw_text(surface, t(key), 24, (255, 170, 90), (VW // 2, y), bold=False, max_w=card.w - 60)
-        for b in (self.btn_skins, self.btn_retry, self.btn_board, self.btn_menu):
+        mode = self.shield_mode()
+        if mode is not None:
+            sb = self.btn_shield
+            sb.text, sb.icon = (". . .", None) if self.waiting else shield_label(self.save_mgr, mode)
+            sb.bg_color, sb.hover_color = ((55, 60, 72), (65, 70, 84)) if mode == "short" else ((0, 150, 215), (60, 200, 255))
+        for b in (self.btn_skins, self.btn_retry, self.btn_shield, self.btn_board, self.btn_menu):
             if b.visible:
                 b.draw(surface)
 

@@ -194,6 +194,21 @@ SPECS = {
                         pad=2000, bass="xxxxxxxxxxxxxxxx", bass_amp=4200, kick="x.xxx.xxx.xxx.xx", snare="..x...x...x.x.x.", hat="xxxxxxxxxxxxxxxx",
                         arp=[0, 1, 2, 3, 3, 2, 1, 0, 0, 2, 1, 3, 3, 1, 2, 0], arp_rate=16, arp_amp=2800, arp_kind="saw", arp_oct=12, lead=1.0,
                         kick_amp=11500),
+    # 1.0.9 sectors: 6 CHRONO RIFT (clockwork pulse, ticking hats, bell arp), 7 STRING THEORY (shimmering saw strings)
+    "bgm_s6": dict(bpm=140, bars=8, chords=[(57, "m"), (53, "M"), (60, "M"), (55, "M")], pad=2100, bass="x.x.x.x.x.x.x.x.", bass_amp=3500,
+                   bass_kind="tri", kick="x...x...x...x...", snare="....x.......x..x", hat="xxxxxxxxxxxxxxxx", hat_amp=900,
+                   arp=[0, 2, 1, 3, 2, 3, 1, 2], arp_rate=16, arp_amp=2600, arp_kind="bell", arp_curve=1.6, lead=0.8),
+    "bgm_s7": dict(bpm=150, bars=8, chords=[(52, "m"), (48, "M"), (55, "M"), (50, "M"), (52, "m"), (48, "M"), (50, "M"), (47, "M")],
+                   pad=2300, bass="xoxoxoxoxoxoxoxo", bass_amp=3600, kick="x...x...x..xx...", snare="....x.......x.x.", hat="x.xxx.xxx.xxx.xx",
+                   arp=[0, 1, 2, 3, 3, 2, 1, 0, 0, 2, 1, 3, 3, 1, 2, 0], arp_rate=16, arp_amp=2600, arp_kind="saw", arp_oct=12, lead=0.9,
+                   kick_amp=9800),
+    "bgm_s6_fast": dict(bpm=166, bars=8, chords=[(57, "m"), (53, "M"), (60, "M"), (55, "M")], pad=1800, bass="xxxxxxxxxxxxxxxx", bass_amp=3800,
+                        kick="x..x..x.x.x.x.x.", snare="....x...x...x..x", hat="xxxxxxxxxxxxxxxx", arp=[0, 2, 1, 3, 2, 3, 1, 2],
+                        arp_rate=16, arp_amp=2900, arp_kind="bell", arp_curve=1.5, lead=0.9),
+    "bgm_s7_fast": dict(bpm=178, bars=8, chords=[(52, "m"), (48, "M"), (55, "M"), (50, "M"), (52, "m"), (48, "M"), (50, "M"), (47, "M")],
+                        pad=2000, bass="xxxxxxxxxxxxxxxx", bass_amp=4000, kick="x.xxx.xxx.xxx.xx", snare="..x...x...x.x.x.", hat="xxxxxxxxxxxxxxxx",
+                        arp=[0, 1, 2, 3, 3, 2, 1, 0, 0, 2, 1, 3, 3, 1, 2, 0], arp_rate=16, arp_amp=2900, arp_kind="saw", arp_oct=12, lead=1.0,
+                        kick_amp=11000),
 }
 
 

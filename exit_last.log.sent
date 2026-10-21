@@ -1,0 +1,3 @@
+unexpected end of the last run (closed by the system while in front)
+{"t": 1792573037, "state": "paused", "level": 99, "mem_mb": null, "mem_peak_mb": null, "mode": "campaign", "sim_n": 361, "fps": 59.9, "modal": "", "level_h": 4820, "running": true, "bg": false, "quit": false, "quit_reason": ""}
+--- end of holo.log ---

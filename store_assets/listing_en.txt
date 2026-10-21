@@ -2,15 +2,15 @@ TITLE (max 30 characters)
 HOLO: Two Orbs, One Pulse
 
 SHORT DESCRIPTION (max 80 characters)
-A hard one-tap reflex game: 100 levels, an endless mode and world leaderboards
+A hard one-tap reflex game: 140 levels in 7 sectors, an endless mode and world leaderboards
 
 FULL DESCRIPTION (max 4000 characters)
 One tap. Two orbs. Frustratingly hard.
 
 HOLO is a one-tap reflex and rhythm game. You control two orbs bound by a tether: every tap swaps them and reverses their spin. That's the whole control scheme. Simple to learn, hard to master: threading them through tight corridors, sweeping lasers, walls that roam on two axes and hazards that chase you takes real timing.
 
-★ 100 LEVELS THAT RAMP UP STEP BY STEP
-It starts gentle and keeps pushing. Every level tests the same tap in a new way: shrink and grow zones, shields, energy barriers, boost pads, breakable walls. Go for 3 stars on each one.
+★ 140 LEVELS IN 7 SECTORS
+It starts gentle and keeps pushing - and now it bends time: slow-motion fields in the new CHRONO RIFT sector and a tether that stretches and shrinks in STRING THEORY. Every level tests the same tap in a new way: shrink, grow and stretch zones, shields, energy barriers, boost pads, breakable walls. Go for 3 stars on each one.
 
 ★ ENDLESS MODE
 A new map every run. The higher you climb, the faster it gets. Earn diamonds every 100 metres, beat your own record line and fight for the top of the weekly leaderboard. The weekly top 10 win prizes.

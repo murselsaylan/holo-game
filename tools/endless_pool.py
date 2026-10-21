@@ -54,6 +54,9 @@ def apply_content_rule(out):
     out["empty"] = empty
     # the collectable stars of every pooled stage at its tier (stage coordinates)
     out["stars"] = {t: {str(lid): E.make_stars(lid, int(t)) for lid in ids} for t, ids in out["tiers"].items()}
+    out["slots"] = {t: {str(lid): E.make_slots(lid, int(t), out["stars"][t][str(lid)]) for lid in ids}
+                    for t, ids in out["tiers"].items()}
+    out["sectors"] = {str(l): int(E.raw_level(l).get("sector", 1)) for l in sorted({l for ids in out["tiers"].values() for l in ids})}
     out["rule"] = out["rule"].split(";")[0] + f"; walls cover >= {E.MIN_FILL:g} or >= {E.MIN_HAZARDS:g} hazards per 1000 px"
     return out
 

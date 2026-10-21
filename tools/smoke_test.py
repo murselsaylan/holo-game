@@ -46,7 +46,7 @@ def play_reference(game, level_id):
 SHOT_LEVELS = set()
 
 if __name__ == "__main__":
-    ids = [int(a) for a in sys.argv[1:]] or [1, 5, 25]
+    ids = [int(a) for a in sys.argv[1:]] or [1, 5, 25, 63, 99]
     SHOT_LEVELS = set(ids)
     game = holo.HoloGame(headless=True)
     game.save_mgr.data["howto_seen"] = True  # onboarding is covered by ui_test.py
@@ -59,5 +59,9 @@ if __name__ == "__main__":
         print(f"level {lid}: state={state} frames={frames} stars={res and res['stars']} score={res and res['level_total']} "
               f"rank={res and res['rank']} taps={len(game.taps)} ({time.time()-t0:.1f}s)")
         ok &= (state == "victory")
+        flags = len(game.level.data.checkpoints)          # checkpoints (1.0.9): the reference run lights them all, in order
+        if flags:
+            print(f"  checkpoints: {game.sim.cp_next}/{flags} lit")
+            ok &= (game.sim.cp_next == flags and not any(a[1] == "C" for a in game.assists))
     print("ALL OK" if ok else "FAILURES")
     sys.exit(0 if ok else 1)

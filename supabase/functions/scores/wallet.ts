@@ -1,6 +1,7 @@
 // Server-side diamond wallet. The balance lives in players.diamonds; every change goes through here with a server
 // price / reward table and is logged once per (player, reason, ref) in wallet_log, so retries never double-count.
-import { ACH_IDS, DAILY, EVENTS, LOGIN_REWARDS, PACKS, PREMIUM_SKINS, SHIELD_COST, SKIN_COST, WEEKLY } from "./wallet_data.ts";
+import { weeklySkinPrice } from "./rotation.ts";
+import { ACH_IDS, DAILY, EVENTS, LOGIN_REWARDS, PACKS, PREMIUM_SKINS, SHIELD_COST, SKIN_COST, STREAK_WEEKS, WEEKLY } from "./wallet_data.ts";
 
 export const REVIVE_COST = 20;
 export const WELCOME_GIFT = 30;
@@ -88,18 +89,26 @@ export function dailyDeal(nowMs: number): { skin: string; price: number; full: n
   return { skin, price: Math.round(full * (1 - DEAL_OFF) / 5) * 5, full };
 }
 
+/** The day's first shield costs nothing (1.0.9): its marker row's ref is this UTC date. */
+export function freeShieldDay(nowMs: number): string {
+  return new Date(nowMs).toISOString().slice(0, 10);
+}
+
 export function spendPrice(item: string, nowMs = 0): number | null {
   if (item === "revive") return REVIVE_COST;
   if (item === "shield") return SHIELD_COST;
   if (item.startsWith("skin:")) {
     const c = (SKIN_COST as Record<string, number>)[item.slice(5)];
     if (typeof c !== "number" || c <= 0) return null;
-    // today's deal - or the one that just ended (10 minutes of grace for a purchase made just before midnight)
+    // today's deal - or the one that just ended (10 minutes of grace for a purchase made just before midnight) - and
+    // the skins of the week (rotation.ts, 1.0.9): the cheapest applies
+    let best = c;
     for (const t of [nowMs, nowMs - 600_000]) {
       const d = dailyDeal(t);
-      if (nowMs && d.skin === item.slice(5)) return d.price;
+      if (nowMs && d.skin === item.slice(5)) best = Math.min(best, d.price);
     }
-    return c;
+    const wk = nowMs ? weeklySkinPrice(item.slice(5), nowMs) : null;
+    return wk === null ? best : Math.min(best, wk);
   }
   return null;
 }
@@ -122,7 +131,13 @@ export function weeklyReward(ref: string): number | null {
   return pool[idx % pool.length];
 }
 
-export type EarnCheck = { amount: number; reason: string; ref: string } | { error: string; status: number };
+/** The "Seri" skins a player has earned after `weeks` completed 7-day login runs (skin_catalog.STREAK_WEEKS). */
+export function streakSkins(weeks: number): string[] {
+  return Object.entries(STREAK_WEEKS as Record<string, number>).filter(([, need]) => weeks >= need).map(([id]) => id);
+}
+
+/** `week` = this login completes a 7-day run (day 7): the handler counts it and grants the Seri skins. */
+export type EarnCheck = { amount: number; reason: string; ref: string; week?: boolean } | { error: string; status: number };
 
 /** Validates an earning claim; `now` in ms. */
 export async function earnClaim(store: WalletStore, pid: string, kind: string, ref: string, nowMs: number): Promise<EarnCheck> {
@@ -146,11 +161,12 @@ export async function earnClaim(store: WalletStore, pid: string, kind: string, r
     if (day === null) return { error: "bad date", status: 400 };
     const today = Math.floor(nowMs / DAY_MS) + 719163;
     if (day < today - 1 || day > today + 1) return { error: "login expired", status: 400 };
-    const refs = await store.walletRefs(pid, "login", Math.floor(nowMs / 1000) - 10 * 86_400);
+    const refs = await store.walletRefs(pid, "login", Math.floor(nowMs / 1000) - 400 * 86_400);   // the whole run (a 10-day window mis-read day 14+ of a run)
     const days = new Set(refs.map((r) => dayOrdinal(r)).filter((d) => d !== null));
     let streak = 0;
     for (let d = day - 1; days.has(d); d--) streak++;
-    return { amount: LOGIN_REWARDS[streak % LOGIN_REWARDS.length], reason: "login", ref };
+    return { amount: LOGIN_REWARDS[streak % LOGIN_REWARDS.length], reason: "login", ref,
+             week: streak % LOGIN_REWARDS.length === LOGIN_REWARDS.length - 1 };
   }
   if (kind === "weekly") {
     const reward = weeklyReward(ref);

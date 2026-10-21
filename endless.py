@@ -19,7 +19,8 @@ import os
 
 from sim import ARENA_W, LevelData, Sim, LEVELS_DIR, MAX_LEVELS, SPAWN_GRACE, SIM_DT
 
-ENDLESS_VERSION = 4            # v4 (1.0.8): stages from the 1.0.8 maps; v3 (1.0.7): speed floor 1.10; server takes v2-v4
+ENDLESS_VERSION = 5            # v5 (1.0.9): zones (each stage = one zone with its own sector look / music), events, goals;
+                               # v4 (1.0.8): stages from the 1.0.8 maps; v3 (1.0.7): speed floor 1.10; server takes v2-v5
 Y_BASE = 10_000_000.0          # bottom of stage 0 (the climb goes towards y = 0)
 GAP = 640.0                    # connector chamber between two stages (roomy: the pair crosses it sideways)
 TUNNEL = 340.0                 # width of the tunnels cut into a stage's start / exit rooms
@@ -34,7 +35,7 @@ DIAMONDS_PER_DAY = 60
 UNLOCK_LEVEL = 10              # the mode opens once this campaign level is cleared
 SPAWN_GRACE_STEPS = int(SPAWN_GRACE / SIM_DT)
 
-POOL_FILE = os.path.join(LEVELS_DIR, "endless_pool.json")
+POOL_FILE = os.path.join(LEVELS_DIR, "endless_pool_v5.json")
 
 # hazard families and the tier from which they appear (a tier lasts two stages)
 FAMILY_TIER = {
@@ -43,10 +44,11 @@ FAMILY_TIER = {
     "growth_zones": 3, "breakables": 3, "barriers": 3, "shields": 3,
     "shrink_zones": 4, "boost_pads": 4, "chasers": 4,
     "lasers": 5, "spinners": 5,
+    "slow_zones": 3, "stretch_zones": 5,           # v5: the sector 6 / 7 fields (levels 101+)
 }
 MAX_TIER = 7                   # 0-5: families unlock two stages apart; 6: all (stage 12-19); 7: stage 20+, top speed
 RECT_KEYS = ("walls", "reverse_walls", "breakables", "barriers")
-POINT_KEYS = ("circles", "growth_zones", "shrink_zones", "boost_pads", "shields")
+POINT_KEYS = ("circles", "growth_zones", "shrink_zones", "boost_pads", "shields", "slow_zones", "stretch_zones")
 STATE_KEYS = ("breakables", "chasers", "shields", "stars")  # lists whose objects carry per-run state in Sim
 
 
@@ -110,6 +112,8 @@ def fresh_nonce(week, recent=()):
 # ------------------------------------------------------------------------------------------------ level sources
 _RAW = {}
 _POOL = None
+_SECTORS = {}                  # level id -> campaign sector (1-7), shipped in the pool file
+_SLOTS = None
 
 
 def raw_level(level_id):
@@ -129,6 +133,7 @@ def pool():
             with open(POOL_FILE, "r", encoding="utf-8") as f:
                 p = json.load(f)
             _POOL = {int(k): [int(x) for x in v] for k, v in p["tiers"].items()}
+            _SECTORS.update({int(k): int(v) for k, v in p.get("sectors", {}).items()})
         except (OSError, ValueError, KeyError):
             _POOL = {t: list(range(1, MAX_LEVELS + 1)) for t in range(MAX_TIER + 1)}
     return _POOL
@@ -154,6 +159,28 @@ def pool_stars():
     return _STARS
 
 
+def sector_of(level_id):
+    pool()
+    s = _SECTORS.get(level_id)
+    return s if s is not None else int(raw_level(level_id).get("sector", 1))
+
+
+def pool_slots():
+    """{(tier, level id): [[x, y], ...]} - clear spots of each stage where a zone event may drop something."""
+    global _SLOTS
+    if _SLOTS is None:
+        _SLOTS = {}
+        try:
+            with open(POOL_FILE, "r", encoding="utf-8") as f:
+                p = json.load(f)
+            for t, per in p.get("slots", {}).items():
+                for lid, pts in per.items():
+                    _SLOTS[(int(t), int(lid))] = [[int(a), int(b)] for a, b in pts]
+        except (OSError, ValueError, KeyError):
+            _SLOTS = {}
+    return _SLOTS
+
+
 def pool_digest():
     """Short hash of the pool in use (maps and their stars): the server refuses climbs from another pool."""
     pl = pool()
@@ -164,32 +191,61 @@ def pool_digest():
         for (t, lid) in sorted(st):
             per.setdefault(str(t), {})[str(lid)] = st[(t, lid)]
         txt += "|" + json.dumps(per, separators=(",", ":"))
+    sl = pool_slots()
+    if sl:
+        per = {}
+        for (t, lid) in sorted(sl):
+            per.setdefault(str(t), {})[str(lid)] = sl[(t, lid)]
+        txt += "|" + json.dumps(per, separators=(",", ":"))
+    if _SECTORS:
+        txt += "|" + json.dumps({str(k): _SECTORS[k] for k in sorted(_SECTORS)}, separators=(",", ":"))
     return "%08x" % fnv1a(txt)
 
 
 def set_pool(p, stars=None):
     """Tests / tools: use another pool ({tier: [ids]}, optional {(tier, id): stars}); None reloads the file."""
-    global _POOL, _STARS
+    global _POOL, _STARS, _SLOTS
     _POOL = None if p is None else {int(k): list(v) for k, v in p.items()}
     _STARS = None if p is None else dict(stars or {})
+    _SLOTS = None if p is None else {}
 
 
 RAMP_STAGES = 24               # the maps picked climb from the tier's easiest to its hardest over this many stages
 NO_REPEAT = 6                  # a map does not come back within this many stages
 
+# v5 zones: every stage is a zone (150-480 m of climb + the connector) drawn from one campaign sector - its look, music
+# and hazard mix. (first stage, sectors that may appear from there on); the climb starts in sector 1 and opens up.
+ZONE_SECTORS = ((0, (1,)), (1, (1, 2)), (3, (2, 3)), (5, (2, 3, 4)), (7, (3, 4, 5)), (10, (3, 4, 5, 6)), (14, (4, 5, 6, 7)))
+
+
+def zone_sectors(k):
+    out = ZONE_SECTORS[0][1]
+    for first, secs in ZONE_SECTORS:
+        if k >= first:
+            out = secs
+    return out
+
 
 def plan(seed, count, prev_plan=None):
-    """Level ids of stages 0..count-1 (deterministic). Each tier's pool is ordered easiest first (campaign order);
-    stage k picks from a window that slides towards the hard end as the climb goes on, and never repeats one of the
-    last NO_REPEAT maps. Integer maths only (mirrored in endless.ts)."""
+    """Level ids of stages 0..count-1 (deterministic). Stage k first picks its zone's sector (from the sectors open at
+    that point of the climb that have maps at the stage's tier; never the previous stage's sector when there is a
+    choice), then a map of that sector from the tier's pool, ordered easiest first (campaign order): the pick window
+    slides towards the hard end as the climb goes on and never repeats one of the last NO_REPEAT maps. Integer maths
+    only (mirrored in endless.ts)."""
     out = list(prev_plan or [])
     pl = pool()
     for k in range(len(out), count):
-        choices = pl[tier_of(k)]
+        tier_pool = pl[tier_of(k)]
+        secs = [s for s in zone_sectors(k) if any(sector_of(l) == s for l in tier_pool)] or [sector_of(tier_pool[0])]
+        if len(secs) > 1 and out:
+            secs = [s for s in secs if s != sector_of(out[-1])] or secs
+        sec = secs[fnv1a(f"{seed}|z{k}") % len(secs)]
+        choices = [l for l in tier_pool if sector_of(l) == sec] or tier_pool
         n = len(choices)
         center = min(n - 1, (n - 1) * k // RAMP_STAGES)
         lo = max(0, center - (3 * n) // 10)
-        hi = min(n, max(lo + 1, center + n // 5 + 1))
+        wide = (n * 11) // 20 if "|v5|" in seed else n // 5          # v5: a wide window (the first stages are not always the same few easiest maps); older versions unchanged
+        hi = min(n, max(lo + 1, center + wide + 1))
         w = hi - lo
         i0 = fnv1a(f"{seed}|{k}") % w
         recent = out[-NO_REPEAT:]
@@ -201,6 +257,38 @@ def plan(seed, count, prev_plan=None):
                 break
         out.append(pick)
     return out
+
+
+# zone events: a short surprise on some stages, dropped on the stage's clear spots (pool "slots")
+EV_NONE, EV_STARS, EV_SHIELD, EV_BUBBLE = 0, 1, 2, 3
+BUBBLE_R = 130.0               # calm bubble: a slow field (sector 6's own) - the pair turns at 60 % inside
+
+
+def event_of(seed, k, level_id, tier, prev_event):
+    """Event of stage k (0 = none): star rain (all clear spots become stars), a shield drop, a calm bubble.
+    Never on the first stage, never twice in a row, only where the stage has clear spots."""
+    if k == 0 or prev_event != EV_NONE:
+        return EV_NONE
+    n = len(pool_slots().get((tier, level_id), []))
+    if n == 0:
+        return EV_NONE
+    h = fnv1a(f"{seed}|ev{k}") % 100
+    if h < 16 and n >= 2:
+        return EV_STARS
+    if h < 28:
+        return EV_SHIELD
+    if h < 40:
+        return EV_BUBBLE
+    return EV_NONE
+
+
+def event_slot(seed, k, level_id, tier):
+    sl = pool_slots().get((tier, level_id), [])
+    return sl[fnv1a(f"{seed}|es{k}") % len(sl)]
+
+
+# metre goals: (metres, diamonds) paid once per week and goal by the server (supabase/functions/scores/endless.ts GOALS)
+GOALS = ((250, 5), (500, 10), (1000, 20), (2000, 40), (3000, 60))
 
 
 # ------------------------------------------------------------------------------------------------ stage geometry
@@ -323,7 +411,7 @@ def build_stage(level_id, tier, first=False):
 
 FILL_KEYS = ("walls", "reverse_walls", "breakables", "barriers", "moving_walls")
 HAZARD_KEYS = ("circles", "growth_zones", "shields", "shrink_zones", "boost_pads", "chasers", "lasers", "spinners",
-               "moving_walls", "reverse_walls")
+               "moving_walls", "reverse_walls", "slow_zones", "stretch_zones")
 MIN_FILL = 0.12                # share of the stage covered by walls ...
 MIN_HAZARDS = 3.0              # ... or hazards per 1000 px: a map whose challenge was all hazards the tier removes is empty
 
@@ -398,13 +486,39 @@ def make_stars(level_id, tier):
     return [[int(round(x)), int(round(y))] for x, y in out]
 
 
+def make_slots(level_id, tier, stars, count=4):
+    """Clear spots of a stage (stage coordinates) for zone events: along the map's route, away from walls, hazards and
+    the stage's stars. Tools only - the result is shipped in the pool file."""
+    d = build_stage(level_id, tier)
+    h = float(d["height"])
+    route = [list(d["start"])] + [list(p) for p in d.get("waypoints", [])] + [list(d["end"])]
+    samples = []
+    for a, b in zip(route, route[1:]):
+        seg = ((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2) ** 0.5
+        n = max(1, int(seg / 60.0))
+        samples += [[a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n] for i in range(n)]
+    out = []
+    for x, y in samples:
+        if len(out) >= count:
+            break
+        if not (140.0 < y < h - 140.0 and 90.0 < x < ARENA_W - 90.0):
+            continue
+        if any(((x - p[0]) ** 2 + (y - p[1]) ** 2) ** 0.5 < STAR_SPACING for p in list(stars) + out):
+            continue
+        if _clearance(d, x, y) >= 70.0:
+            out.append([x, y])
+    return [[int(round(x)), int(round(y))] for x, y in out]
+
+
 class Stage:
     """A placed stage: absolute top y, geometry shifted there, per-list object counts."""
-    __slots__ = ("k", "level", "tier", "top", "bottom", "height", "d", "speed", "counts", "route")
+    __slots__ = ("k", "level", "tier", "top", "bottom", "height", "d", "speed", "counts", "route", "sector", "event")
 
-    def __init__(self, k, level_id, bottom):
+    def __init__(self, k, level_id, bottom, event=EV_NONE, slot=None):
         self.k = k
         self.level = level_id
+        self.sector = sector_of(level_id)
+        self.event = event
         self.tier = tier_of(k)
         local = build_stage(level_id, self.tier, first=(k == 0))
         self.height = float(local["height"])
@@ -425,7 +539,13 @@ class Stage:
         stars = [list(p) for p in pool_stars().get((self.tier, level_id), [])]
         if k > 0:
             stars.append([local["start"][0], self.height + GAP * 0.45])
+        if event == EV_STARS:
+            stars += [list(p) for p in pool_slots()[(self.tier, level_id)]]
         d["stars"] = [[p[0], p[1] + oy] for p in stars]
+        if event == EV_SHIELD:
+            d["shields"].append([slot[0], slot[1] + oy])
+        elif event == EV_BUBBLE:
+            d["slow_zones"].append([slot[0], slot[1] + oy, BUBBLE_R])
         self.d = d
         self.counts = {key: len(d[key]) for key in STATE_KEYS}
         # the way through (bots / QA only, not physics): up the entry tunnel, the map's own route, out of the exit
@@ -443,6 +563,19 @@ class World:
         self.stages = {}
         self._bottoms = [Y_BASE]
         self.keep = False                  # bots: keep every stage (their clones sit at different heights)
+        self.events = []                   # event of every stage planned so far (no two in a row)
+
+    def _event(self, k):
+        while len(self.events) <= k:
+            j = len(self.events)
+            lid = self.ids[j]
+            self.events.append(event_of(self.seed, j, lid, tier_of(j), self.events[-1] if self.events else EV_NONE))
+        return self.events[k]
+
+    def _make(self, k, bottom):
+        ev = self._event(k)
+        slot = event_slot(self.seed, k, self.ids[k], tier_of(k)) if ev in (EV_SHIELD, EV_BUBBLE) else None
+        return Stage(k, self.ids[k], bottom, ev, slot)
 
     def stage(self, k):
         s = self.stages.get(k)
@@ -454,10 +587,16 @@ class World:
             j = len(self._bottoms) - 1
             sj = self.stages.get(j)
             if sj is None:
-                sj = self.stages[j] = Stage(j, self.ids[j], self._bottoms[j])
+                sj = self.stages[j] = self._make(j, self._bottoms[j])
             self._bottoms.append(sj.top - GAP)
-        s = self.stages[k] = Stage(k, self.ids[k], self._bottoms[k])
+        s = self.stages[k] = self._make(k, self._bottoms[k])
         return s
+
+    def sector(self, k):
+        """Campaign sector (1-7) of stage k's zone - cheap: only the plan is needed, not the stage's geometry."""
+        if len(self.ids) <= k:
+            self.ids = plan(self.seed, k + 1, self.ids)
+        return sector_of(self.ids[k])
 
     def forget_below(self, k):
         if self.keep:
@@ -537,6 +676,11 @@ class EndlessRun:
     @property
     def stage(self):
         return self.stage_at(self.sim.pivot.y)
+
+    @property
+    def zone_sector(self):
+        """Sector (look / music) of the zone the pair is in."""
+        return self.world.sector(self.stage)
 
     def route_progress(self):
         """Distance along the intended way through the stages (px) - for bots and QA, never for scoring."""

@@ -13,6 +13,8 @@ import os
 import paths
 import config
 import ui
+import friends_ui
+import ranked_ui
 import shop as shop_mod
 import achievements as ach_mod
 import skin_catalog
@@ -33,7 +35,9 @@ import memstat
 import perfstat
 import review
 import olo as olo_mod
-from endless_view import EndlessLevel, sector_for_stage
+from endless_view import EndlessLevel
+
+GHOST_EVERY = 30                # steps between two samples of the pace ghost (endless_view.EndlessLevel.ghost)
 import arena as A
 from arena_view import ArenaLevel
 from sim import Sim, SIM_DT, compute_result, MAX_LEVELS, SHIELD_INVULN, MIN_TAP_GAP
@@ -102,6 +106,11 @@ class HoloGame:
         self.victory_modal = None
         self.profile_modal = None
         self.recovery_modal = None
+        self.friends_modal = None        # the friends window (state "friends", opened from the leaderboard's friends tab)
+        self.daily_run = None            # {"level"} while the one-try daily level is being played
+        self.daily_modal = None          # its result card (state "daily_result")
+        self._daily_retry = [0.0, 0]
+        self._friend_note = 0            # waiting-for-me count already announced with a toast
         self.login_modal = None          # the daily login calendar (state "login")
         self.google_auth = None          # created on first use (Android bridge)
         self._cloud_next = 20.0          # first cloud copy of the save a little after start, then at most every 45 s
@@ -110,7 +119,9 @@ class HoloGame:
         self.ghost = None
         self.ghost_taps = []
         self.ghost_i = 0
-        self.ghost_name = None          # who the ghost is (the world's #1), None = my own best
+        self.ghost_name = None          # who the ghost is (a friend / the world's #1), None = my own best
+        self.ghost_friend = False       # the ghost is a friend's run (labelled with a heart instead of "#1")
+        self.help_asked = set()         # levels I asked my friends for help on in this session
         self.heart_timer = 0.0
         self.tick_timer = 0.0
         self.tension = 0.0
@@ -142,6 +153,7 @@ class HoloGame:
             self.online.wallet_sync()
             self.online.flush_pending()
             self.online.fetch("around", limit=11)
+            self.online.friends_refresh()
             notify.plan(self.save_mgr)               # re-plan the local reminders (Android only)
         if not headless:
             self._warm_up()
@@ -341,14 +353,19 @@ class HoloGame:
             on_quit=None if self.android else self.quit_game, rank_provider=lambda: self.online.rank_info,
             on_daily=self.open_daily, on_endless=self.open_endless,
             on_arena=self.open_arena if ARENA_ENABLED else None)
+        self.menu_ui.extra_badges = self._reward_badges
+        self.menu_ui.build()
         self.level_select_ui = ui.LevelSelectScreen(self.save_mgr, self.on_select_level, self.open_menu)
         self.leaderboard_ui = ui.LeaderboardScreen(self.save_mgr, self.open_menu,
                                                    on_edit_profile=lambda: self.open_profile("leaderboard"), online=self.online)
+        self.leaderboard_ui.on_friends = self.open_friends
         self.skin_ui = ui.SkinScreen(self.save_mgr, self.open_menu, audio_manager=self.audio, on_shop=self.open_shop)
         self.shop = shop_mod.Shop(self.save_mgr)
         self.online.on_purchase = self.shop.purchase_result
         self.ach_ui = ui.AchievementsScreen(self.save_mgr, self.open_menu, audio_manager=self.audio)
-        self.daily_ui = ui.DailyMissionsScreen(self.save_mgr, self.open_menu, audio_manager=self.audio)
+        self.daily_ui = ui.DailyMissionsScreen(self.save_mgr, self.open_menu, audio_manager=self.audio, online=self.online)
+        self.daily_ui.on_play_daily = self._start_daily               # daily level and team goal are
+        self.daily_ui.on_play_level = self._play_weekly_level         # sections of the missions page
         self.shop_ui = ui.ShopScreen(self.save_mgr, self.shop, self.open_menu, audio_manager=self.audio)
         if not hasattr(self, "ads"):
             self.ads = ads_mod.Ads()
@@ -479,7 +496,8 @@ class HoloGame:
         lvl.finish(run.w0)                         # the first stage now; the ones above are drawn a little per frame
         self.endless_run = run
         lvl.record_m = int(self.save_mgr.endless.get("best_m", 0))     # the gold REKOR line in the world
-        self.endless_fx = {"m100": 0, "tier": 0, "record": lvl.record_m <= 0, "streak": 0, "last_star": -9.0}
+        self.endless_fx = {"m100": 0, "tier": 0, "record": lvl.record_m <= 0, "streak": 0, "last_star": -9.0,
+                           "stage": 0, "goal": 0, "series": []}
         self.endless_banner = None
         self.level = lvl
         self.sim = run.sim
@@ -629,6 +647,12 @@ class HoloGame:
             self.audio.play_sfx("sfx_win")
             self.particles.add_shake(10.0)
             haptics.buzz(40)
+        elif fx["goal"] < len(E.GOALS) and m >= E.GOALS[fx["goal"]][0]:
+            gm, gd = E.GOALS[fx["goal"]]
+            fx["goal"] += 1
+            self._endless_banner(t("endless_goal_hit", m=ui.fmt_int(gm)), t("endless_goal_hit_sub", n=gd), (255, 120, 220), 2.2)
+            self.audio.play_sfx("sfx_coin")
+            haptics.buzz(30)
         elif m // 100 > fx["m100"]:
             fx["m100"] = m // 100
             h = fx["m100"] * 100
@@ -637,11 +661,16 @@ class HoloGame:
                 self.audio.play_sfx("sfx_coin")
             else:
                 self._endless_banner(f"{ui.fmt_int(h)} m", "", (255, 255, 255), 1.2)
-        tier = E.tier_of(run.stage)
-        if tier > fx["tier"]:
-            fx["tier"] = tier
-            self._endless_banner(t("endless_banner_zone", n=tier + 1), t(f"endless_zone_{min(tier, 7)}"),
-                                 ui.SECTOR_COL.get(sector_for_stage(run.stage), (255, 170, 60)), 2.0)
+        series = fx["series"]                                  # metres every 30 steps: the next pace ghost
+        while len(series) * GHOST_EVERY <= run.n:
+            series.append(m)
+        stg = run.stage
+        if stg > fx["stage"]:                                  # a new zone: its sector's name, look and music
+            fx["stage"] = stg
+            sec = run.world.sector(stg)
+            ev = run.world.stage(stg).event
+            sub = t(f"endless_event_{ev}") if ev else t("endless_banner_zone", n=stg + 1)
+            self._endless_banner(t(f"endless_zone_name_{sec}"), sub, ui.SECTOR_COL.get(sec, (255, 170, 60)), 2.2)
             self.audio.play_sfx("sfx_warp")
 
     def _endless_died(self):
@@ -663,6 +692,8 @@ class HoloGame:
         run = self.endless_run
         metres = run.metres
         new_best = self.save_mgr.record_endless(self.endless_week, run.points, metres, run.stars)
+        if new_best and metres > 0:                             # this climb is the next pace ghost
+            self.save_mgr.set_endless_ghost(self.endless_fx["series"] + [metres])
         ach_mod.bump(self.save_mgr, "endless_runs")
         self.save_mgr.bump_weekly("endless_m", metres)
         self.save_mgr.bump_weekly("endless_stars", run.stars)
@@ -675,10 +706,12 @@ class HoloGame:
         self.state = "failed"
         self.failure_modal = ui.EndlessResultModal(
             metres, run.stage, self.save_mgr.endless["best_all"], self.save_mgr.endless["best_all"],
-            new_best, sector_for_stage(run.stage), self.online, on_retry=lambda: self._after_ad(self.retry_after_fail),
+            new_best, run.zone_sector, self.online, on_retry=lambda: self._after_ad(self.retry_after_fail),
             on_menu=self.open_menu,
             on_board=lambda: self.open_leaderboard("endless"), points=run.points, stars=run.stars,
-            wallet=self.save_mgr.star_coins, on_skins=self._open_star_skins)
+            wallet=self.save_mgr.star_coins, on_skins=self._open_star_skins,
+            save_mgr=self.save_mgr, on_shield=self.retry_with_shield)
+        self.failure_modal.on_shield_short = lambda: self.toasts.append([t("shield_short_toast_endless"), "", 2.6])
         if olo_mod.enabled(self.save_mgr):
             self._olo_say("endless_best" if new_best and metres > 0 else "endless_end", where="endless", m=int(metres))
 
@@ -691,6 +724,7 @@ class HoloGame:
 
     def _leave_endless(self):
         """Leave the endless climb or the arena (both are "runs" with their own level)."""
+        self.daily_run = None
         if self.endless_run is not None or self.arena_run is not None:
             self.endless_run = None
             self.arena_run = None
@@ -714,8 +748,9 @@ class HoloGame:
             return
         self._open_daily_missions()
 
-    def _open_daily_missions(self):
+    def _open_daily_missions(self, tab="missions"):
         self.state = "daily"
+        self.daily_ui.set_tab(tab)
         self._click()
 
     def open_featured(self):
@@ -748,6 +783,7 @@ class HoloGame:
         self.prev_profile_state = from_state
         self.state = "profile"
         self.profile_modal = ui.ProfileModal(self.save_mgr, on_save=self.close_profile, on_recovery=self.open_recovery)
+        self.profile_modal.on_equip = self.shop_ui.extra.equip
         self._click()
 
     # ------------------------------------------------------------------ account recovery
@@ -767,6 +803,142 @@ class HoloGame:
         if self.profile_modal:
             self.profile_modal.btn_code.text = ui.t("google_linked_btn", email=email)
             self.profile_modal.btn_code.font_size = 22
+
+    # ------------------------------------------------------------------ friends (1.0.9)
+    def open_friends(self):
+        self.friends_modal = friends_ui.FriendsModal(self.save_mgr, self.online, self.close_friends)
+        self.state = "friends"
+        self._click()
+
+    def close_friends(self):
+        self.friends_modal = None
+        self.state = "leaderboard"
+        self.leaderboard_ui.refresh()
+        self._click()
+
+    # ---- daily level (ranked_ui.py, server ranked.ts)
+    def open_ranked(self, tab="daily"):
+        """Daily level: a section of the daily screen."""
+        if tab == "daily" and not self.save_mgr.stars_unlocked:
+            self.toasts.append([t("stars_locked_btn"), "", 2.4])
+            return
+        if tab == "daily":
+            self._open_daily_missions("daily")
+        else:
+            self.open_leaderboard(tab)
+
+    def _start_daily(self, level):
+        """The day's try is spent on the server; play the level once. No retry, shield, revive, ghost or progress."""
+        self._leave_endless()
+        lvl = Level(level)
+        if not lvl.load():
+            self.open_menu()
+            return
+        self.level_id, self.level, self.sim = level, lvl, None
+        self.attempts = 1
+        self.daily_run = {"level": level}
+        self.restart_level(count_attempt=False)
+        self.audio.play_sfx("sfx_warp")
+
+    def _show_daily_result(self, ok):
+        self.daily_modal = ranked_ui.DailyResultModal(ok, self._close_daily_result)
+        self.state = "daily_result"
+        self._daily_retry = [0.0, 0]
+        if ok:
+            self._send_daily()
+
+    def _send_daily(self):
+        modal = self.daily_modal
+        modal.failed_send = False
+        self.online.ranked.daily_submit(self.taps, self.level.data.digest, lambda r: modal.set_reply(r))
+
+    def _daily_tick(self, st):
+        m = self.daily_modal
+        if st == "daily_result" and m is not None and m.ok and m.failed_send and self._daily_retry[1] < 4:
+            if self._daily_retry[0] == 0.0:
+                self._daily_retry[0] = self.ui_time + 2.5
+            elif self.ui_time >= self._daily_retry[0]:
+                self._daily_retry = [0.0, self._daily_retry[1] + 1]
+                self._send_daily()
+
+    def _close_daily_result(self):
+        self.daily_modal = None
+        self.daily_run = None
+        self.level = self.sim = None
+        self.online.ranked.refresh("daily")
+        self.open_ranked("daily")
+
+    # ---- shared weekly goal + level of the week (crowd_ui.py, server crowd.ts)
+    def open_crowd(self):
+        """The team goal is a section of the daily screen."""
+        self._open_daily_missions("crowd")
+
+    def _play_weekly_level(self, level_id):
+        self.on_select_level(level_id)
+
+    def _reward_badges(self):
+        """Extra rewards ready on the daily screen (team goal, level of the week) for the menu's red dot."""
+        return self.online.crowd.claimable()
+
+    def _crowd_tick(self, st):
+        """Menu: keep the weekly status fresh (the menu badge) and the star wallet in step with the server, and let Olo
+        mention what is new about the weekly goal once per week and kind."""
+        if st != "menu":
+            return
+        c = self.online.crowd
+        c.refresh(max_age=90.0)
+        if self.save_mgr.stars_unlocked:
+            self.online.ranked.refresh("stars", max_age=120.0)
+        d = c.data
+        olo = getattr(self, "olo", None)
+        if not d or olo is None or olo.active or not olo_mod.enabled(self.save_mgr) or self.menu_ui.enter < 1.0:
+            return
+        w = d.get("wlevel") or {}
+        tiers = [x["tier"] for x in d.get("tiers", []) if x.get("claimable")]
+        if tiers:
+            kind = f"crowd_t{max(tiers)}"
+        elif w.get("cleared") and not w.get("claimed"):
+            kind = "wlevel_clear"
+        elif not w.get("cleared") and int(w.get("level") or 999) <= self.save_mgr.unlocked_level:
+            kind = "wlevel_new"
+        elif not d.get("mine"):
+            kind = "crowd_go"
+        else:
+            return
+        key = f"{d.get('week')}:{kind}"
+        said = self.save_mgr.data.setdefault("crowd_olo", [])
+        if key in said:
+            return
+        said[:] = (said + [key])[-12:]
+        self.save_mgr.save()
+        self._olo_say(kind, where="menu", delay=1.2, lvl=w.get("level") or 1, pct=int(float(w.get("pct") or 0)))
+
+    def ask_friends_help(self):
+        """Failure screen, 'I am stuck': tell my friends (the server picks the shield / revive they can send)."""
+        lvl = self.level_id
+        if lvl in self.help_asked:
+            return
+
+        def done(r):
+            if isinstance(r, dict) and r.get("ok") and "error" not in r:
+                self.help_asked.add(lvl)
+                self.toasts.append([t("fr_help_toast"), "", 2.8])
+            else:
+                if isinstance(r, dict) and r.get("error") in ("already asked for this level today", "daily limit"):
+                    self.help_asked.add(lvl)
+                self.toasts.append([ui.friend_text(r, "fr_help_toast"), "", 2.8])
+        self.online.friends_op("help_ask", str(lvl), done)
+
+    def _friends_tick(self):
+        """Once the friends list is in: announce things waiting for me (requests, gifts, help requests) once per change."""
+        f = self.online.friends
+        if not f or self.state != "menu":
+            return
+        n = (sum(1 for x in f.get("friends", []) if x.get("status") == "incoming") + len(f.get("inbox", []))
+             + len(f.get("help", [])))
+        if n > self._friend_note:
+            self.toasts.append([t("fr_notice"), "", 3.0])
+        self._friend_note = n
 
     def close_recovery(self):
         self.recovery_modal = None
@@ -853,6 +1025,8 @@ class HoloGame:
         print(f"[mem] level {level_id} loaded: {memstat.footprint()} MB")
         if hasattr(self.online, "fetch_ghost") and self.settings.get("ghost_race", True):
             self.online.fetch_ghost(level_id, lvl.data.digest)
+            if hasattr(self.online, "fetch_friend_ghost") and self.online.friend_rows():
+                self.online.fetch_friend_ghost(level_id, lvl.data.digest)
         self.restart_level(count_attempt=False)
         if level_id == 1 and not self.save_mgr.data.get("howto_seen"):
             self.howto_ui.reset()
@@ -875,6 +1049,8 @@ class HoloGame:
             return
         if not self.level:
             return
+        if self.daily_run is not None and self.sim is not None:
+            return                                  # the daily level has one try
         # a shield armed before the very first swap was never actually used - carry it into the fresh attempt
         # instead of discarding it, so restarting (R / menu) right after arming one doesn't waste it.
         carried_shields, carried_bought = 0, 0
@@ -918,19 +1094,90 @@ class HoloGame:
         self._snap_camera()
 
     def retry_after_fail(self):
+        if self.daily_run is not None:
+            return
         if isinstance(self.failure_modal, ui.EndlessReviveModal):
             self._run_over()                      # a run waiting on its revive offer is finished (and sent) first
         self.attempts += 1
         if self.endless_run is None and self.arena_run is None:
             self.save_mgr.set_level_attempts(self.level_id, self.attempts)
+        if self._checkpoint_ready():
+            self._resume_checkpoint_now(self.sim)     # a flag was lit: go on from it (the pause menu's restart starts over)
+            return
         self.restart_level()
+
+    def retry_with_shield(self):
+        """Failure screen, 'retry with shield': the shield (own stock, or bought now - today's first one is free) is
+        on the pair from the first frame of the next attempt. Same paid-help path as the HUD button (assist "S")."""
+        modal = self.failure_modal
+        if (self.state != "failed" or not isinstance(modal, (ui.FailureModal, ui.EndlessResultModal)) or modal.waiting
+                or self.daily_run is not None or self.arena_run is not None):
+            return
+        self._click()
+
+        def go():
+            if self.state == "failed" and self.failure_modal is modal:
+                self._after_ad(self._shielded_retry)
+
+        if self.save_mgr.shield_stock > 0:
+            go()
+            return
+        modal.waiting = True
+
+        def paid(ok):
+            modal.waiting = False
+            if ok:
+                go()
+            else:
+                self.toasts.append([t(self.shop.current_message() or "not_enough_diamonds"), "", 2.4])
+
+        self.shop.buy_shield(on_done=paid)
+
+    def _shielded_retry(self):
+        self.retry_after_fail()
+        s = self.sim
+        if (self.state == "playing" and s is not None and not s.dead and s.shields < 3
+                and self.run_bought < self.save_mgr.shield_stock):
+            self._put_shield(s)
+
+    def _checkpoint_ready(self):
+        """True when the dead pair can go on from a lit checkpoint (campaign levels only)."""
+        s = self.sim
+        return bool(s is not None and s.dead and s.cp_state is not None and self.endless_run is None
+                    and self.arena_run is None and self.daily_run is None and self.level is not None)
+
+    def _resume_checkpoint_now(self, s):
+        """Free resume from the latest lit checkpoint (assist "C": the server replays the same rule - sim.py
+        Sim.resume_checkpoint). Death count, attempts and hints stay as they are; the clock keeps running."""
+        self.assists.append([s.n, "C"])
+        s.resume_checkpoint()
+        self.particles.clear()
+        self.rewind_cam_start = self.cam_y
+        self.rewind_fx_t = 0.45
+        self.state = "playing"
+        self.death_timer = 0.0
+        self.failure_modal = None
+        self.victory_modal = None
+        self.accum = 0.0
+        self.resume_timer = 0.0
+        self.hint = None
+        self.prev_pos = [(o.x, o.y) for o in s.orbs]
+        self.audio.play_sfx("sfx_shield")
+        self.particles.emit_floating_text(s.pivot.x, s.pivot.y - 60, t("cp_resumed"), (90, 255, 190))
+        self._click()
 
     def revive_run(self):
         """Failure screen: pay REVIVE_COST diamonds to resume in place instead of retrying from the start.
         The run still counts for the leaderboard: the server replays the revive and checks it was paid."""
         s = self.sim
-        if not s or not s.dead or self.save_mgr.diamonds < REVIVE_COST or self._revive_wait:
+        if (not s or not s.dead or self._revive_wait
+                or (self.save_mgr.diamonds < REVIVE_COST and not self.save_mgr.free_credit("revive")
+                    and self.save_mgr.revive_stock <= 0)):
             return False
+        if self.save_mgr.free_credit("revive") <= 0 and self.save_mgr.use_revive():
+            # a revive from the stock (shop pack / Star Market / chest): the server already logged it as paid help
+            self._revive_now(s)
+            return True
         self._revive_wait = True
         modal = self.failure_modal
         if modal:
@@ -974,7 +1221,7 @@ class HoloGame:
     def use_hud_shield(self):
         """HUD button next to pause: put a shield on the pair now (stock first, otherwise 10 diamonds)."""
         s = self.sim
-        if not s or s.dead or s.won or self.state != "playing":
+        if not s or s.dead or s.won or self.state != "playing" or self.daily_run is not None:
             return
         if s.shields >= 3 or self.run_bought >= self.save_mgr.SHIELD_STOCK_MAX:
             return
@@ -1076,6 +1323,9 @@ class HoloGame:
             elif kind == "boost":
                 self.audio.play_sfx("sfx_warp")
                 self.particles.emit_floating_text(ev[1], ev[2] - 30, t("boost_popup"), (255, 190, 30))
+            elif kind == "checkpoint":
+                self.audio.play_sfx("sfx_star")
+                self.particles.emit_floating_text(ev[1], ev[2] - 60, t("cp_popup"), (90, 255, 190))
             elif kind == "shield_get":
                 self.audio.play_sfx("sfx_shield")
                 self.particles.emit_floating_text(ev[1], ev[2] - 30, t("shield_get_popup"), (0, 220, 255))
@@ -1141,6 +1391,11 @@ class HoloGame:
         s.events.clear()
 
     def _on_win(self):
+        if self.daily_run is not None:
+            haptics.buzz(25)
+            self.audio.play_sfx("sfx_win")
+            self._show_daily_result(True)
+            return
         if self._autoplay is not None and getattr(self, "_selftest", None) is None:
             self._autoplay_next()
             return
@@ -1183,7 +1438,8 @@ class HoloGame:
             on_replay=lambda: self._after_ad(lambda: (setattr(self, "attempts", 1), self.restart_level())),
             on_menu=self.open_menu, on_levels=self.open_level_select, new_best=improved, attempts=self.attempts,
             online=self.online, is_last=(nxt > MAX_LEVELS), assisted=False)   # paid help is ranked now
-        paid = any(a[1] != "S" for a in self.assists)
+        self._offer_share(lid, res, improved, first_clear)
+        paid = any(a[1] not in ("S", "C") for a in self.assists)           # a checkpoint resume is free
         if self._headless_safe_review() and review.should_ask(self.save_mgr.data, lid, first_clear, paid):
             # the store's "rate HOLO" sheet a moment after this win screen (Olo stays quiet then: one voice at a time)
             review.mark_asked(self.save_mgr.data, lid)
@@ -1192,6 +1448,36 @@ class HoloGame:
         elif olo_mod.enabled(self.save_mgr):
             a = self.attempts
             self._olo_say("win_first" if a <= 1 else ("win_hard" if a >= 5 else "win"), where="victory", delay=1.2, n=a)
+
+    def _share_variant(self, lid, improved, first_clear):
+        """Which share card this clear deserves: the level of the week, a new record, a hard fought level - or none."""
+        wl = ((self.online.crowd.data or {}).get("wlevel") or {}).get("level")
+        if wl == lid:
+            return "weekly"
+        if improved and not first_clear and not self.assisted:
+            return "record"
+        if (self.attempts >= 5 or (first_clear and lid >= 100)) and not self.assisted:
+            return "hard"
+        return None
+
+    def _offer_share(self, lid, res, improved, first_clear):
+        variant = self._share_variant(lid, improved, first_clear)
+        if variant is None or self.victory_modal is None:
+            return
+        attempts = self.attempts
+        self.victory_modal.set_share(lambda shape: self._share_card(variant, lid, res, attempts, shape))
+
+    def _share_card(self, variant, lid, res, attempts, shape):
+        """One tap: draw the card (1080x1920 or square), hand it to the share sheet; on a PC it is just saved."""
+        try:
+            import share_card
+            import share
+            path = share_card.make(variant, lid, res["stars"], res["level_total"], res["time"], attempts, size=shape)
+            if not share.send(path, share_card.message(variant, lid)):
+                self.toasts.append([t("sh_saved", p=path), "", 3.5])
+        except Exception as e:
+            print("share card failed:", e)
+            self.toasts.append([t("sh_fail"), "", 2.5])
 
     def _headless_safe_review(self):
         return not self.headless and paths.is_mobile() and getattr(self, "_autoplay", None) is None
@@ -1274,7 +1560,7 @@ class HoloGame:
             self._tour = [
                 ("leaderboard global", lambda: self.open_leaderboard("global")),
                 ("leaderboard country", lambda: self.leaderboard_ui.set_scope("country")),
-                ("leaderboard around", lambda: self.leaderboard_ui.set_scope("around")),
+                ("leaderboard friends", lambda: self.leaderboard_ui.set_scope("friends")),
                 ("leaderboard endless", lambda: self.leaderboard_ui.set_scope("endless")),
                 ("leaderboard global again", lambda: self.leaderboard_ui.set_scope("global")),
                 ("menu", self.open_menu), ("shop", lambda: self.open_shop(top=True)), ("skins", self.open_skins),
@@ -1333,6 +1619,7 @@ class HoloGame:
                 lvl = EndlessLevel(self.endless_run)
                 lvl.finish(self.endless_run.w0)
                 lvl.record_m = self.level.record_m
+                lvl.ghost = self.level.ghost
                 self.level, self.sim = lvl, self.endless_run.sim
                 self._reset_attempt()
             self._autoplay = [sorted(taps) if taps else list(range(60, 60 * 60 * 20, 52)), 0, True]
@@ -1379,13 +1666,20 @@ class HoloGame:
 
     def _install_ghost(self):
         """The ghost raced in this attempt: the world's best clean run of the level (named), else my own best."""
-        self.ghost, self.ghost_name = None, None
+        self.ghost, self.ghost_name, self.ghost_friend = None, None, False
         if (not self.settings.get("ghost_race", True) or not self.level or self.endless_run is not None
-                or self.arena_run is not None):
+                or self.arena_run is not None or self.daily_run is not None):
             return
         world = (getattr(self.online, "ghosts", None) or {}).get(self.level_id) or {}
+        friend = (getattr(self.online, "friend_ghosts", None) or {}).get(self.level_id) or {}
         taps = None
-        if world.get("taps") and world.get("id") != self.save_mgr.player_id:
+        if friend.get("taps") and friend.get("id") != self.save_mgr.player_id:
+            # a friend's best run beats the world's #1 as the ghost: it is somebody you know (1.0.9)
+            import name_filter
+            taps = friend["taps"]
+            self.ghost_friend = True
+            self.ghost_name = name_filter.shown_name(self.save_mgr, friend.get("id"), friend.get("name") or "?") or "?"
+        elif world.get("taps") and world.get("id") != self.save_mgr.player_id:
             import name_filter
             taps = world["taps"]
             self.ghost_name = name_filter.shown_name(self.save_mgr, world.get("id"), world.get("name") or "#1") or "#1"
@@ -1470,13 +1764,13 @@ class HoloGame:
                     self.audio.play_sfx("sfx_tick", volume=t_vol)
                     self.tick_timer = max(0.11, 0.28 - 0.15 * self.tension)
 
-    _SECTOR_TRACK = {1: "bgm_synthwave", 2: "bgm_s2", 3: "bgm_s3", 4: "bgm_s4", 5: "bgm_s5"}
+    _SECTOR_TRACK = {1: "bgm_synthwave", 2: "bgm_s2", 3: "bgm_s3", 4: "bgm_s4", 5: "bgm_s5", 6: "bgm_s6", 7: "bgm_s7"}
 
     def _sync_music(self):
         """Menu lullaby in menus, uninterrupted sector synthwave track in game (seamless continuous loop)."""
         st = self.state
         in_level = st in ("playing", "dying", "failed", "victory", "paused") or (st == "settings" and self.prev_state == "paused")
-        sector = sector_for_stage(self.endless_run.stage) if self.endless_run is not None else (self.level.sector if self.level else 1)
+        sector = self.endless_run.zone_sector if self.endless_run is not None else (self.level.sector if self.level else 1)
         want = self._SECTOR_TRACK.get(sector, "bgm_synthwave") if (in_level and self.level) else "bgm_menu"
         if want != self._music_track:
             self._music_track = want
@@ -1554,6 +1848,7 @@ class HoloGame:
             if self.state == "victory":
                 print("[review] asking the store for a rating:", review.ask())
         self.shop.poll()                              # store events (also purchases finished while in another screen)
+        self.shop_ui.extra.update()                   # shop extras' answers (also while the profile screen is open)
         self._sync_music()
         self._check_achievements()
         self._sync_cloud()
@@ -1590,6 +1885,8 @@ class HoloGame:
                 self._endless_died()
             elif self.death_timer <= 0 and self.arena_run is not None:
                 self._arena_died()
+            elif self.death_timer <= 0 and self.daily_run is not None:
+                self._show_daily_result(False)
             elif self.death_timer <= 0:
                 self.state = "failed"
                 s = self.sim
@@ -1599,6 +1896,12 @@ class HoloGame:
                     on_levels=self.open_level_select,
                     save_mgr=self.save_mgr, shop=self.shop, on_revive=self.revive_run, revive_cost=REVIVE_COST,
                     on_endless=self.open_endless if self.save_mgr.endless_unlocked else None)
+                self.failure_modal.cp_resume = self._checkpoint_ready()      # the retry button continues from the flag
+                self.failure_modal.refresh_texts()
+                self.failure_modal.on_help = self.ask_friends_help
+                self.failure_modal.on_shield = self.retry_with_shield
+                self.failure_modal.on_shield_short = lambda: self.toasts.append([t("shield_short_toast"), "", 2.6])
+                self.failure_modal.help_probe = lambda: (bool(self.online.friend_rows()), self.level_id in self.help_asked)
                 self._offer_ad_continue(self.failure_modal)
                 self._level_finished_for_ad()
                 pct = int(s.max_progress * 100)
@@ -1606,7 +1909,8 @@ class HoloGame:
                 self._olo_best = best
                 if olo_mod.enabled(self.save_mgr):
                     self.olo.store = self.save_mgr.data
-                    self.olo.react(self.attempts, pct, best.get(self.level_id, 0), s.n * SIM_DT)
+                    self.olo.react(self.attempts, pct, best.get(self.level_id, 0), s.n * SIM_DT,
+                                   shield_tip=self.failure_modal.shield_mode() is not None)
                 else:
                     self.olo.hide()
                 best[self.level_id] = max(best.get(self.level_id, 0), pct)
@@ -1636,6 +1940,10 @@ class HoloGame:
                 self.profile_modal.update(v_mouse, dt * 60.0)
             elif st == "recovery" and self.recovery_modal:
                 self.recovery_modal.update(v_mouse, dt * 60.0)
+            elif st == "friends" and self.friends_modal:
+                self.friends_modal.update(v_mouse, dt * 60.0)
+            elif st == "daily_result" and self.daily_modal:
+                self.daily_modal.update(v_mouse, dt * 60.0)
             elif st == "login" and self.login_modal:
                 self.login_modal.update(v_mouse, dt * 60.0)
             elif st == "paused":
@@ -1650,11 +1958,17 @@ class HoloGame:
         if st in ("dying", "failed", "victory"):
             self._update_camera(dt)
         self.online.poll()
+        self.online.crowd.poll()
+        self.online.ranked.poll()
+        self._daily_tick(st)
+        self._crowd_tick(st)
+        self._friends_tick()
         if getattr(self.online, "ghost_new", False):
             self.online.ghost_new = False
             if (self.level and self.state in ("playing", "paused", "howto") and self.endless_run is None
-                    and self.arena_run is None and self.sim is not None and self.sim.n < 400 and not self.ghost_name):
-                self._install_ghost()                # the world #1 replaces my own best early in the attempt
+                    and self.arena_run is None and self.sim is not None and self.sim.n < 400
+                    and (not self.ghost_name or not self.ghost_friend)):
+                self._install_ghost()                # a friend / the world #1 replaces my own best early in the attempt
 
     def _update_camera(self, dt):
         if not self.sim:
@@ -1751,6 +2065,8 @@ class HoloGame:
                     self.close_profile()
                 elif st == "recovery":
                     self.close_recovery()
+                elif st == "friends":
+                    self.close_friends()
                 elif st == "login":
                     self.close_login_reward()
                 elif st == "menu" and paths.is_android():
@@ -1825,6 +2141,10 @@ class HoloGame:
             self.profile_modal.handle_event(event)
         elif st == "recovery" and self.recovery_modal:
             self.recovery_modal.handle_event(event)
+        elif st == "friends" and self.friends_modal:
+            action = self.friends_modal.handle_event(event)
+        elif st == "daily_result" and self.daily_modal:
+            action = self.daily_modal.handle_event(event)
         elif st == "login" and self.login_modal:
             action = self.login_modal.handle_event(event)
         elif st == "paused":
@@ -1957,7 +2277,7 @@ class HoloGame:
             return
         m, w = self.failure_modal, f.get_width()
         if st == "failed" and olo.where == "fail" and isinstance(m, ui.FailureModal):
-            olo.draw(f, pygame.Rect(w // 2 - 360, m.top, 720, 850))
+            olo.draw(f, pygame.Rect(w // 2 - 360, m.top, 720, m.card_h))
         elif st == "failed" and olo.where == "endless" and isinstance(m, (ui.EndlessReviveModal, ui.EndlessResultModal)):
             olo.draw(f, pygame.Rect(80, m.top, w - 160, 600))
         elif st == "victory" and olo.where == "victory" and self.victory_modal is not None:
@@ -1985,7 +2305,7 @@ class HoloGame:
         elif st == "menu":
             f.blit(self.menu_bg, (0, 0))
             self.menu_life.draw(f, self.ui_time)
-        elif st in ("levels", "leaderboard", "skins", "shop", "achievements", "daily") or (st == "settings" and self.prev_state != "paused") or st in ("profile", "recovery", "login"):
+        elif st in ("levels", "leaderboard", "skins", "shop", "achievements", "daily") or (st == "settings" and self.prev_state != "paused") or st in ("profile", "recovery", "login", "friends", "daily_result"):
             f.blit(self.menu_bg_dark, (0, 0))
             self.menu_life.draw(f, self.ui_time)
         else:
@@ -2028,6 +2348,14 @@ class HoloGame:
             self._menu_under_modal(f, skin)
             if self.login_modal:
                 self.login_modal.draw(f)
+        elif st == "friends":
+            self.leaderboard_ui.draw(f)
+            if self.friends_modal:
+                self.friends_modal.draw(f)
+        elif st == "daily_result":
+            self._menu_under_modal(f, skin)
+            if self.daily_modal:
+                self.daily_modal.draw(f)
         elif st == "recovery":
             if self.prev_profile_state == "leaderboard":
                 self.leaderboard_ui.draw(f)
@@ -2050,9 +2378,9 @@ class HoloGame:
         """List screens are mostly still: while nothing on them changes (scroll, press, selection, save, network)
         the finished frame is copied; only the animated preview (shop / skins) is drawn on top every frame."""
         sm, on = self.save_mgr, self.online
-        board = on.boards.get(self.leaderboard_ui.scope) if st == "leaderboard" else None
+        board = on.boards.get(self.leaderboard_ui.board_key) if st == "leaderboard" else None
         extra = (sm.rev, sm.diamonds, sm.equipped_skin, len(sm.data.get("unlocked_skins", [])), st,
-                 on.status, id(board), on.is_loading(self.leaderboard_ui.scope) if st == "leaderboard" else False,
+                 on.status, id(board), self.leaderboard_ui._loading() if st == "leaderboard" else False,
                  self.shop.current_message() if st in ("shop", "featured") else None,
                  screen.sig_extra() if hasattr(screen, "sig_extra") else None)
         sig = ui.screen_sig(screen, extra)
@@ -2161,7 +2489,8 @@ class HoloGame:
                 pygame.draw.circle(view, col, pt, int(r_), 2)
             if self.ghost_name:
                 piv = ga if g.piv == 0 else gb
-                ui.draw_text(view, "#1 " + self.ghost_name, 18, (190, 200, 230), (piv[0], piv[1] - 34), bold=False)
+                ui.draw_text(view, ("" if self.ghost_friend else "#1 ") + self.ghost_name, 18,
+                             (255, 190, 215) if self.ghost_friend else (190, 200, 230), (piv[0], piv[1] - 34), bold=False)
         if self.state not in ("dying", "failed"):
             p0, p1 = s.orbs
             q0, q1 = self.prev_pos
@@ -2299,7 +2628,7 @@ class HoloGame:
             best = int(self.save_mgr.endless.get("best_all", 0)) if self.save_mgr.endless.get("v") == 2 else 0
             self.endless_hud.shield_stock = self.save_mgr.shield_stock
             self.endless_hud.shield_active = s.shields
-            self.endless_hud.draw_endless(f, run.metres, max(run.points, best), s.shields, sector_for_stage(run.stage),
+            self.endless_hud.draw_endless(f, run.metres, max(run.points, best), s.shields, run.zone_sector,
                                           points=run.points, stars=run.stars)
             self._draw_endless_banner(view)
             self.hud.draw_footer(f, HUD_H + self.view_h + FOOT_H // 2, run.metres, s.t, s.swaps, s.combo_mult, s.near_count)
@@ -2328,19 +2657,24 @@ class HoloGame:
             return
         title, sub, col, left, total = b
         age = total - left
-        y = int(self.view_h * 0.30 - min(1.0, age / 0.18) * 20)          # slides up a little as it appears
-        band = pygame.Rect(0, y - 58, VW, 116 if sub else 84)
-        view.fill((8, 12, 22), band)
+        y = int(self.view_h * 0.20 - min(1.0, age / 0.18) * 14)          # high up, just under the HUD (it covered the play field)
+        band = pygame.Rect(0, y - 44, VW, 96 if sub else 68)
+        veil = pygame.Surface(band.size, pygame.SRCALPHA)
+        veil.fill((8, 12, 22, 170))                                      # see-through: the pair stays visible behind it
+        view.blit(veil, band.topleft)
         pygame.draw.line(view, col, band.topleft, band.topright, 3)
         pygame.draw.line(view, col, band.bottomleft, band.bottomright, 3)
-        ui.draw_text(view, title, 60, col, (VW // 2, y - 14 if sub else y - 16), bg=(8, 12, 22), max_w=VW - 60)
+        ui.draw_text(view, title, 48, col, (VW // 2, y - 12 if sub else y - 10), max_w=VW - 60)
         if sub:
-            ui.draw_text(view, sub, 26, (220, 228, 245), (VW // 2, y + 36), bold=False, bg=(8, 12, 22), max_w=VW - 60)
+            ui.draw_text(view, sub, 22, (220, 228, 245), (VW // 2, y + 28), bold=False, max_w=VW - 60)
 
     def _draw_campaign_hud(self, f, s, lvl):
         self.hud.shield_stock = self.save_mgr.shield_stock
         self.hud.diamonds = self.save_mgr.diamonds
         self.hud.shield_active = s.shields
+        self.hud.shield_free = self.save_mgr.free_shield_today
+        self.hud.shield_hint = (s.swaps == 0 and self.daily_run is None and s.shields == 0
+                                and (self.save_mgr.shield_stock > 0 or self.hud.shield_free))
         score = s.star_pts + s.near_pts              # tapping itself earns nothing: fewer swaps score more at the end
         self.hud.draw(f, self.level_id, MAX_LEVELS, s.stars_collected, score, s.combo_mult, s.shields, s.swaps, s.t,
                       max(s.max_progress, s.progress), sector_title=f"{lvl.sector_title}", sector=lvl.sector,

@@ -83,6 +83,44 @@ def _default_save():
     }
 
 
+def _ints(v):
+    """list of non-negative ints (a tap log), or None when it is not one"""
+    if not isinstance(v, list):
+        return None
+    out = []
+    for x in v:
+        if isinstance(x, bool) or not isinstance(x, (int, float)) or x < 0:
+            return None
+        out.append(int(x))
+    return out
+
+
+def _sanitize(data):
+    """A save that parses as JSON can still hold the wrong types (hand edits, an old build, a cloud restore). Drop what
+    cannot be read instead of crashing at start-up on the first int()/subscript."""
+    ls = data.get("level_stats")
+    if not isinstance(ls, dict):
+        ls = {}
+    clean = {}
+    for k, st in ls.items():
+        if isinstance(k, str) and k.isdigit() and isinstance(st, dict):
+            st = dict(st)
+            if "best_taps" in st:
+                taps = _ints(st["best_taps"])
+                if taps is None:
+                    st.pop("best_taps")
+                else:
+                    st["best_taps"] = sorted(taps)
+            clean[k] = st
+    data["level_stats"] = clean
+    pr = data.get("pending_runs")
+    data["pending_runs"] = [r for r in pr if isinstance(r, dict) and isinstance(r.get("level"), int)
+                            and _ints(r.get("taps")) is not None] if isinstance(pr, list) else []
+    for key, typ, default in (("campaign_level", int, 1), ("unlocked_skins", list, ["neon_pulse"]), ("equipped_skin", str, "neon_pulse")):
+        if not isinstance(data.get(key), typ) or isinstance(data.get(key), bool):
+            data[key] = default
+
+
 class SaveManager:
     def __init__(self):
         self._lock = threading.RLock()
@@ -106,8 +144,18 @@ class SaveManager:
                 pass
             return _default_save()
 
+        if not isinstance(loaded, dict):                    # valid JSON of the wrong shape (null, a list ...): start fresh, keep a copy
+            print("Save file load warning: root is not an object")
+            try:
+                shutil.copy(SAVE_FILE, SAVE_FILE + ".corrupt")
+            except Exception:
+                pass
+            return _default_save()
+        ver = loaded.get("save_version", 1)
+        if not isinstance(ver, (int, float)) or isinstance(ver, bool):
+            ver = 1
         result = _default_save()
-        if loaded.get("save_version", 1) < SAVE_VERSION:
+        if ver < SAVE_VERSION:
             # v1 -> v2: levels were redesigned, so campaign progress restarts; keep identity, skins and settings.
             try:
                 shutil.copy(SAVE_FILE, os.path.join(os.path.dirname(SAVE_FILE), "save_data.v1.backup.json"))
@@ -118,8 +166,9 @@ class SaveManager:
                     result[k] = loaded[k]
         else:
             result.update(loaded)
-        result["settings"] = _merge_settings(loaded.get("settings", {}))
+        result["settings"] = _merge_settings(loaded.get("settings", {}) if isinstance(loaded.get("settings"), dict) else {})
         result["save_version"] = SAVE_VERSION
+        _sanitize(result)
         return result
 
     rev = 0                          # bumped on every change that is saved: cached screens redraw when it moves
@@ -246,6 +295,12 @@ class SaveManager:
         self.add_star_coins(stars)
         return new_best
 
+    def set_endless_ghost(self, series):
+        """The best climb's height every 30 steps (metres): the cyan pace ghost of the next climbs."""
+        with self._lock:
+            self.endless["ghost"] = [int(x) for x in series[:3000]]
+        self.save()
+
     def queue_endless(self, run):
         """A climb's proof for the server ({id, week, taps, end}); the newest few are kept while offline."""
         with self._lock:
@@ -307,6 +362,21 @@ class SaveManager:
             self.data["star_coins"] = self.star_coins - n
         self.save()
         return True
+
+    def set_star_balance(self, balance, earned=None):
+        """The server's star wallet (campaign stars, endless stars, login / event stars; the star road counts `earned`).
+        Everything bought with stars is paid on the server; this is only what the game shows."""
+        with self._lock:
+            self.data["star_coins"] = max(0, int(balance))
+            if earned is not None:
+                self.data["star_earned"] = max(0, int(earned))
+        self.rev += 1
+        self.save()
+
+    @property
+    def stars_unlocked(self):
+        """The daily level opens after the third level."""
+        return config.dev_unlock_all() or self.highest_cleared >= 3
 
     def get_total_stars(self):
         return sum(s.get("stars", 0) for s in self.stats.values())
@@ -491,7 +561,7 @@ class SaveManager:
         """`bg`: a re-sent old best (see sync_bests), not the run just played. `assists`: paid help of the run."""
         with self._lock:
             q = self.data.setdefault("pending_runs", [])
-            q[:] = [r for r in q if r["level"] != level_id]
+            q[:] = [r for r in q if isinstance(r, dict) and r.get("level") != level_id]
             run = {"level": level_id, "taps": list(taps), "ts": int(time.time()), "lvl": digest, "bg": bool(bg)}
             if assists:
                 run["assists"] = [[int(a[0]), str(a[1])] for a in assists]
@@ -574,6 +644,8 @@ class SaveManager:
             a = achievements.BY_ID.get(val)
             name = achievements.title(a) if a else val
             return f"Başarım ödülü: {name}" if tr else f"Achievement reward: {name}"
+        if kind == "streak":
+            return locales.t("unlock_streak", n=val, have=min(val, int(self.data.get("login", {}).get("weeks", 0))))
         return f"Mağazadan {val} elmasla alınır" if tr else f"Buy in the shop for {val} diamonds"
 
     def _check_skin_unlocks(self):
@@ -682,12 +754,25 @@ class SaveManager:
             ok = self.spend_diamonds(cost)
             on_done(ok, "" if ok else "insufficient")
             return
-        if self.diamonds < cost:
+        if self.diamonds < cost and not self.free_credit(item) and not (item == "shield" and self.free_shield_today):
             on_done(False, "insufficient")
             return
         self.wallet.wallet_spend(item, cost, on_done)
 
-    SHIELD_STOCK_MAX = 5
+    @property
+    def free_shield_today(self):
+        """True while today's first shield is free (the server grants it once per UTC day, sync tells us)."""
+        w = self.wallet
+        return bool(getattr(w, "free_shield", False)) if w is not None else False
+
+    def free_credit(self, item):
+        """Free shields / revives friends gave me (the server uses them before it charges diamonds)."""
+        w = self.wallet
+        return int(getattr(w, "credits", {}).get(item, 0)) if w is not None else 0
+
+    SHIELD_STOCK_MAX = 5            # single shields bought one by one stop here (and a run buys at most this many)
+    SHIELD_STOCK_CAP = 25           # what packs (shop_items.STOCK_CAP) can fill the stock up to
+    REVIVE_STOCK_CAP = 20
 
     @property
     def shield_stock(self):
@@ -695,7 +780,7 @@ class SaveManager:
 
     def add_shield(self, n=1):
         with self._lock:
-            self.data["shield_stock"] = max(0, min(self.SHIELD_STOCK_MAX, self.shield_stock + int(n)))
+            self.data["shield_stock"] = max(0, min(self.SHIELD_STOCK_CAP, self.shield_stock + int(n)))
         self.save()
         return self.data["shield_stock"]
 
@@ -706,6 +791,50 @@ class SaveManager:
             self.data["shield_stock"] = self.shield_stock - 1
         self.save()
         return True
+
+    # ---- revive stock (shop extras): revives from packs / the Star Market / chests. The server logged one paid-help
+    # row per unit when it sold them, so a stocked revive is replayed as paid exactly like a revive bought on the spot.
+    @property
+    def revive_stock(self):
+        return int(self.data.get("revive_stock", 0))
+
+    def add_revive(self, n=1):
+        with self._lock:
+            self.data["revive_stock"] = max(0, min(self.REVIVE_STOCK_CAP, self.revive_stock + int(n)))
+        self.save()
+        return self.data["revive_stock"]
+
+    def use_revive(self):
+        with self._lock:
+            if self.revive_stock <= 0:
+                return False
+            self.data["revive_stock"] = self.revive_stock - 1
+        self.save()
+        return True
+
+    # ---- prestige (shop extras): owned frames / titles and the equipped pair; the server is the truth, this mirrors it
+    @property
+    def prestige_owned(self):
+        return list(self.data.get("prestige_owned", []))
+
+    @property
+    def prestige_frame(self):
+        return str(self.data.get("prestige_frame", ""))
+
+    @property
+    def prestige_title(self):
+        return str(self.data.get("prestige_title", ""))
+
+    def set_prestige(self, owned=None, frame=None, title=None):
+        with self._lock:
+            if owned is not None:
+                self.data["prestige_owned"] = sorted(set(str(x) for x in owned))
+            if frame is not None:
+                self.data["prestige_frame"] = str(frame)
+            if title is not None:
+                self.data["prestige_title"] = str(title)
+        self.rev += 1
+        self.save()
 
     # ---- ads (ads.py): the remove-ads purchase, the level counter of the interstitial, today's rewarded ads
     @property
@@ -762,6 +891,14 @@ class SaveManager:
     def _daily(self):
         """Rolls the 3 daily missions over at local midnight; keeps a claimed-all-3 streak counter."""
         d = self.data.setdefault("daily", {"date": "", "progress": {}, "claimed": [], "streak": 0})
+        if not isinstance(d, dict):
+            d = self.data["daily"] = {"date": "", "progress": {}, "claimed": [], "streak": 0}
+        if not isinstance(d.get("progress"), dict):
+            d["progress"] = {}
+        if not isinstance(d.get("claimed"), list):
+            d["claimed"] = []
+        if not isinstance(d.get("streak"), int):
+            d["streak"] = 0
         today = datetime.date.today().isoformat()
         if d.get("date") != today:
             if d.get("date"):
@@ -803,6 +940,12 @@ class SaveManager:
     # ---- weekly missions (weekly_missions.py): same idea as the daily ones, per ISO week
     def _weekly(self):
         w = self.data.setdefault("weekly", {"week": "", "progress": {}, "claimed": []})
+        if not isinstance(w, dict):
+            w = self.data["weekly"] = {"week": "", "progress": {}, "claimed": []}
+        if not isinstance(w.get("progress"), dict):
+            w["progress"] = {}
+        if not isinstance(w.get("claimed"), list):
+            w["claimed"] = []
         key = wm.week_key()
         if w.get("week") != key:
             w.update(week=key, progress={}, claimed=[])

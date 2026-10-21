@@ -35,6 +35,15 @@ def draw_level(lvl, scale=0.36, path=True):
         pygame.draw.circle(s, (80, 200, 255), (k(z[0]), k(z[1])), max(3, k(z[2])), 1)
     for z in lvl.boost:
         pygame.draw.circle(s, (255, 220, 60), (k(z[0]), k(z[1])), max(3, k(z[2])), 1)
+    for z in getattr(lvl, 'slow', []):                          # slow field: violet ring + filled dot
+        pygame.draw.circle(s, (170, 120, 255), (k(z[0]), k(z[1])), max(3, k(z[2])), 1)
+        pygame.draw.circle(s, (170, 120, 255), (k(z[0]), k(z[1])), 2)
+    for z in getattr(lvl, 'stretch', []):                       # stretch field: orange (long, +) / teal (short, -) ring
+        col = (255, 150, 40) if z[3] > 0 else (40, 230, 200)
+        pygame.draw.circle(s, col, (k(z[0]), k(z[1])), max(3, k(z[2])), 1)
+        pygame.draw.line(s, col, (k(z[0]) - 3, k(z[1])), (k(z[0]) + 3, k(z[1])), 1)
+        if z[3] > 0:
+            pygame.draw.line(s, col, (k(z[0]), k(z[1]) - 3), (k(z[0]), k(z[1]) + 3), 1)
     for z in lvl.shields:
         pygame.draw.circle(s, (0, 220, 255), (k(z[0]), k(z[1])), 5)
     if path and len(lvl.waypoints) > 1:

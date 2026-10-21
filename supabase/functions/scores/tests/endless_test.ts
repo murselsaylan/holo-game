@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { handle, sha256Hex, signEndless, signWallet } from "../handler.ts";
 import { MemStore } from "./mem.ts";
-import { ENDLESS_VERSION, poolDigest, replayEndless, weekOf } from "../endless.ts";
+import { ENDLESS_VERSION, DIAMONDS_PER_DAY, DIAMOND_EVERY_M, GOALS, poolDigest, replayEndless, weekOf } from "../endless.ts";
 
-const golden = JSON.parse(readFileSync(new URL("../endless_golden.json", import.meta.url), "utf-8"));
+const golden = JSON.parse(readFileSync(new URL("../endless_golden_v5.json", import.meta.url), "utf-8")).filter((g: any) => g.py);
 const store = new MemStore();
 const pid = "a".repeat(32), sec = "b".repeat(48);
 const now = Date.now(), ts = Math.floor(now / 1000);
@@ -50,18 +50,18 @@ assert.equal(r.body.added, 0);
 // wallet open: the same run pays nothing twice, a new nonce pays floor(m / 500) (capped per day)
 await post("/api/wallet", { player_id: pid, ts, op: "sync", local: 0, ref: "",
                             sig: await signWallet(sec, pid, ts, "sync", "0", "") });
-const earn = Math.floor(expected.metres / 500);
+const earn = Math.floor(expected.metres / DIAMOND_EVERY_M);
 r = await submit();
 assert.equal(r.status, 200);
-assert.equal(r.body.added, Math.min(20, earn), "first paid submit");
+assert.equal(r.body.added, Math.min(DIAMONDS_PER_DAY, earn), "first paid submit");
 const again = await submit();
 assert.equal(again.body.added, 0, "same run is paid once");
 // daily cap: pretend 20 were already paid today
-store.log.push({ pid, reason: "endless", ref: "x", delta: 20, created: ts });
+store.log.push({ pid, reason: "endless", ref: "x", delta: DIAMONDS_PER_DAY, created: ts });
 const capped = await submit({ nonce: "1234abcd" });
 assert.equal(capped.status, 200);
 assert.equal(capped.body.added, 0);
-if (Math.floor(capped.body.metres / 500) > 0) assert.equal(capped.body.capped, true);
+if (Math.floor(capped.body.metres / DIAMOND_EVERY_M) > 0) assert.equal(capped.body.capped, true);
 
 // a second player below the first: board order + standing
 const pid2 = "c".repeat(32), sec2 = "d".repeat(48);
@@ -75,4 +75,29 @@ assert.equal(board.status, 200);
 assert.equal(board.body.rows[0].name, "CLIMBER");
 assert.equal(board.body.total, 2);
 assert.equal(board.body.me.rank, 2);
-console.log("ALL ENDLESS TESTS PASSED", { metres: expected.metres, paid: Math.min(20, earn) });
+// v5 metre goals: paid once per player and week, by the measured height; v4 games get none
+{
+  const saved = GOALS.splice(0, GOALS.length, [1, 3], [2, 4]);          // tiny goals any climb reaches
+  const pid3 = "e".repeat(32), sec3 = "f".repeat(48);
+  await post("/api/register", { player_id: pid3, secret: sec3, name: "GOALIE", country: "TR" });
+  await post("/api/wallet", { player_id: pid3, ts, op: "sync", local: 0, ref: "", sig: await signWallet(sec3, pid3, ts, "sync", "0", "") });
+  const run = async (nonce: string, v: number) => {
+    const b: any = { player_id: pid3, week, nonce, taps, end, ts, v, pool: poolDigest(v) };
+    b.sig = await signEndless(sec3, pid3, week, nonce, end, ts, await sha256Hex(taps.join(",")));
+    return post("/api/endless/submit", b);
+  };
+  if (expected.metres >= 2) {
+    const g1 = await run("0000aaaa", 5);
+    assert.equal(g1.status, 200, JSON.stringify(g1.body));
+    assert.deepEqual(g1.body.goals, [[1, 3], [2, 4]], "both goals paid");
+    const g2 = await run("0000bbbb", 5);
+    assert.deepEqual(g2.body.goals, [], "goals are paid once per week");
+    const bal = (await post("/api/wallet", { player_id: pid3, ts, op: "sync", local: 0, ref: "", sig: await signWallet(sec3, pid3, ts, "sync", "0", "") })).body.balance;
+    assert.ok(bal >= 7, "goal diamonds are in the wallet: " + bal);
+  }
+  const v4 = await run("0000cccc", 4);
+  assert.equal(v4.status, 200, "v4 games are still replayed: " + JSON.stringify(v4.body));
+  assert.deepEqual(v4.body.goals, [], "v4 games get no goals");
+  GOALS.splice(0, GOALS.length, ...saved);
+}
+console.log("ALL ENDLESS TESTS PASSED", { metres: expected.metres, paid: Math.min(DIAMONDS_PER_DAY, earn) });

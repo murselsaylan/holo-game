@@ -21,7 +21,7 @@ from level_manager import Level  # noqa: E402
 bad = []
 rows = []
 t0 = time.time()
-for i in range(1, 101):
+for i in range(1, 141):
     lvl = LevelData.load(i)
     if lvl is None:
         bad.append((i, "missing file"))

@@ -88,6 +88,11 @@ _DESC = {
     "starfall": ("A purple night under a shower of stars", "Eine lila Nacht im Sternschnuppenregen", "Una noche morada bajo una lluvia de estrellas"),
     "twinkle_orb": ("Tiny winking stars", "Winzige zwinkernde Sterne", "Estrellitas que guiñan"),
     "stargazer": ("A stargazer collecting their first stars", "Ein Sterngucker, der seine ersten Sterne sammelt", "Un astrónomo que reúne sus primeras estrellas"),
+    "streak_aurora": ("12 full weeks: an aurora wrapping the sky in green and violet", "12 volle Wochen: ein Polarlicht in Grün und Violett", "12 semanas completas: una aurora verde y violeta"),
+    "streak_nova": ("8 full weeks: a star that glows a bit brighter every day", "8 volle Wochen: ein Stern, der jeden Tag etwas heller strahlt", "8 semanas completas: una estrella que brilla un poco más cada día"),
+    "streak_flame": ("4 full weeks: a streak flame that never goes out", "4 volle Wochen: eine Serienflamme, die nie erlischt", "4 semanas completas: una llama de racha que nunca se apaga"),
+    "streak_ember": ("2 full weeks: the first fire glowing under the ash", "2 volle Wochen: das erste Feuer unter der Asche", "2 semanas completas: el primer fuego bajo las cenizas"),
+    "streak_spark": ("Your first full week: a small but stubborn spark", "Deine erste volle Woche: ein kleiner, sturer Funke", "Tu primera semana completa: una chispa pequeña pero terca"),
 }
 _LANG_COL = {"en": 0, "de": 1, "es": 2}
 

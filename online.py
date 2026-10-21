@@ -41,6 +41,7 @@ SERVER_REGION = os.environ.get("HOLO_SERVER_REGION", str(_CFG.get("server_region
 TIMEOUT = 20.0
 SUBMIT_TIMEOUT = 60.0     # the server replays the whole run before answering
 BOARD_SCOPES_KEPT = ("global", "country", "around")
+ENDLESS_SCOPES = ("endless", "endless_country")
 
 
 def _ssl_context():
@@ -161,6 +162,7 @@ class OnlineClient:
         self._wallet_open = False       # synced once in this session (only touched by the submit worker)
         self.gift_notice = 0            # diamonds gifted by the developer, for the game to announce
         self.first_bonus = False        # 1.0.8: this account's first diamond pack pays double (server says so)
+        self.free_shield = False        # 1.0.9: today's first shield is free (server says so; spent = False)
         self.prize_notice = None        # (diamonds, rank) of last week's climb prize, for the game to announce
         self.on_purchase = None         # shop.purchase_result(product, token, "ok"|"rejected"|"wait", body)
         self.endless_result = None      # server answer for the endless climb just finished (result screen)
@@ -168,6 +170,16 @@ class OnlineClient:
         self._endless_current = None    # id of that climb
         self.ghosts = {}                # level -> {"id", "name", "score", "taps"} of the world's best clean run ({} = none)
         self.ghost_new = False          # a ghost just arrived (the game installs it if that level is being played)
+        from crowd_online import CrowdClient
+        self.crowd = CrowdClient(self)  # 1.0.9: shared weekly goal + level of the week (own thread, see crowd_online.py)
+        from ranked_online import RankedClient
+        self.ranked = RankedClient(self)  # 1.0.9: star wallet, daily level (own thread, see ranked_online.py)
+        # friends (1.0.9, server: friends.ts) - everything a friend gets is decided by the server
+        self._friend_jobs = []          # [(op, arg, on_done)] waiting for the worker
+        self.friends = None             # last "list" answer: {"code", "friends", "inbox", "help", "credits", ...}
+        self.friends_status = "idle"    # idle | loading | ok | offline
+        self.credits = {"shield": 0, "revive": 0}     # free shields / revives friends gave (the server uses them first)
+        self.friend_ghosts = {}         # level -> {"id", "name", "score", "taps"} of a friend's best clean run ({} = none)
         for jobs in (self._submit_jobs, self._fetch_jobs):
             threading.Thread(target=self._worker, args=(jobs,), daemon=True).start()
 
@@ -219,7 +231,8 @@ class OnlineClient:
         """Queue a finished climb (the server rebuilds its map from week + nonce, replays it with its paid help,
         ranks it, pays diamonds)."""
         rid = secrets.token_hex(8)
-        run = {"id": rid, "week": week, "nonce": nonce, "taps": [int(x) for x in taps], "end": int(end_step)}
+        import endless as E
+        run = {"id": rid, "week": week, "nonce": nonce, "taps": [int(x) for x in taps], "end": int(end_step), "v": E.ENDLESS_VERSION}
         if assists:
             run["assists"] = [[int(a[0]), str(a[1])] for a in assists]
         self.save.queue_endless(run)
@@ -296,6 +309,34 @@ class OnlineClient:
             self.ghosts[level] = None                   # asked
             self._fetch_jobs.put(("ghost", (level, digest)))
 
+    # ---- friends
+    def friends_op(self, op, arg="", on_done=None):
+        """Queue a friends request (list | add | accept | remove | gift | poke | challenge | claim | help_ask | help_send);
+        on_done(reply) runs in poll() with the server's answer ({"ok": False, "error": ...} on failure). Every success
+        also refreshes the list."""
+        if not self.enabled:
+            if on_done:
+                on_done({"ok": False, "error": "offline"})
+            return
+        with self._wallet_lock:
+            self._friend_jobs.append((op, str(arg), on_done))
+        if op == "list":
+            self.friends_status = "loading"
+        self._submit_jobs.put(("friends", None))
+
+    def friends_refresh(self):
+        self.friends_op("list")
+
+    def fetch_friend_ghost(self, level, digest=""):
+        """A friend's best clean run of `level` (once per session per level), raced as the ghost."""
+        if self.enabled and level not in self.friend_ghosts:
+            self.friend_ghosts[level] = None
+            self.friends_op("ghost", f"{int(level)}|{digest}")
+
+    def friend_rows(self, status="friend"):
+        f = self.friends or {}
+        return [x for x in f.get("friends", []) if x.get("status") == status]
+
     def is_loading(self, scope):
         """A fresh copy of this board is on its way (a cached one, if any, stays on screen meanwhile)."""
         with self._fetch_lock:
@@ -312,6 +353,11 @@ class OnlineClient:
                 print(f"[poll] {kind}")
             if kind == "board":
                 scope, data = payload
+                if not isinstance(data, dict):             # a server answering 200 with null / a list must not reach the UI
+                    print("[poll] board reply ignored (not an object)")
+                    with self._fetch_lock:
+                        self._fetch_pending.pop(scope, None)
+                    continue
                 self.boards[scope] = data
                 with self._fetch_lock:
                     self._fetch_pending.pop(scope, None)
@@ -376,9 +422,15 @@ class OnlineClient:
                 if payload.get("gift"):
                     self.gift_notice += int(payload["gift"])
                 self.first_bonus = bool(payload.get("first_bonus"))
+                self.free_shield = bool(payload.get("free_shield"))
+                if isinstance(payload.get("credits"), dict):
+                    self.credits = {"shield": int(payload["credits"].get("shield") or 0),
+                                    "revive": int(payload["credits"].get("revive") or 0)}
                 pr = payload.get("prize")
                 if isinstance(pr, dict) and int(pr.get("diamonds") or 0) > 0:
                     self.prize_notice = (int(pr["diamonds"]), int(pr.get("rank") or 0))
+            elif kind == "friends":
+                self._apply_friends(*payload)
             elif kind == "purchase":
                 product, token, status, body = payload
                 if status == "ok" and body and body.get("diamonds"):
@@ -408,6 +460,34 @@ class OnlineClient:
             elif kind == "offline":
                 self.status = "offline"
 
+    def _apply_friends(self, op, arg, reply, on_done):
+        if not isinstance(reply, dict):
+            reply = {"ok": False, "error": "error"}
+        ok = reply.get("ok") is not False and "error" not in reply
+        if op == "list":
+            if ok:
+                self.friends = reply
+                self.friends_status = "ok"
+                self.credits = dict(reply.get("credits") or self.credits)
+            else:
+                self.friends_status = "offline" if reply.get("error") == "offline" else "ok"
+        elif op == "ghost":
+            level = int(str(arg).split("|")[0] or 0)
+            taps = reply.get("taps")
+            good = ok and isinstance(taps, list) and taps and all(isinstance(x, int) for x in taps)
+            self.friend_ghosts[level] = ({"id": str(reply.get("id", "")), "name": str(reply.get("name", ""))[:16],
+                                          "score": int(reply.get("score") or 0), "taps": sorted(taps)} if good else {})
+            self.ghost_new = True
+        elif ok:
+            self.friends_op("list")                         # the state changed: fetch it again
+        if reply.get("balance") is not None and op in ("claim", "help_send"):
+            self.save.set_server_balance(reply["balance"])
+        if on_done:
+            try:
+                on_done(reply)
+            except Exception as e:
+                print("friends callback error:", e)
+
     # ---------------------------------------------------------------- worker
     def _worker(self, jobs):
         conn = _Connection(self.url)
@@ -434,6 +514,8 @@ class OnlineClient:
                     self._do_google(conn, kind, arg)
                 elif kind == "wallet":
                     self._do_wallet(conn)
+                elif kind == "friends":
+                    self._do_friends(conn)
                 elif kind == "namerep":
                     import paths
                     from version import __version__
@@ -561,7 +643,9 @@ class OnlineClient:
                 self._wallet_open = True
                 self._results.put(("wallet", {"balance": r["balance"], "gift": r.get("gift", 0),
                                               "skins": r.get("skins", []), "account": r.get("account", ""),
-                                              "first_bonus": bool(r.get("first_bonus")), "prize": r.get("prize")}))
+                                              "first_bonus": bool(r.get("first_bonus")), "prize": r.get("prize"),
+                                              "free_shield": bool(r.get("free_shield")),
+                                              "credits": r.get("credits")}))
             for op in list(s.data.get("wallet_ops", [])):
                 kind, ref = op.get("kind", ""), op.get("ref", "")
                 try:
@@ -601,6 +685,10 @@ class OnlineClient:
                 try:
                     r = self._wallet_req(conn, "spend", item, ref, {"item": item})
                     res = (on_done, True, "", r.get("balance"))
+                    if r.get("daily") and item == "shield":               # today's free shield is gone
+                        self.free_shield = False
+                    elif r.get("free") and item in self.credits:         # a friend's shield / revive was used up
+                        self.credits[item] = max(0, self.credits[item] - 1)
                 except HTTPError as e:
                     err = self._err(e)
                     if e.code in (408, 409, 429) or e.code >= 500:
@@ -616,6 +704,37 @@ class OnlineClient:
             for _item, _ref, on_done in waiting:
                 self._results.put(("spent", (on_done, False, "offline", None)))
             raise
+
+    def _do_friends(self, conn):
+        s = self.save
+        while True:
+            with self._wallet_lock:
+                if not self._friend_jobs:
+                    return
+                op, arg, on_done = self._friend_jobs.pop(0)
+            if not self._registered:
+                self._do_register(conn)
+            ts = int(time.time() + self._clock_offset)
+            body = {"player_id": s.player_id, "ts": ts, "op": op, "arg": arg,
+                    "sig": _sign_msg(s.player_secret, f"{s.player_id}|friends|{ts}|{op}|{arg}")}
+            try:
+                r = conn.request("POST", "/api/friends", body)
+            except HTTPError as e:
+                err = self._err(e)
+                if e.code >= 500 or e.code == 408:
+                    self._results.put(("friends", (op, arg, {"ok": False, "error": "offline"}, on_done)))
+                else:
+                    self._results.put(("friends", (op, arg, {"ok": False, "error": err.get("error", "error"),
+                                                              "code": e.code, "balance": err.get("balance")}, on_done)))
+                continue
+            except (OSError, ValueError, TimeoutError, http.client.HTTPException):
+                with self._wallet_lock:
+                    waiting, self._friend_jobs = self._friend_jobs, []
+                self._results.put(("friends", (op, arg, {"ok": False, "error": "offline"}, on_done)))
+                for o, a, cb in waiting:
+                    self._results.put(("friends", (o, a, {"ok": False, "error": "offline"}, cb)))
+                raise
+            self._results.put(("friends", (op, arg, r, on_done)))
 
     def _do_register(self, conn):
         s = self.save
@@ -713,6 +832,9 @@ class OnlineClient:
             self._do_register(conn)
         import endless as E
         for run in runs:
+            if run.get("v") != E.ENDLESS_VERSION:              # queued by an older game: its world no longer exists here
+                s.drop_endless(run["id"])
+                continue
             ts = int(time.time() + self._clock_offset)
             helps = run.get("assists") or []
             digest = hashlib.sha256(E.assist_digest(run["taps"], helps).encode()).hexdigest()
@@ -736,10 +858,13 @@ class OnlineClient:
 
     def _do_fetch(self, conn, scope, limit):
         s = self.save
-        if scope == "endless":
+        if scope in ENDLESS_SCOPES:
             import endless as E
             week = E.week_of(time.time() + self._clock_offset)
-            q = urllib.parse.urlencode({"week": week, "limit": limit, "player_id": s.player_id})
+            args = {"week": week, "limit": limit, "player_id": s.player_id}
+            if scope == "endless_country":
+                args["country"] = s.player_country
+            q = urllib.parse.urlencode(args)
             r = conn.request("GET", "/api/endless/board?" + q)
             r["week"] = week
             self._results.put(("board", (scope, r)))

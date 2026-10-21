@@ -81,7 +81,7 @@ def verdict(q):
 
 if __name__ == "__main__":
     mp.freeze_support()
-    ids = [int(a) for a in sys.argv[1:]] or list(range(1, 101))
+    ids = [int(a) for a in sys.argv[1:]] or list(range(1, 141))
     rows = []
     with mp.Pool(min(14, len(ids))) as pool:
         for q in pool.imap_unordered(qa, ids):

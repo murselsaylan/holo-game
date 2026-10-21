@@ -2,12 +2,19 @@
 import type { Best, EndlessRow, Ghost, EndlessStanding, Player, Ranks, Restored, Row, Store } from "./handler.ts";
 import type { PurchaseResult, WalletChange, WalletOpen } from "./wallet.ts";
 import type { Assist, Result } from "./sim.ts";
+import { PgFriends } from "./store_friends_pg.ts";
+import { PgLive } from "./live_pg.ts";
+import { PgRanked } from "./ranked_pg.ts";
 
 // deno-lint-ignore no-explicit-any
 type Sql = any;
 
-export class PgStore implements Store {
-  constructor(private sql: Sql) {}
+export class PgStore extends PgFriends implements Store {
+  /** Live duels + the shared weekly goal (live_pg.ts). */
+  live: PgLive;
+  /** Star wallet, daily level (ranked_pg.ts). */
+  ranked: PgRanked;
+  constructor(sql: Sql) { super(sql); this.live = new PgLive(sql); this.ranked = new PgRanked(sql); }
 
   // The tables and indexes are created once by supabase/schema.sql. Running that DDL here cost six extra round
   // trips (and ALTER TABLE takes an exclusive lock) on every cold start - i.e. on nearly every request.
@@ -169,10 +176,10 @@ export class PgStore implements Store {
     const sql = this.sql;
     // rows and the total in one round trip (the total rides along as a window count)
     const rows = scope === "country"
-      ? await sql`SELECT * FROM (SELECT id, name, country, levels, score, stars, (RANK() OVER (ORDER BY score DESC, levels DESC))::int AS rk,
+      ? await sql`SELECT * FROM (SELECT id, name, country, levels, score, stars, frame, title, (RANK() OVER (ORDER BY score DESC, levels DESC))::int AS rk,
                     (COUNT(*) OVER ())::int AS total
                   FROM players WHERE levels > 0 AND country = ${country}) AS t ORDER BY rk, name LIMIT ${limit} OFFSET ${offset}`
-      : await sql`SELECT * FROM (SELECT id, name, country, levels, score, stars, (RANK() OVER (ORDER BY score DESC, levels DESC))::int AS rk,
+      : await sql`SELECT * FROM (SELECT id, name, country, levels, score, stars, frame, title, (RANK() OVER (ORDER BY score DESC, levels DESC))::int AS rk,
                     (COUNT(*) OVER ())::int AS total
                   FROM players WHERE levels > 0) AS t ORDER BY rk, name LIMIT ${limit} OFFSET ${offset}`;
     let total = rows.length ? Number(rows[0].total) : 0;
@@ -185,8 +192,21 @@ export class PgStore implements Store {
     return {
       total,
       rows: rows.map((r: Sql) => ({ rank: Number(r.rk), id: r.id, name: r.name, country: r.country, levels: Number(r.levels),
-                                    score: Number(r.score), stars: Number(r.stars) })),
+                                    score: Number(r.score), stars: Number(r.stars), frame: String(r.frame ?? ""), title: String(r.title ?? "") })),
     };
+  }
+
+  // ---- shop extras (1.0.9, shopx.ts) ------------------------------------------------------------------------
+  async walletReasons(pid: string, prefix: string): Promise<string[]> {
+    const r = await this.sql`SELECT DISTINCT reason FROM wallet_log WHERE player_id = ${pid} AND starts_with(reason, ${prefix})`;
+    return r.map((x: Sql) => String(x.reason));
+  }
+  async getPrestige(pid: string): Promise<{ frame: string; title: string }> {
+    const r = await this.sql`SELECT frame, title FROM players WHERE id = ${pid}`;
+    return { frame: String(r[0]?.frame ?? ""), title: String(r[0]?.title ?? "") };
+  }
+  async setPrestige(pid: string, frame: string, title: string): Promise<void> {
+    await this.sql`UPDATE players SET frame = ${frame}, title = ${title} WHERE id = ${pid}`;
   }
 
   // ---- diamond wallet (see wallet.ts) -----------------------------------------------------------------------
@@ -284,15 +304,16 @@ export class PgStore implements Store {
     return { rank: Number(r[0].rk), metres: Number(r[0].metres), points: Number(r[0].metres), total: Number(r[0].total) };
   }
 
-  async endlessBoard(_week: string, offset: number, limit: number): Promise<{ rows: EndlessRow[]; total: number }> {
+  async endlessBoard(_week: string, offset: number, limit: number, country?: string): Promise<{ rows: EndlessRow[]; total: number }> {
     const rows = await this.sql`WITH b AS (SELECT DISTINCT ON (player_id) player_id, metres, updated FROM endless_bests
                                            ORDER BY player_id, metres DESC, updated ASC)
-      SELECT e.player_id AS id, p.name, p.country, e.metres,
+      SELECT e.player_id AS id, p.name, p.country, p.frame, p.title, e.metres,
         (ROW_NUMBER() OVER (ORDER BY e.metres DESC, e.updated ASC))::int AS rk, (COUNT(*) OVER ())::int AS total
-      FROM b e JOIN players p ON p.id = e.player_id
+      FROM b e JOIN players p ON p.id = e.player_id ${country ? this.sql`WHERE p.country = ${country}` : this.sql``}
       ORDER BY e.metres DESC, e.updated ASC LIMIT ${limit} OFFSET ${offset}`;
     return { rows: rows.map((r: Sql) => ({ rank: Number(r.rk), id: String(r.id), name: String(r.name), country: String(r.country),
-                                           metres: Number(r.metres), points: Number(r.metres) })),
+                                           metres: Number(r.metres), points: Number(r.metres),
+                                           frame: String(r.frame ?? ""), title: String(r.title ?? "") })),
              total: rows.length ? Number(rows[0].total) : 0 };
   }
 

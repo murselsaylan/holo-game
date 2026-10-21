@@ -75,9 +75,14 @@ class Olo:
         self.bob = 0
         self._prep = 0
 
-    def react(self, attempts, pct, best_pct, alive_s):
-        """The failure screen: the kind of crash picks the lines."""
+    SHIELD_TIP_TRIES = 3                  # from the 3rd death Olo now and then points at the shield button
+
+    def react(self, attempts, pct, best_pct, alive_s, shield_tip=False):
+        """The failure screen: the kind of crash picks the lines. `shield_tip`: the window has a shield button."""
         kind = kind_of(attempts, pct, best_pct, alive_s)
+        if shield_tip and attempts >= self.SHIELD_TIP_TRIES and kind not in ("quick",) and random.random() < 0.5:
+            self.say("shield_tip", "fail", n=attempts, pct=pct)             # his own pool (olo_lines_shield.py)
+            return "shield_tip"
         pool = R[kind]
         hour = time.localtime().tm_hour                 # night owls and early birds get their own lines now and then
         clock = "night" if hour < 5 else ("morning" if 6 <= hour < 10 else None)
