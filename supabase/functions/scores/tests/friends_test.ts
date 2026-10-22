@@ -55,6 +55,9 @@ assert.equal((await fr(B, "accept", "nope")).status, 400);
 assert.equal((await fr(A, "gift", B)).status, 403); assert.equal((await fr(A, "poke", B)).status, 403);
 assert.equal((await fr(B, "accept", A)).status, 200);
 assert.equal((await fr(A, "list")).body.friends[0].status, "friend");
+// a friend's equipped frame / title travel with the row (the friends board draws them)
+(store as any).players.get(B).frame = "frame_gold"; (store as any).players.get(B).title = "title_pilot";
+{ const row = (await fr(A, "list")).body.friends[0]; assert.equal(row.frame, "frame_gold"); assert.equal(row.title, "title_pilot"); }
 // crossed requests become friends at once
 const codeC = String((await fr(C, "list")).body.code), codeD = String((await fr(D, "list")).body.code);
 assert.equal((await fr(C, "add", codeD)).body.state, "pending");

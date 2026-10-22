@@ -29,12 +29,13 @@ export class PgFriends {
   }
 
   async friendLinks(pid: string): Promise<FriendRow[]> {
-    const r = await this.sql`SELECT p.id, p.name, p.country, p.levels, p.score, p.stars, f.status, f.requester
+    const r = await this.sql`SELECT p.id, p.name, p.country, p.levels, p.score, p.stars, p.frame, p.title, f.status, f.requester
       FROM friendships f JOIN players p ON p.id = CASE WHEN f.low = ${pid} THEN f.high ELSE f.low END
       WHERE f.low = ${pid} OR f.high = ${pid}`;
     return r.map((x: Sql) => ({
       id: String(x.id), name: String(x.name), country: String(x.country), levels: Number(x.levels), score: Number(x.score),
-      stars: Number(x.stars), status: x.status === "accepted" ? "friend" : (x.requester === pid ? "outgoing" : "incoming"),
+      stars: Number(x.stars), frame: String(x.frame ?? ""), title: String(x.title ?? ""),
+      status: x.status === "accepted" ? "friend" : (x.requester === pid ? "outgoing" : "incoming"),
     }));
   }
 

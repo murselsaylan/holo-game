@@ -29,6 +29,7 @@ export const INVITER_DAY_CAP = 3;            // paid invites per inviter per UTC
 export const INVITER_TOTAL_CAP = 10;         // ... and in total
 
 export interface FriendRow { id: string; name: string; country: string; levels: number; score: number; stars: number;
+                             frame?: string; title?: string;
                              status: "friend" | "incoming" | "outgoing" }
 export interface Msg { id: number; from: string; from_name: string; to: string; kind: "gift" | "poke" | "challenge" | "help";
                        level: number; item: string; amount: number; day: number; created: number; claimed: number; answered_by: string }

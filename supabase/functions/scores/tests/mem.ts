@@ -150,7 +150,7 @@ export class MemStore {
     for (const l of this.links.values()) {
       if (l.low !== pid && l.high !== pid) continue;
       const o = this.players.get(l.low === pid ? l.high : l.low);
-      out.push({ id: o.id, name: o.name, country: o.country, levels: o.levels, score: o.score, stars: o.stars,
+      out.push({ id: o.id, name: o.name, country: o.country, levels: o.levels, score: o.score, stars: o.stars, frame: o.frame ?? "", title: o.title ?? "",
                  status: l.status === "accepted" ? "friend" : (l.requester === pid ? "outgoing" : "incoming") });
     }
     return out;
