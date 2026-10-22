@@ -192,6 +192,8 @@ class FriendsModal:
             try:
                 if self.input_rect.collidepoint(event.pos):
                     pygame.key.start_text_input()
+                elif not dragged:
+                    pygame.key.stop_text_input()     # a tap anywhere else puts the on-screen keyboard away
             except Exception:
                 pass
         for _k, _t, _s, bs in self._rows:
