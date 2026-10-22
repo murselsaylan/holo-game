@@ -89,6 +89,17 @@ assert.equal((await rk(E, "daily")).body.level, dl, "same level for everybody");
 r = await rk(D, "daily_submit", "", now0, { taps: lv(dl).ref_taps }); assert.equal(r.status, 409, "not started");
 r = await rk(D, "daily_start"); assert.equal(r.body.first, true); assert.equal(r.body.state, "started");
 r = await rk(D, "daily_start"); assert.equal(r.body.first, false, "second start is not a new try");
+{ // the ad retry: the failed attempt gets a fresh start; capped per day; idempotent per ref; needs an unfinished attempt
+  const x = await mk("rt");
+  assert.equal((await rk(x, "daily_retry", "ab".repeat(8))).status, 409, "nothing started yet");
+  await rk(x, "daily_start");
+  assert.equal((await rk(x, "daily_retry", "zz")).status, 400);
+  r = await rk(x, "daily_retry", "ab".repeat(8), now0 + 5000); assert.equal(r.status, 200); assert.equal(r.body.retries_left, 1);
+  assert.equal((await store.ranked.dailyRun(Math.floor(now0 / 86_400_000), x.p)).started, Math.floor((now0 + 5000) / 1000), "start time reset");
+  r = await rk(x, "daily_retry", "ab".repeat(8), now0 + 6000); assert.equal(r.status, 200); assert.equal(r.body.retries_left, 1, "same ref = no extra charge");
+  assert.equal((await rk(x, "daily_retry", "cd".repeat(8), now0 + 7000)).status, 200);
+  assert.equal((await rk(x, "daily_retry", "ef".repeat(8), now0 + 8000)).status, 429, "retry limit");
+}
 const dtaps = lv(dl).ref_taps;
 r = await rk(D, "daily_submit", "", now0 + 1000, { taps: dtaps }); assert.equal(r.status, 422, "a clear faster than the level can be played");
 r = await rk(D, "daily_submit", "", now0 + 600_000, { taps: [1, 2, 3] }); assert.equal(r.status, 422);

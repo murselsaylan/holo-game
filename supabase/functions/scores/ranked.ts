@@ -32,6 +32,8 @@ export interface RankedStore {
   /** True when the attempt was created now; false when the player already used today's. */
   dailyStart(day: number, pid: string, level: number, now: number): Promise<boolean>;
   dailyRun(day: number, pid: string): Promise<DailyRun | null>;
+  /** Gives an unfinished attempt a fresh start time (the ad retry); false when there is none to restart. */
+  dailyRestart(day: number, pid: string, now: number): Promise<boolean>;
   /** Stores the finished run once (false when already finished). */
   dailyFinish(day: number, pid: string, score: number, stars: number, time: number, taps: number[], now: number): Promise<boolean>;
   dailyBoard(day: number, limit: number): Promise<DailyRow[]>;
@@ -139,9 +141,10 @@ async function dailyView(ctx: RankedCtx, pid: string, nowMs: number) {
 }
 
 const MAX_DAILY_TAPS = 4000;
+export const DAILY_AD_RETRIES = 2;
 const MIN_TAP_GAP = 4;
 
-/** ops: stars | spend | daily | daily_start | daily_submit. `d` is the raw request (taps for daily_submit). */
+/** ops: stars | spend | daily | daily_start | daily_retry | daily_submit. `d` is the raw request (taps for daily_submit). */
 export async function rankedOp(ctx: RankedCtx, pid: string, op: string, arg: string, d: Record<string, unknown>, nowMs: number): Promise<RReply> {
   const { rs, ws } = ctx;
   const now = Math.floor(nowMs / 1000);
@@ -190,6 +193,24 @@ export async function rankedOp(ctx: RankedCtx, pid: string, op: string, arg: str
     if (!ctx.level(level)) return R(400, { error: "unknown level" });
     const first = await rs.dailyStart(day, pid, level, now);       // the try is used from this moment on
     return R(200, { ok: true, ...(await dailyView(ctx, pid, nowMs)), first });
+  }
+
+  if (op === "daily_retry") {
+    // 1.0.9 r3: a failed daily try is given back for a rewarded video. The ad cannot be verified here, so it is a capped
+    // freebie (DAILY_AD_RETRIES a day) and only for an attempt that was started and not finished.
+    const day = utcDay(nowMs);
+    if (!/^[0-9a-f]{16,32}$/.test(arg)) return R(400, { error: "bad ref" });
+    const run = await rs.dailyRun(day, pid);
+    if (!run || run.finished > 0) return R(409, { error: "nothing to retry" });
+    const used = await ws.walletRefs(pid, "dlretry", dayStartS(day) - 86_400);
+    const mine = `${day}:${arg}`;
+    if (!used.includes(mine)) {
+      if (used.filter((r) => r.startsWith(`${day}:`)).length >= DAILY_AD_RETRIES) return R(429, { error: "retry limit" });
+      await ws.walletChange(pid, 0, "dlretry", mine, now);
+      used.push(mine);
+    }
+    await rs.dailyRestart(day, pid, now);
+    return R(200, { ok: true, ...(await dailyView(ctx, pid, nowMs)), retries_left: Math.max(0, DAILY_AD_RETRIES - used.filter((r) => r.startsWith(`${day}:`)).length) });
   }
 
   if (op === "daily_submit") {

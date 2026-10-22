@@ -6,6 +6,7 @@ today's level, the replay check of the daily run); this file only asks and
 shows. The game calls ranked.poll() once per frame, which runs the callbacks on the main thread.
 """
 import hashlib
+import secrets
 import http.client
 import queue
 import threading
@@ -49,6 +50,10 @@ class RankedClient:
     def daily_start(self, on_done=None):
         """Uses today's one try (server side). on_done(reply): reply["first"] is True only for the very first start."""
         self._put(("daily_start", "", None, on_done))
+
+    def daily_retry(self, on_done=None):
+        """A failed daily try for a rewarded video (server: capped per day). on_done(reply); reply["retries_left"]."""
+        self._put(("daily_retry", secrets.token_hex(12), None, on_done))
 
     def daily_submit(self, taps, digest, on_done=None):
         self._put(("daily_submit", "", {"taps": [int(x) for x in taps], "lvl": digest}, on_done))

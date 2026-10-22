@@ -108,6 +108,7 @@ class HoloGame:
         self.recovery_modal = None
         self.friends_modal = None        # the friends window (state "friends", opened from the leaderboard's friends tab)
         self.daily_run = None            # {"level"} while the one-try daily level is being played
+        self._daily_retries_left = 2     # ad retries the server still gives today (it sends the real number back)
         self.daily_modal = None          # its result card (state "daily_result")
         self._daily_retry = [0.0, 0]
         self._friend_note = 0            # waiting-for-me count already announced with a toast
@@ -372,6 +373,8 @@ class HoloGame:
             self.olo = olo_mod.Olo()           # the mascot on the failure screen
             self._ad_due = False            # an interstitial is owed at the next level change (ads.LEVELS_PER_AD)
         self.shop_ui.ads = self.ads
+        self.shop_ui.extra.ad_ready = lambda: self.ads.available("diamonds")
+        self.shop_ui.extra.watch_ad = lambda cb: self.ads.show("diamonds", on_reward=cb)
         self.shop_ui.on_watch_ad = self._watch_ad_diamonds
         self.featured_ui = ui.FeaturedScreen(self.save_mgr, self.shop, self.open_menu, self.open_shop, audio_manager=self.audio)
         lvl_cb = self.open_level_select
@@ -698,7 +701,7 @@ class HoloGame:
         self.save_mgr.bump_weekly("endless_m", metres)
         self.save_mgr.bump_weekly("endless_stars", run.stars)
         events.add_points(self.save_mgr, run.stars)          # the running event counts the climb's stars
-        self._level_finished_for_ad()
+        self._ad_due = True                                  # an interstitial after every climb (not only every 10th level)
         if self.taps or metres > 0:
             self.online.submit_endless(self.endless_week, self.endless_nonce, self.taps, run.n, self.assists)
         else:
@@ -842,10 +845,37 @@ class HoloGame:
 
     def _show_daily_result(self, ok):
         self.daily_modal = ranked_ui.DailyResultModal(ok, self._close_daily_result)
+        if not ok and self.daily_run is not None:
+            self.daily_modal.ad_offer = (self._daily_ad_retry, lambda: self._daily_retries_left > 0 and self.ads.available("continue"))
         self.state = "daily_result"
         self._daily_retry = [0.0, 0]
         if ok:
             self._send_daily()
+
+    def _daily_ad_retry(self):
+        """A failed daily try for a rewarded video: the server gives the attempt back (capped per day), then it is played again."""
+        level = (self.daily_run or {}).get("level")
+        modal = self.daily_modal
+        if level is None or modal is None:
+            return
+
+        def answered(r):
+            if self.daily_modal is not modal or self.state != "daily_result":
+                return
+            if isinstance(r, dict) and r.get("ok"):
+                self._daily_retries_left = int(r.get("retries_left", 0))
+                self.daily_modal = None
+                self._start_daily(level)
+            else:
+                if isinstance(r, dict) and r.get("code") == 429:
+                    self._daily_retries_left = 0
+                self.toasts.append([t("rk_dr_retry_fail"), "", 2.6])
+
+        def rewarded():
+            self.online.ranked.daily_retry(answered)
+
+        self._click()
+        self.ads.show("continue", on_reward=rewarded)
 
     def _send_daily(self):
         modal = self.daily_modal

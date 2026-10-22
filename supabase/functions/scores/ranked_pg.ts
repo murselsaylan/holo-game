@@ -44,6 +44,10 @@ export class PgRanked implements RankedStore {
     const r = await this.sql`INSERT INTO daily_runs(day, player_id, level, started) VALUES(${day}, ${pid}, ${level}, ${now}) ON CONFLICT DO NOTHING RETURNING 1`;
     return r.length > 0;
   }
+  async dailyRestart(day: number, pid: string, now: number) {
+    const r = await this.sql`UPDATE daily_runs SET started = ${now} WHERE day = ${day} AND player_id = ${pid} AND finished = 0 RETURNING 1`;
+    return r.length > 0;
+  }
   async dailyRun(day: number, pid: string): Promise<DailyRun | null> {
     const r = await this.sql`SELECT level, started, finished, score, stars, "time" FROM daily_runs WHERE day = ${day} AND player_id = ${pid}`;
     if (!r.length) return null;

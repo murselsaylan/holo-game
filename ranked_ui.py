@@ -222,6 +222,12 @@ class DailyResultModal:
         self.on_close = on_close
         self.btn = Button((VW // 2 - 220, VH // 2 + 230, 440, 92), t("rk_dr_ok"), 36, bg_color=(0, 150, 200),
                           hover_color=(60, 200, 245), callback=on_close)
+        self.ad_offer = None                 # (callback, ready()) set by HoloGame on a failed run: an ad gives the try back
+        self.btn_ad = Button((VW // 2 - 320, VH // 2 + 110, 640, 92), t("rk_dr_retry_ad"), 30, bg_color=(150, 70, 235),
+                             hover_color=(190, 120, 255), border_color=(200, 150, 255), callback=lambda: None)
+
+    def _ad_on(self):
+        return bool(not self.ok and self.ad_offer and self.ad_offer[1]())
 
     def set_reply(self, r):
         if isinstance(r, dict) and r.get("ok"):
@@ -231,8 +237,11 @@ class DailyResultModal:
 
     def update(self, mouse_pos, dt=1.0):
         self.btn.update(mouse_pos, dt)
+        self.btn_ad.update(mouse_pos, dt)
 
     def handle_event(self, event):
+        if self._ad_on() and self.btn_ad.handle_event(event):
+            return self.ad_offer[0]
         if self.btn.handle_event(event):
             return self.on_close
         return None
@@ -260,4 +269,6 @@ class DailyResultModal:
             draw_text(surface, t("rk_dr_unsent"), 28, (255, 140, 120), (VW // 2, y + 60), max_w=c.w - 60)
         else:
             draw_text(surface, t("rk_dr_sending"), 28, TEXT_MUTED, (VW // 2, y + 60), bold=False, max_w=c.w - 60)
+        if self._ad_on():
+            self.btn_ad.draw(surface)
         self.btn.draw(surface)

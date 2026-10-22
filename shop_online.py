@@ -10,7 +10,7 @@ import secrets
 
 from ranked_online import RankedClient
 
-_ACTIONS = ("buy", "mkt", "chest", "equip")
+_ACTIONS = ("buy", "mkt", "chest", "chestad", "equip")
 
 
 class ShopClient(RankedClient):
@@ -36,13 +36,13 @@ class ShopClient(RankedClient):
         self._put(("view", "", None, None))
 
     def act(self, op, arg, on_done=None):
-        """op "buy" (arg "pack:<id>" | "frame:<id>" | "title:<id>") | "mkt" (arg "<item>") | "chest" | "equip"
+        """op "buy" (arg "pack:<id>" | "frame:<id>" | "title:<id>") | "mkt" (arg "<item>") | "chest" | "chestad" (the chest for a rewarded video) | "equip"
         (arg "frame:<id>" / "title:<id>" / "frame:"). on_done(reply) with reply["ok"]."""
         key = f"{op}|{arg}"
         retry = key in self._refs                      # the earlier try got no answer: a "dup" now still has to be delivered
         ref = self._refs.get(key) or secrets.token_hex(12)
         self._refs[key] = ref
-        wire = {"buy": f"{arg}:{ref}", "mkt": f"{arg}:{ref}", "chest": ref, "equip": arg}[op]
+        wire = {"buy": f"{arg}:{ref}", "mkt": f"{arg}:{ref}", "chest": ref, "chestad": ref, "equip": arg}[op]
 
         def done(r, _key=key, _cb=on_done):
             if isinstance(r, dict) and r.get("error") != "offline":

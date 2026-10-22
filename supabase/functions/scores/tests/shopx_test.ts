@@ -147,6 +147,24 @@ assert.equal((await store.ranked.starTotals(D.p)).balance, 400 - SHOPX.CHEST.per
 assert.equal((await sh(D, "chest", rnd())).status, 429, "daily chest limit");
 assert.equal((await sh(D, "chest", rnd(), now0 + 86_400_000)).status, 200, "next day it opens again");
 assert.equal((await sh(broke, "chest", rnd())).status, 402);
+// the ad chest: no stars needed, own daily cap, idempotent retry, its own dice index, the paid chest is not touched
+{
+  const starsBefore = (await store.ranked.starTotals(broke.p)).balance;
+  const outs: string[] = [];
+  for (let i = 0; i < SHOPX.CHEST.ad_per_day; i++) {
+    const rf = rnd(), x = await sh(broke, "chestad", rf);
+    assert.equal(x.status, 200, "ad chest " + i); assert.equal(x.body.n, "a" + i);
+    outs.push(`${x.body.reward.kind}:${x.body.reward.payload}`);
+    const again = await sh(broke, "chestad", rf);
+    assert.equal(again.body.dup, true); assert.equal(`${again.body.reward.kind}:${again.body.reward.payload}`, outs[i], "retry = same chest");
+  }
+  assert.equal((await sh(broke, "chestad", rnd())).status, 429, "ad chest daily limit");
+  assert.equal((await sh(broke, "chestad", rnd(), now0 + 86_400_000)).status, 200, "next day again");
+  assert.equal((await sh(broke, "chestad", "zz")).status, 400);
+  assert.equal((await store.ranked.starTotals(broke.p)).balance, starsBefore, "an ad chest costs no stars and pays none");
+  assert.equal((await sh(broke, "chest", rnd())).status, 402, "the star chest still wants its stars");
+  assert.equal((await sh(broke, "view")).body.chest.ad_left, 0, "view shows what is left today");
+}
 // the dice: every outcome of the table appears over many chests, and the same (player, n) always gives the same
 const E = await mk("f", 0, 0);
 const kinds = new Map<string, number>();

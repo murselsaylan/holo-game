@@ -147,6 +147,7 @@ def market(now):
 
 CHEST_COST = 40                                             # stars
 CHEST_PER_DAY = 5
+CHEST_AD_PER_DAY = 3                                        # extra chests a day opened with a rewarded video instead of stars
 # (weight, kind, payload) - weights add up to 100; a frame already owned pays DUP_FRAME_GEMS diamonds instead
 CHEST_TABLE = [
     (30, "gems", 30), (22, "shield", 2), (16, "revive", 1), (12, "gems", 60),
@@ -177,6 +178,6 @@ def server_table():
         "STAR_CAP": STAR_CAP, "OVERFLOW_RATE": OVERFLOW_RATE,
         "MARKET_POOLS": [[{"id": m[0], "kind": m[1], "payload": m[2], "stars": m[3], "limit": m[4]} for m in pool]
                          for pool in MARKET_POOLS],
-        "CHEST": {"cost": CHEST_COST, "per_day": CHEST_PER_DAY, "dup_frame_gems": DUP_FRAME_GEMS,
+        "CHEST": {"cost": CHEST_COST, "per_day": CHEST_PER_DAY, "ad_per_day": CHEST_AD_PER_DAY, "dup_frame_gems": DUP_FRAME_GEMS,
                   "table": [{"w": w, "kind": k, "payload": p} for w, k, p in CHEST_TABLE]},
     }

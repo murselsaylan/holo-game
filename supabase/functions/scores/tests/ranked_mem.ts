@@ -31,6 +31,12 @@ export class MemRanked implements RankedStore {
     this.runs.set(k, { pid, day, level, started: now, finished: 0, score: 0, stars: 0, time: 0, taps: [] });
     return true;
   }
+  async dailyRestart(day: number, pid: string, now: number) {
+    const r = this.runs.get(day + "|" + pid);
+    if (!r || r.finished > 0) return false;
+    r.started = now;
+    return true;
+  }
   async dailyRun(day: number, pid: string) { return this.runs.get(day + "|" + pid) ?? null; }
   async dailyFinish(day: number, pid: string, score: number, stars: number, time: number, taps: number[], now: number) {
     const r = this.runs.get(day + "|" + pid);

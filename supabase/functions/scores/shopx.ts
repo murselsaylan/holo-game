@@ -96,10 +96,42 @@ async function view(ctx: ShopCtx, pid: string, nowMs: number): Promise<Record<st
     frame: { id: frame, price: (frameInfo(frame)).price, owned: own.has(frame) },
     packs: { left: packs, table: X.PACKS, stock_cap: X.STOCK_CAP },
     market: mk,
-    chest: { cost: X.CHEST.cost, left: Math.max(0, X.CHEST.per_day - Math.round(today)), opened: chests },
+    chest: { cost: X.CHEST.cost, left: Math.max(0, X.CHEST.per_day - Math.round(today)), opened: chests,
+             ad_left: Math.max(0, X.CHEST.ad_per_day - (await rs.starRefs(pid, "adchest")).filter((r) => r.split(":")[1] === String(Math.floor(now / DAY_S))).length) },
     prestige: { owned: [...own], frame: eq.frame, title: eq.title },
     star_cap: X.STAR_CAP, overflow: ov.stars > 0 ? ov : null,
   };
+}
+
+/** The chest's dice and grant for chest index `n` (a number for a star chest, "a<k>" for an ad chest); a retried request
+ * (`mine`) must land on the same answer. */
+async function chestReward(ctx: ShopCtx, pid: string, n: number | string, mine: boolean, bal: number, now: number): Promise<SReply> {
+  const { rs, ws } = ctx;
+    const h = await ctx.sha256(`${ctx.salt}|${pid}|${n}`);
+    const roll = parseInt(h.slice(0, 8), 16) % 100, roll2 = parseInt(h.slice(8, 16), 16);
+    let acc = 0, row = X.CHEST.table[X.CHEST.table.length - 1];
+    for (const t of X.CHEST.table) { acc += t.w; if (roll < acc) { row = t; break; } }
+    let kind: string = row.kind, payload: string | number = row.payload;
+    let balance = bal;
+    if (kind === "frame") {
+      // a cosmetic of the star pool, picked by the dice; one already owned pays diamonds instead. A retried request
+      // (mine) must land on the same answer: it was converted if a "chest" diamond row for this index exists.
+      const all = [...X.STAR_FRAMES, ...X.STAR_TITLES];
+      const cand = all[roll2 % all.length];
+      const converted = (await ws.walletRefs(pid, "chest", 0)).includes(String(n));
+      if (converted || (!mine && (await ownedPrestige(ws, pid)).has(cand))) {
+        kind = "gems"; payload = X.CHEST.dup_frame_gems;
+        balance = (await ws.walletChange(pid, Number(payload), "chest", String(n), now)).balance;
+      } else {
+        payload = cand;
+        await ws.walletChange(pid, 0, `spend:prestige:${cand}`, "own", now);
+      }
+    } else if (kind === "gems") {
+      balance = (await ws.walletChange(pid, Number(payload), "chest", String(n), now)).balance;
+    } else {
+      await grantUnits(ws, pid, kind, Number(payload), `ch:${n}`, now);
+    }
+    return R(200, { ok: true, stars: (await rs.starTotals(pid)).balance, balance, n, dup: mine, reward: { kind, payload } });
 }
 
 export async function shopOp(ctx: ShopCtx, pid: string, op: string, arg: string, nowMs: number): Promise<SReply> {
@@ -178,31 +210,23 @@ export async function shopOp(ctx: ShopCtx, pid: string, op: string, arg: string,
       const r = await rs.starChange(pid, -X.CHEST.cost, "spend:chest", `${n}:${ref}`, now);
       if (!r.ok) return R(402, { error: "insufficient", stars: r.balance });
     }
-    const h = await ctx.sha256(`${ctx.salt}|${pid}|${n}`);
-    const roll = parseInt(h.slice(0, 8), 16) % 100, roll2 = parseInt(h.slice(8, 16), 16);
-    let acc = 0, row = X.CHEST.table[X.CHEST.table.length - 1];
-    for (const t of X.CHEST.table) { acc += t.w; if (roll < acc) { row = t; break; } }
-    let kind: string = row.kind, payload: string | number = row.payload;
-    let balance = bal;
-    if (kind === "frame") {
-      // a cosmetic of the star pool, picked by the dice; one already owned pays diamonds instead. A retried request
-      // (mine) must land on the same answer: it was converted if a "chest" diamond row for this index exists.
-      const all = [...X.STAR_FRAMES, ...X.STAR_TITLES];
-      const cand = all[roll2 % all.length];
-      const converted = (await ws.walletRefs(pid, "chest", 0)).includes(String(n));
-      if (converted || (!mine && (await ownedPrestige(ws, pid)).has(cand))) {
-        kind = "gems"; payload = X.CHEST.dup_frame_gems;
-        balance = (await ws.walletChange(pid, Number(payload), "chest", String(n), now)).balance;
-      } else {
-        payload = cand;
-        await ws.walletChange(pid, 0, `spend:prestige:${cand}`, "own", now);
-      }
-    } else if (kind === "gems") {
-      balance = (await ws.walletChange(pid, Number(payload), "chest", String(n), now)).balance;
-    } else {
-      await grantUnits(ws, pid, kind, Number(payload), `ch:${n}`, now);
+    return chestReward(ctx, pid, n, !!mine, bal, now);
+  }
+
+  if (op === "chestad") {
+    // 1.0.9 r3: a rewarded video instead of the stars. The ad cannot be verified here, so it is only a capped freebie
+    // (AD_CHEST_PER_DAY a day, the same dice, its own index space "a<k>"); the paid chest and its limit are untouched.
+    const ref = parts[0] ?? "";
+    if (!REF_RE.test(ref)) return R(400, { error: "bad ref" });
+    const day = Math.floor(now / DAY_S);
+    const refs = await rs.starRefs(pid, "adchest");
+    const mine = refs.find((r) => r.endsWith(`:${ref}`));
+    const k = mine ? Number(mine.slice(0, mine.indexOf(":"))) : refs.length;
+    if (!mine) {
+      if (refs.filter((r) => r.split(":")[1] === String(day)).length >= X.CHEST.ad_per_day) return R(429, { error: "chest limit" });
+      await rs.starChange(pid, 0, "adchest", `${k}:${day}:${ref}`, now);
     }
-    return R(200, { ok: true, stars: (await rs.starTotals(pid)).balance, balance, n, dup: !!mine, reward: { kind, payload } });
+    return chestReward(ctx, pid, `a${k}`, !!mine, bal, now);
   }
 
   if (op === "equip") {

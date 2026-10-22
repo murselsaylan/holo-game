@@ -67,6 +67,8 @@ class ShopExtra:
         self.anim = None                                   # the chest opening in progress
         self.busy = False
         self.flash = None                                  # (text, until) of the last chest reward
+        self.ad_ready = lambda: False                      # set by HoloGame: a rewarded video can be shown right now
+        self.watch_ad = lambda on_reward: False            # set by HoloGame: shows it, on_reward() once it was watched
         self._lay = None
 
     # ---- server
@@ -99,7 +101,7 @@ class ShopExtra:
         sm = self.save_mgr
         return (id(v), stt, self.sel_week, self.item, self.busy, sm.shield_stock, sm.revive_stock, sm.star_coins,
                 sm.prestige_frame, sm.prestige_title, len(sm.prestige_owned), int(time.time() // 60),
-                bool(self.flash and self.flash[1] > time.time()))
+                bool(self.flash and self.flash[1] > time.time()), bool(self.ad_ready()))
 
     # ---- layout (relative to the block origin)
     def _layout(self):
@@ -289,6 +291,12 @@ class ShopExtra:
         ui.panel(img, b, (230, 150, 20) if can else (60, 66, 82), (255, 220, 120) if can else (80, 86, 102), 24, 3)
         ui.draw_text(img, t("sx_chest_btn", cost=f"{SI.CHEST_COST}"), 25, (30, 18, 0) if can else (150, 156, 172), (b.centerx - 14, b.centery), max_w=240)
         ui.draw_vector_star(img, b.right - 38, b.centery, radius=13, filled=True, color=(60, 30, 0) if can else (130, 136, 150))
+        if self.ad_ready() or self._chest_ad_left() > 0:
+            ab = self._chest_ad_button(r)
+            on = self._chest_ad_on()
+            ui.panel(img, ab, (150, 70, 235) if on else (52, 48, 70), (200, 150, 255) if on else (78, 72, 100), 20, 3)
+            ui.draw_text(img, t("sx_chest_ad_btn", n=self._chest_ad_left()), 21, (255, 255, 255) if on else (140, 136, 160),
+                         ab.center, max_w=ab.w - 20)
         pygame.draw.line(img, (68, 59, 44), (r.x + 24, r.y + 182), (r.right - 24, r.y + 182))
         ui.draw_text(img, t("shop_chest_rewards"), 18, (172, 184, 206), (r.x + 26, r.y + 232), anchor="midleft", max_w=190)
         for j, kind in enumerate(("shield", "revive", "gems", "frame")):
@@ -367,7 +375,18 @@ class ShopExtra:
 
     @staticmethod
     def _chest_button(r):
-        return pygame.Rect(r.right - 324, r.y + 63, 300, 84)
+        return pygame.Rect(r.right - 324, r.y + 30, 300, 76)
+
+    @staticmethod
+    def _chest_ad_button(r):
+        return pygame.Rect(r.right - 324, r.y + 114, 300, 56)
+
+    def _chest_ad_left(self):
+        v = self.view
+        return int(v["chest"].get("ad_left", 0)) if v else 0
+
+    def _chest_ad_on(self):
+        return self._chest_ad_left() > 0 and self.ad_ready() and not self.busy and self.anim is None
 
     def _prestige_cell(self, img, r, pid, is_frame):
         import ui
@@ -511,6 +530,8 @@ class ShopExtra:
         for i, m in enumerate(self._market_items()):
             if L["market"][i].collidepoint(p):
                 return lambda mm=m: self.select_item("mkt", mm["id"])
+        if self._chest_ad_on() and self._chest_ad_button(L["chest"]).collidepoint(p):
+            return self._open_chest_ad
         if L["chest"].collidepoint(p):
             return self._open_chest
         return None
@@ -637,6 +658,26 @@ class ShopExtra:
         def failed():
             self.anim = None
         self._go("chest", "", done, stars=True, on_fail=failed)
+
+    def _open_chest_ad(self):
+        """The chest for a rewarded video instead of the stars (server: capped per day, same dice)."""
+        self._click()
+        if not self._chest_ad_on():
+            return
+
+        def rewarded():
+            self.anim = {"t0": time.time(), "reward": None, "burst": None, "parts": []}
+
+            def done(r):
+                if self.anim is not None:
+                    self.anim["reward"] = r.get("reward") or {}
+                    self.anim["text"] = self._grant_text(self.anim["reward"])
+                self._say(self._grant_text(r.get("reward") or {}))
+
+            def failed():
+                self.anim = None
+            self._go("chestad", "", done, on_fail=failed)
+        self.watch_ad(rewarded)
 
     def anim_event(self, event):
         """While the chest opens every touch belongs to it; a tap closes the finished reward."""
