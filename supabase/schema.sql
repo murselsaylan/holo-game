@@ -124,3 +124,12 @@ ALTER TABLE daily_runs ENABLE ROW LEVEL SECURITY;
 -- RUN THIS BEFORE deploying the function that reads players.frame / players.title (the leaderboard query selects them).
 ALTER TABLE players ADD COLUMN IF NOT EXISTS frame TEXT NOT NULL DEFAULT '';
 ALTER TABLE players ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT '';
+
+-- first-run funnel (1.1.0): one row per (player, step); n = how many times, first_at / last_at = unix s.
+-- Steps are whitelisted in handler.ts (FUNNEL_STEPS). RUN THIS BEFORE deploying the function with /api/funnel.
+CREATE TABLE IF NOT EXISTS funnel_events(
+  player_id TEXT NOT NULL, step TEXT NOT NULL, n INTEGER NOT NULL DEFAULT 1,
+  first_at BIGINT NOT NULL, last_at BIGINT NOT NULL, platform TEXT NOT NULL DEFAULT '', version TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY(player_id, step));
+CREATE INDEX IF NOT EXISTS idx_funnel_step ON funnel_events(step, first_at);
+ALTER TABLE funnel_events ENABLE ROW LEVEL SECURITY;

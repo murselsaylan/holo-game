@@ -5,6 +5,7 @@ import { ACH_IDS, DAILY, EVENTS, LOGIN_REWARDS, PACKS, PREMIUM_SKINS, SHIELD_COS
 
 export const REVIVE_COST = 20;
 export const WELCOME_GIFT = 30;
+export const TUTORIAL_REWARD = 20;           // 1.1.0: finishing the first-run tutorial (Level 0), once per account
 export const ACH_REWARD = 5;
 export const AD_REWARD = 50;                 // 1.0.8: the developer's choice - 50 a video, watch as many as you like
 export const AD_MAX_PER_DAY = 30;             // only a safety cap: the claim comes from the game, a forged one cannot mint more
@@ -146,6 +147,7 @@ export async function earnClaim(store: WalletStore, pid: string, kind: string, r
     return { amount: ACH_REWARD, reason: "ach", ref };
   }
   if (kind === "welcome") return { amount: WELCOME_GIFT, reason: "welcome", ref: "1" };
+  if (kind === "tutorial") return { amount: TUTORIAL_REWARD, reason: "tutorial", ref: "1" };
   if (kind === "daily") {
     const reward = dailyReward(ref);
     if (reward === null) return { error: "bad mission", status: 400 };

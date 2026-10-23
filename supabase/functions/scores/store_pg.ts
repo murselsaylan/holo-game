@@ -1,5 +1,5 @@
 // Postgres store (Supabase). Uses postgres.js; all counts are cast to int because int8 comes back as string.
-import type { Best, EndlessRow, Ghost, EndlessStanding, Player, Ranks, Restored, Row, Store } from "./handler.ts";
+import type { Best, EndlessRow, Ghost, EndlessStanding, Player, Ranks, Restored, Row, Store, FunnelEvent } from "./handler.ts";
 import type { PurchaseResult, WalletChange, WalletOpen } from "./wallet.ts";
 import type { Assist, Result } from "./sim.ts";
 import { PgFriends } from "./store_friends_pg.ts";
@@ -170,6 +170,15 @@ export class PgStore extends PgFriends implements Store {
   async report(pid: string, kind: string, platform: string, version: string, text: string, now: number): Promise<void> {
     await this.sql`INSERT INTO reports(player_id, kind, platform, version, body, created)
                    VALUES(${pid}, ${kind}, ${platform}, ${version}, ${text}, ${now})`;
+  }
+
+  async funnel(pid: string, events: FunnelEvent[], platform: string, version: string, now: number): Promise<void> {
+    // one row per (player, step): first time + platform / version of that time kept, the count and last time grow
+    for (const e of events) {
+      await this.sql`INSERT INTO funnel_events(player_id, step, n, first_at, last_at, platform, version)
+                     VALUES(${pid}, ${e.step}, ${e.n}, ${now}, ${now}, ${platform}, ${version})
+                     ON CONFLICT (player_id, step) DO UPDATE SET n = funnel_events.n + EXCLUDED.n, last_at = EXCLUDED.last_at`;
+    }
   }
 
   async board(scope: string, country: string, offset: number, limit: number): Promise<{ rows: Row[]; total: number }> {

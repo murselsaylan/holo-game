@@ -1322,3 +1322,9 @@ _CHECKPOINTS = {
 for _lang, _d in _CHECKPOINTS.items():
     if _lang in STRINGS:
         STRINGS[_lang].update(_d)
+
+# first-run tutorial, Level 0 (1.1.0)
+from locales_tutorial import TUTORIAL as _TUTORIAL
+for _lang, _d in _TUTORIAL.items():
+    if _lang in STRINGS:
+        STRINGS[_lang].update(_d)

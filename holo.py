@@ -35,12 +35,13 @@ import memstat
 import perfstat
 import review
 import olo as olo_mod
+import tutorial as tut_mod
 from endless_view import EndlessLevel
 
 GHOST_EVERY = 30                # steps between two samples of the pace ghost (endless_view.EndlessLevel.ghost)
 import arena as A
 from arena_view import ArenaLevel
-from sim import Sim, SIM_DT, compute_result, MAX_LEVELS, SHIELD_INVULN, MIN_TAP_GAP
+from sim import LevelData, Sim, SIM_DT, compute_result, MAX_LEVELS, SHIELD_INVULN, MIN_TAP_GAP
 from sim import ARENA_W
 from locales import t
 from online import OnlineClient
@@ -108,6 +109,8 @@ class HoloGame:
         self.recovery_modal = None
         self.friends_modal = None        # the friends window (state "friends", opened from the leaderboard's friends tab)
         self.daily_run = None            # {"level"} while the one-try daily level is being played
+        self.tut = None                  # tutorial.Tutorial while the first-run tutorial (Level 0) is played
+        self._tut_just_done = False      # the tutorial was just finished: level 1's how-to skips its control page
         self._daily_retries_left = 2     # ad retries the server still gives today (it sends the real number back)
         self.daily_modal = None          # its result card (state "daily_result")
         self._daily_retry = [0.0, 0]
@@ -147,8 +150,11 @@ class HoloGame:
         self._boot_tick()
         self._music_track = None
         self._sync_music()
+        self._first_profile = not self.save_mgr.is_profile_set     # a new install: the tutorial follows the profile
+        self.online.funnel("app_open")
         if not self.save_mgr.is_profile_set:
             self.open_profile("menu")
+            self.online.funnel("profile_shown")
         else:
             self.online.register()
             self.online.wallet_sync()
@@ -726,8 +732,12 @@ class HoloGame:
         self.skin_ui.selected_skin = skin_catalog.THEMES[skin_catalog.STAR_THEME][2][0]
 
     def _leave_endless(self):
-        """Leave the endless climb or the arena (both are "runs" with their own level)."""
+        """Leave the endless climb or the arena (both are "runs" with their own level) - and the tutorial."""
         self.daily_run = None
+        if self.tut is not None:
+            self.tut = None
+            self.level = None
+            self.sim = None
         if self.endless_run is not None or self.arena_run is not None:
             self.endless_run = None
             self.arena_run = None
@@ -1016,6 +1026,11 @@ class HoloGame:
         self.online.wallet_sync()
         self.online.flush_pending()
         self._click()
+        if self._first_profile and self.save_mgr.is_profile_set:
+            self._first_profile = False
+            self.online.funnel("profile_done")
+            if tut_mod.should_offer(self.save_mgr):
+                self.start_tutorial()                  # a new pilot goes straight into the first-run tutorial
 
     def resume_game(self):
         self.state = "playing"
@@ -1042,6 +1057,9 @@ class HoloGame:
 
     # ------------------------------------------------------------------ level lifecycle
     def load_and_play_level(self, level_id):
+        if level_id == 1 and tut_mod.should_offer(self.save_mgr):
+            self.start_tutorial()                      # Level 0 comes first for a new pilot (finished or skipped once)
+            return True
         self._leave_endless()
         # the try count of a level survives leaving it (menu, other levels, closing the game) until it is cleared
         self.attempts = self.save_mgr.level_attempts(level_id)
@@ -1058,10 +1076,65 @@ class HoloGame:
             if hasattr(self.online, "fetch_friend_ghost") and self.online.friend_rows():
                 self.online.fetch_friend_ghost(level_id, lvl.data.digest)
         self.restart_level(count_attempt=False)
+        if level_id == 1:
+            self.online.funnel("l1_start")
         if level_id == 1 and not self.save_mgr.data.get("howto_seen"):
             self.howto_ui.reset()
+            if self._tut_just_done:
+                self.howto_ui._advance()               # the tutorial taught the controls: straight to page 2 (+ its gift)
             self.state = "howto"
+        self._tut_just_done = False
         return True
+
+    # ------------------------------------------------------------------ first-run tutorial (Level 0, tutorial.py)
+    def start_tutorial(self):
+        """Level 0: a wide, slow corridor with a tip per step; a crash rewinds the pair instead of failing. Never
+        sent to the server or ranked."""
+        self._leave_endless()
+        lvl = Level(tut_mod.TUTORIAL_ID)
+        lvl.data = LevelData(tut_mod.LEVEL)
+        lvl.level_title = t("tut_title")
+        lvl.sector_title = t("tut_sector")
+        lvl._render_static()
+        lvl.warm_glows()
+        lvl.loaded = True
+        self.level_id = tut_mod.TUTORIAL_ID
+        self.level = lvl
+        self.sim = None
+        self.attempts = 1
+        self.tut_shown = 0
+        self.tut = tut_mod.Tutorial()
+        self.restart_level(count_attempt=False)
+        self.ghost = None
+        self.online.funnel("tut_start")
+        self.audio.play_sfx("sfx_warp")
+
+    def _tut_skip_rect(self):
+        return pygame.Rect(VW - 210, 18, 186, 64)          # view coordinates (top right of the play field)
+
+    def skip_tutorial(self):
+        if self.tut is None:
+            return
+        self.save_mgr.data["tutorial_done"] = "skip"
+        self.save_mgr.save()
+        self.online.funnel("tut_skip")
+        self._click()
+        self.attempts = 1
+        self.load_and_play_level(1)
+
+    def _tutorial_won(self):
+        haptics.buzz(25)
+        self.audio.play_sfx("sfx_win")
+        sm = self.save_mgr
+        if not sm.data.get("tutorial_done"):
+            sm.data["tutorial_done"] = "done"
+            sm.save()
+            sm.earn("tutorial", "1", tut_mod.REWARD)      # the server pays its own amount, once per account
+        self.online.funnel("tut_done")
+        self.toasts.append([t("tut_done_title"), t("tut_done_sub", n=tut_mod.REWARD), 3.2])
+        self._tut_just_done = True
+        self.attempts = 1
+        self.load_and_play_level(1)
 
     def _close_howto(self):
         self.save_mgr.data["howto_seen"] = True
@@ -1251,7 +1324,7 @@ class HoloGame:
     def use_hud_shield(self):
         """HUD button next to pause: put a shield on the pair now (stock first, otherwise 10 diamonds)."""
         s = self.sim
-        if not s or s.dead or s.won or self.state != "playing" or self.daily_run is not None:
+        if not s or s.dead or s.won or self.state != "playing" or self.daily_run is not None or self.tut is not None:
             return
         if s.shields >= 3 or self.run_bought >= self.save_mgr.SHIELD_STOCK_MAX:
             return
@@ -1410,12 +1483,24 @@ class HoloGame:
             elif kind == "graze":
                 self.audio.play_sfx("sfx_near_miss")
                 self.particles.emit_floating_text(ev[1], ev[2] - 24, t("graze_popup"), (0, 230, 255))
+            elif kind == "die" and self.tut is not None:
+                haptics.buzz(45)                         # the tutorial: no failure, the pair goes back a second
+                self.audio.play_sfx("sfx_die")
+                self.particles.emit_explosion(ev[1], ev[2], skin["color1"], trail_kind(skin))
+                self.particles.add_shake(10.0)
+                self.tut.crashed(s)
+                self.prev_pos = [(o.x, o.y) for o in s.orbs]
+                self.online.funnel("tut_death")
             elif kind == "die":
                 haptics.buzz(45)
                 self.audio.play_sfx("sfx_die")
                 self.particles.emit_explosion(ev[1], ev[2], skin["color1"], trail_kind(skin))
                 self.state = "dying"
                 self.death_timer = 0.55
+            elif kind == "win" and self.tut is not None:
+                s.events.clear()
+                self._tutorial_won()
+                return
             elif kind == "win":
                 self._on_win()
         s.events.clear()
@@ -1439,6 +1524,8 @@ class HoloGame:
             self.save_mgr.data.setdefault("counters", {})["combo4"] = 1
         # the run's paid help is kept with its taps (a best the server missed can be re-sent); the ghost skips such runs
         improved = self.save_mgr.record_level_clear(self.level_id, res, self.taps, self.assists)
+        if first_clear and self.level_id in (1, 2, 3, 5, 10):
+            self.online.funnel(f"l{self.level_id}_clear")
         self.save_mgr.set_level_attempts(self.level_id, 1)       # cleared: the next visit counts from 1 again
         self.save_mgr.bump_daily("levels_played", 1)
         self.save_mgr.bump_daily("stars_earned", res["stars"])
@@ -1564,7 +1651,10 @@ class HoloGame:
         if run is not None:
             self.level.prepare(run.w0 + E.WINDOW - 1)
             self.level.pump(0.0015)
-        if self.state == "playing":
+        if self.state == "playing" and self.tut is not None:
+            for m in self.tut.update(dt, s):            # the tutorial's steps (milestones counted for the funnel)
+                self.online.funnel(m)
+        elif self.state == "playing":
             if self.arena_run is None:                 # the campaign's end pulse and power-up tips (they talk
                 self._update_tension(dt)               # about chasing walls and narrow throats) stay out of the arena
                 self._update_hints(dt)
@@ -1698,7 +1788,7 @@ class HoloGame:
         """The ghost raced in this attempt: the world's best clean run of the level (named), else my own best."""
         self.ghost, self.ghost_name, self.ghost_friend = None, None, False
         if (not self.settings.get("ghost_race", True) or not self.level or self.endless_run is not None
-                or self.arena_run is not None or self.daily_run is not None):
+                or self.arena_run is not None or self.daily_run is not None or self.tut is not None):
             return
         world = (getattr(self.online, "ghosts", None) or {}).get(self.level_id) or {}
         friend = (getattr(self.online, "friend_ghosts", None) or {}).get(self.level_id) or {}
@@ -1927,6 +2017,8 @@ class HoloGame:
                     save_mgr=self.save_mgr, shop=self.shop, on_revive=self.revive_run, revive_cost=REVIVE_COST,
                     on_endless=self.open_endless if self.save_mgr.endless_unlocked else None)
                 self.failure_modal.cp_resume = self._checkpoint_ready()      # the retry button continues from the flag
+                if self.level_id == 1:
+                    self.online.funnel("l1_fail")
                 self.failure_modal.refresh_texts()
                 self.failure_modal.on_help = self.ask_friends_help
                 self.failure_modal.on_shield = self.retry_with_shield
@@ -2099,6 +2191,10 @@ class HoloGame:
                     self.close_friends()
                 elif st == "login":
                     self.close_login_reward()
+                elif st == "daily_result" and self.daily_modal is not None:
+                    self._close_daily_result()
+                elif st == "howto":
+                    self.open_menu()
                 elif st == "menu" and paths.is_android():
                     self._quit_reason = "back key on the menu"
                     self.running = False          # Android back button on the main menu leaves the app
@@ -2144,6 +2240,8 @@ class HoloGame:
                     self._click()
                 elif hud.hit_shield(event.pos):
                     self.use_hud_shield()
+                elif self.tut is not None and self._tut_skip_rect().move(0, HUD_H).collidepoint(event.pos):
+                    self.skip_tutorial()
                 elif 0 <= event.pos[0] < VW and HUD_H < event.pos[1] < HUD_H + self.view_h:
                     self.swap_pivot()
             return
@@ -2590,7 +2688,8 @@ class HoloGame:
             ui.draw_text(view, t("arena_title"), 66, fade((255, 255, 255)), (VW // 2, y0 + 62), max_w=820, bg="key")
             ui.draw_text(view, t("arena_card_sub"), 28, fade((200, 210, 235)), (VW // 2, y0 + 124), max_w=820, bold=False, bg="key")
         # level intro card (first attempt): sector, title, boss tag
-        if run is None and arun is None and self.state == "playing" and self.attempts == 1 and s.swaps == 0 and s.t < 3.2:
+        if (run is None and arun is None and self.tut is None and self.state == "playing" and self.attempts == 1
+                and s.swaps == 0 and s.t < 3.2):
             k = min(1.0, s.t / 0.35, (3.2 - s.t) / 0.7)
             col = ui.SECTOR_COL.get(lvl.sector, ui.ACCENT_CYAN)
             fade = lambda c: tuple(int(v * max(0.0, k)) for v in c)
@@ -2646,7 +2745,9 @@ class HoloGame:
                              max_w=840, bg="key")
 
         # first-time tap hint
-        if run is None and arun is None and self.state == "playing" and s.swaps == 0 and self.level_id <= 3 and self.attempts <= 2:
+        if self.tut is not None and self.state in ("playing", "paused"):
+            self._draw_tutorial(view, s)
+        elif run is None and arun is None and self.state == "playing" and s.swaps == 0 and self.level_id <= 3 and self.attempts <= 2:
             pulse = 0.65 + 0.35 * math.sin(s.t * 6)
             col = tuple(int(c * pulse) for c in (255, 255, 255))
             ui.draw_text(view, t("tap_hint"), 52, col, (VW // 2, self.view_h - 190), bg="key")
@@ -2681,6 +2782,63 @@ class HoloGame:
             ui.draw_text(view, str(max(1, math.ceil(self.resume_timer / 0.4))),
                          64, ui.TEXT_WHITE, (card.centerx, card.y + 92), bg=(12, 20, 36))
 
+    def _draw_tutorial(self, view, s):
+        """The tutorial's help: a tip band (a big line and a small explaining line for the current step, or the crash
+        tip), a pulsing TAP hand while the player should tap, rising arrows towards the portal, and the skip button."""
+        tut = self.tut
+        key = tut.tip_key()
+        crash = key == "tut_crash"
+        BH = 158
+        by = self.view_h - BH                        # at the very bottom: under the pair (the camera keeps it at ~60 %), the route stays clear
+        band = getattr(self, "_tut_band", None)
+        if band is None or band.get_height() != BH:
+            band = self._tut_band = gfx.cv(pygame.Surface((VW, BH)))
+            band.fill((6, 12, 26))
+        view.blit(band, (0, by))
+        edge = (255, 110, 120) if crash else (0, 214, 255)
+        pygame.draw.line(view, edge, (0, by), (VW, by), 3)
+        pygame.draw.line(view, edge, (0, by + BH - 1), (VW, by + BH - 1), 3)
+        pulse = 0.78 + 0.22 * math.sin(self.ui_time * 5.0)
+        col = (255, 170, 175) if crash else tuple(int(c * pulse) for c in (255, 235, 120))
+        ui.draw_text(view, t(key), 46, col, (VW // 2, by + 46), max_w=840, bg=(6, 12, 26))
+        ui.draw_text(view, t(key + "_sub"), 26, (225, 232, 248), (VW // 2, by + 112), bold=False, max_w=860, bg=(6, 12, 26))
+        if tut.step == 0 and not crash and self.sim is not None:      # which orb is which, before the very first tap
+            oy = self.cam_y
+            for orb, key, col, dx, dy, anc in ((self.sim.rotating, "tut_lbl_spin", (255, 120, 190), 70, -150, "midleft"),
+                                               (self.sim.pivot, "tut_lbl_still", (90, 225, 255), -70, -90, "midright")):
+                ox, oyy = int(orb.x + dx), int(orb.y - oy + dy)
+                pygame.draw.line(view, col, (int(orb.x), int(orb.y - oy - 24)), (ox, oyy), 3)
+                ui.draw_text(view, t(key), 30, col, (ox + (8 if dx > 0 else -8), oyy), anchor=anc, max_w=270)
+        if tut.need_tap():                            # a hand that taps: rings that grow out of the fingertip
+            cx, cy = VW // 2, by - 330
+            ph = (self.ui_time * 1.6) % 1.0
+            for k in range(2):
+                q = (ph + k * 0.5) % 1.0
+                rad = int(26 + 70 * q)
+                ring = pygame.Surface((rad * 2 + 6, rad * 2 + 6), pygame.SRCALPHA)
+                pygame.draw.circle(ring, (0, 214, 255, int(190 * (1 - q))), (rad + 3, rad + 3), rad, 5)
+                view.blit(ring, (cx - rad - 3, cy - rad - 3))
+            press = 1.0 - 0.18 * max(0.0, math.sin(self.ui_time * 10.0 * 0.5 * 3.14159))
+            pygame.draw.circle(view, (255, 255, 255), (cx, cy), int(22 * press))
+            pygame.draw.circle(view, (0, 214, 255), (cx, cy), int(22 * press), 4)
+            ui.draw_text(view, t("tut_hand"), 40, (255, 255, 255), (cx, cy - 98), max_w=420)
+        if tut.name == "goal" and not crash:          # rising chevrons: the portal is straight ahead
+            for k in range(3):
+                q = (self.ui_time * 0.9 + k / 3.0) % 1.0
+                y = int(by - 470 - q * 220)
+                al = int(230 * math.sin(q * 3.14159))
+                chev = pygame.Surface((120, 60), pygame.SRCALPHA)
+                pygame.draw.lines(chev, (120, 255, 210, al), False, [(10, 48), (60, 10), (110, 48)], 12)
+                view.blit(chev, (VW // 2 - 60, y))
+        r = self._tut_skip_rect()
+        ui.panel(view, r, (12, 20, 36), (120, 140, 170), 22)
+        ui.draw_text(view, t("tut_skip"), 26, (210, 220, 240), r.center, bg=(12, 20, 36))
+        dots = len(tut_mod.STEPS)                                     # progress dots: steps done / to go
+        for i in range(dots):
+            cx = VW // 2 + (i - (dots - 1) / 2.0) * 34
+            on = i < tut.step or (i == tut.step and not crash)
+            pygame.draw.circle(view, (0, 214, 255) if on else (60, 70, 90), (int(cx), by - 22), 8 if i == tut.step else 6)
+
     def _draw_endless_banner(self, view):
         b = getattr(self, "endless_banner", None)
         if not b:
@@ -2703,7 +2861,7 @@ class HoloGame:
         self.hud.diamonds = self.save_mgr.diamonds
         self.hud.shield_active = s.shields
         self.hud.shield_free = self.save_mgr.free_shield_today
-        self.hud.shield_hint = (s.swaps == 0 and self.daily_run is None and s.shields == 0
+        self.hud.shield_hint = (s.swaps == 0 and self.daily_run is None and self.tut is None and s.shields == 0
                                 and (self.save_mgr.shield_stock > 0 or self.hud.shield_free))
         score = s.star_pts + s.near_pts              # tapping itself earns nothing: fewer swaps score more at the end
         self.hud.draw(f, self.level_id, MAX_LEVELS, s.stars_collected, score, s.combo_mult, s.shields, s.swaps, s.t,

@@ -50,6 +50,7 @@ if __name__ == "__main__":
     SHOT_LEVELS = set(ids)
     game = holo.HoloGame(headless=True)
     game.save_mgr.data["howto_seen"] = True  # onboarding is covered by ui_test.py
+    game.save_mgr.data["tutorial_done"] = "done"   # the first-run tutorial (Level 0) is covered by tutorial_test.py
     game.online.url = "http://127.0.0.1:1"
     ok = True
     for lid in ids:

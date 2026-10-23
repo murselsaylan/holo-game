@@ -74,6 +74,8 @@ export interface Store extends WalletStore, FriendStore {
   weekRank?(pid: string, week: string): Promise<number | null>;
   /** A crash report from a player's device (kind "fault" = native crash stack, "crash" = Python traceback). */
   report(pid: string, kind: string, platform: string, version: string, text: string, now: number): Promise<void>;
+  /** First-run funnel (1.1.0): one row per (player, step) - the first time, the latest time and how many times. */
+  funnel?(pid: string, events: FunnelEvent[], platform: string, version: string, now: number): Promise<void>;
   board(scope: string, country: string, offset: number, limit: number): Promise<{ rows: Row[]; total: number }>;
   /** Endless best of the week (kept only when higher); `best` / `improved` are about the player's all-time best. */
   endlessRecord(pid: string, week: string, metres: number, steps: number, nonce: string, taps: number[], now: number):
@@ -83,6 +85,34 @@ export interface Store extends WalletStore, FriendStore {
   useAssists(pid: string, revives: number, shields: number, ref: string, now: number): Promise<boolean>;
   endlessStanding(pid: string, week: string): Promise<EndlessStanding | null>;
   endlessBoard(week: string, offset: number, limit: number, country?: string): Promise<{ rows: EndlessRow[]; total: number }>;
+}
+
+/** First-run funnel steps the game may report (anything else is refused). One-time steps are sent once by the
+ *  game; counters (app_open, tut_death, l1_fail) carry how many times since the last upload in `n`. */
+export const FUNNEL_STEPS = new Set([
+  "app_open", "profile_shown", "profile_done",
+  "tut_start", "tut_tap", "tut_half", "tut_star", "tut_done", "tut_skip", "tut_death",
+  "l1_start", "l1_fail", "l1_clear", "l2_clear", "l3_clear", "l5_clear", "l10_clear",
+]);
+export const FUNNEL_MAX_EVENTS = 20;
+export const FUNNEL_MAX_N = 50;
+export interface FunnelEvent { step: string; n: number }
+
+/** Validates a funnel upload; null = refused. Unknown steps make the whole upload invalid (a newer game would
+ *  otherwise lose the known ones silently - it gets a 400 and keeps them). */
+export function parseFunnel(d: Record<string, unknown>): FunnelEvent[] | null {
+  const ev = d.events;
+  if (!Array.isArray(ev) || ev.length === 0 || ev.length > FUNNEL_MAX_EVENTS) return null;
+  const out = new Map<string, number>();
+  for (const e of ev) {
+    if (typeof e !== "object" || e === null) return null;
+    const step = String((e as Record<string, unknown>).s ?? "");
+    const raw = (e as Record<string, unknown>).n ?? 1;
+    const n = Number(raw);
+    if (!FUNNEL_STEPS.has(step) || !Number.isInteger(n) || n < 1) return null;
+    out.set(step, Math.min(FUNNEL_MAX_N, (out.get(step) ?? 0) + n));
+  }
+  return [...out.entries()].map(([step, n]) => ({ step, n }));
 }
 
 export interface Reply { status: number; body: Record<string, unknown> }
@@ -281,6 +311,17 @@ export async function handle(store: Store, method: string, path: string, query: 
       await store.report(pid, kind, String(d.platform ?? "").slice(0, 16), String(d.version ?? "").slice(0, 16), text,
                          Math.floor(nowMs / 1000));
       return R(200, { ok: true });
+    }
+    if (route === "/api/funnel") {
+      if (limited(`fn|${ip}`, 30, nowMs)) return R(429, { error: "slow down" });
+      const pid = String(d.player_id ?? "").slice(0, 64);
+      const events = parseFunnel(d);
+      if (!/^[0-9a-f]{16,64}$/.test(pid) || events === null) return R(400, { error: "bad funnel" });
+      if (store.funnel) {
+        await store.funnel(pid, events, String(d.platform ?? "").slice(0, 16), String(d.version ?? "").slice(0, 16),
+                           Math.floor(nowMs / 1000));
+      }
+      return R(200, { ok: true, n: events.length });
     }
     if (route === "/api/cloud/save") return await cloudSave(store, d, ip, nowMs);
     if (route === "/api/cloud/code") return await cloudCode(store, d, ip, nowMs);

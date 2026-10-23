@@ -856,7 +856,8 @@ class HUD:
 
         # title block
         draw_text(surface, f"{sector_title}", 24, col, (VW // 2 + 40, 34), max_w=400)
-        draw_text(surface, t("level_title", lvl=level_id, max_lvl=max_levels), 54, TEXT_WHITE, (VW // 2 + 40, 78), max_w=420)
+        head = t("tut_hud_title") if level_id == 0 else t("level_title", lvl=level_id, max_lvl=max_levels)   # 0: the tutorial
+        draw_text(surface, head, 54, TEXT_WHITE, (VW // 2 + 40, 78), max_w=420)
         draw_text(surface, title, 26, TEXT_MUTED, (VW // 2 + 40, 116), bold=False, max_w=400)
 
         # stars + shields

@@ -205,6 +205,7 @@ class OnlineClient:
             self._submit_jobs.put(("flush", None))
         if self.enabled and self.save.data.get("endless_runs"):
             self._submit_jobs.put(("endless", None))
+        self.funnel_flush()
 
     # ---- account recovery through Google (1.0.5)
     def google_link(self, id_token):
@@ -222,6 +223,65 @@ class OnlineClient:
         """Frame-time diagnostics (perfstat.py) to the developer: kind "perf" on the reports endpoint."""
         if self.enabled:
             self._submit_jobs.put(("perf", text))
+
+    # ---- first-run funnel (1.1.0, server: /api/funnel, table funnel_events)
+    FUNNEL_ONCE = {"profile_shown", "profile_done", "tut_start", "tut_tap", "tut_half", "tut_star", "tut_done",
+                   "tut_skip", "l1_start", "l1_clear", "l2_clear", "l3_clear", "l5_clear", "l10_clear"}
+
+    def funnel(self, step):
+        """Count one first-run milestone ("tut_start", "l1_fail" ...). One-time steps are counted once per install;
+        the rest are counters. Kept in the save until the server took them, so being offline loses nothing."""
+        s = self.save
+        with s._lock:
+            if not isinstance(s.data.get("funnel_once"), list):
+                s.data["funnel_once"] = []
+            if not isinstance(s.data.get("funnel_q"), dict):
+                s.data["funnel_q"] = {}
+            once = s.data["funnel_once"]
+            if step in self.FUNNEL_ONCE:
+                if step in once:
+                    return
+                once.append(step)
+            q = s.data.setdefault("funnel_q", {})
+            q[step] = min(50, int(q.get(step, 0)) + 1)
+        s.save()
+        self.funnel_flush()
+
+    def funnel_flush(self):
+        if self.enabled and self.save.data.get("funnel_q") and not getattr(self, "_funnel_queued", False):
+            self._funnel_queued = True
+            self._submit_jobs.put(("funnel", None))
+
+    def _do_funnel(self, conn):
+        self._funnel_queued = False
+        s = self.save
+        with s._lock:
+            sent = {k: int(v) for k, v in dict(s.data.get("funnel_q") or {}).items() if int(v) > 0}
+        if not sent:
+            return
+        import paths as _paths
+        import sys as _sys
+        from version import __version__
+        plat = "ios" if _paths.is_ios() else ("android" if _paths.is_android() else _sys.platform)
+        events = [{"s": k, "n": v} for k, v in list(sent.items())[:20]]
+        try:
+            conn.request("POST", "/api/funnel", {"player_id": s.player_id, "platform": plat, "version": __version__,
+                                                 "events": events})
+            done = True
+        except HTTPError as e:
+            done = e.code == 400            # refused (a step this server does not know): drop it, never retry forever
+            if not done:
+                raise
+        if done:
+            with s._lock:
+                q = s.data.setdefault("funnel_q", {})
+                for e in events:
+                    left = int(q.get(e["s"], 0)) - e["n"]
+                    if left > 0:
+                        q[e["s"]] = left
+                    else:
+                        q.pop(e["s"], None)
+            s.save()
 
     def report_name(self, target_id, name):
         """A viewer flags another pilot's name (sent with the crash reports' endpoint, kind "name")."""
@@ -508,6 +568,8 @@ class OnlineClient:
                                                          "platform": plat, "version": __version__, "text": arg})
                 elif kind == "flush":
                     self._do_flush(conn)
+                elif kind == "funnel":
+                    self._do_funnel(conn)
                 elif kind in ("cloud_save", "code", "restore"):
                     self._do_account(conn, kind, arg)
                 elif kind in ("glink", "grestore"):

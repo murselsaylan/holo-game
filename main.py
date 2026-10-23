@@ -1,7 +1,11 @@
 """Entry point (desktop: `python main.py`; Android/python-for-android runs this file)."""
+import os
 import sys
 import time
 import traceback
+
+# Android: the back key goes to the game (pages go back to the main menu) instead of closing the app by itself
+os.environ.setdefault("SDL_ANDROID_TRAP_BACK_BUTTON", "1")
 
 
 def _log_crash(exc):
