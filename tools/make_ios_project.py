@@ -248,7 +248,10 @@ def add_admob(pbx, info):
     fw = " ".join(f'"-framework", {f},' for f in ("JavaScriptCore", "WebKit", "StoreKit", "AdSupport", "CoreTelephony",
                                                    "AppTrackingTransparency", "SystemConfiguration", "MessageUI",
                                                    "MediaPlayer", "Security"))
-    flags = ('OTHER_LDFLAGS = ("$(inherited)", "-ObjC", ' + fw + ' );\n\t\t\t\t'
+    # the SDK's C++ parts (libc++: std::logic_error, __cxa_*, __gxx_personality_v0) and the Swift back-deployment
+    # libraries its Swift parts ask for (__swift_FORCE_LOAD_$_swiftCompatibility*) - the app target is plain C/ObjC
+    cxx = '"-lc++", "-lswiftCompatibility51", "-lswiftCompatibility56", "-lswiftCompatibilityConcurrency", '
+    flags = ('OTHER_LDFLAGS = ("$(inherited)", "-ObjC", ' + cxx + fw + ' );\n\t\t\t\t'
              'LIBRARY_SEARCH_PATHS = ("$(inherited)", "$(SDKROOT)/usr/lib/swift", '
              '"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)", );\n\t\t\t\t')
     pbx = pbx.replace(f"PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};", flags + f"PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};")
