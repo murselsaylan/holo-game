@@ -253,7 +253,13 @@ def add_admob(pbx, info):
     cxx = '"-lc++", "-lswiftCompatibility51", "-lswiftCompatibility56", "-lswiftCompatibilityConcurrency", '
     flags = ('OTHER_LDFLAGS = ("$(inherited)", "-ObjC", ' + cxx + fw + ' );\n\t\t\t\t'
              'LIBRARY_SEARCH_PATHS = ("$(inherited)", "$(SDKROOT)/usr/lib/swift", '
-             '"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)", );\n\t\t\t\t')
+             '"$(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME)", '
+             # TOOLCHAIN_DIR can point at the Metal toolchain on the runners: the compatibility libraries (swift-5.0 holds
+             # Compatibility51, swift-5.5 Concurrency, swift-5.6 Compatibility56) live in the default toolchain
+             '"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME)", '
+             '"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)", '
+             '"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/$(PLATFORM_NAME)", '
+             '"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.6/$(PLATFORM_NAME)", );\n\t\t\t\t')
     pbx = pbx.replace(f"PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};", flags + f"PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};")
     info["GADApplicationIdentifier"] = app_id
     info["SKAdNetworkItems"] = [{"SKAdNetworkIdentifier": f"{x}.skadnetwork"} for x in SKADNETWORK_IDS]
