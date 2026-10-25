@@ -1,0 +1,49 @@
+   no editable version - creating 1.0.9
+version 1.0.9 PREPARE_FOR_SUBMISSION
+
+== version number, copyright
+    {'copyright': '2026 Mürsel Saylan'}
+
+== version texts per language
+    tr ok
+    en-US ok
+
+== app name / subtitle / privacy URL per language
+    tr HOLO: İki Küre, Tek Nabız / Tek dokunuşla ritim ve refleks
+    en-US HOLO: Two Orbs, One Pulse / One-tap rhythm & reflex game
+
+== categories
+    ['GAMES', 'GAMES_ACTION']
+
+== age rating (no objectionable content -> 4+)
+    fields: ['advertising', 'ageAssurance', 'alcoholTobaccoOrDrugUseOrReferences', 'contests', 'gambling', 'gamblingSimulated', 'gunsOrOtherWeapons', 'healthOrWellnessTopics', 'horrorOrFearThemes', 'lootBox', 'matureOrSuggestiveThemes', 'medicalOrTreatmentInformation', 'messagingAndChat', 'parentalControls', 'profanityOrCrudeHumor', 'sexualContentGraphicAndNudity', 'sexualContentOrNudity', 'socialMedia', 'socialMediaAgeRestricted', 'unrestrictedWebAccess', 'userGeneratedContent', 'violenceCartoonOrFantasy', 'violenceRealistic', 'violenceRealisticProlongedGraphicOrSadistic']
+
+== content rights (no third-party content)
+
+== price: free
+    free from now on
+
+== screenshots
+    tr 01_menu.png uploaded
+    tr 02_endless.png uploaded
+    tr 03_endless_record.png uploaded
+    tr 04_endless_climb.png uploaded
+    tr 05_endless_result.png uploaded
+    tr 06_star_skins.png uploaded
+    tr 07_gameplay.png uploaded
+    tr 08_shop.png uploaded
+    en-US 01_menu.png uploaded
+    en-US 02_endless.png uploaded
+    en-US 03_endless_record.png uploaded
+    en-US 04_endless_climb.png uploaded
+    en-US 05_endless_result.png uploaded
+    en-US 06_star_skins.png uploaded
+    en-US 07_gameplay.png uploaded
+    en-US 08_shop.png uploaded
+    builds of 1.0.9 []
+Traceback (most recent call last):
+  File "/home/runner/work/holo-game/holo-game/tools/asc_store.py", line 305, in <module>
+    set_build(v)
+  File "/home/runner/work/holo-game/holo-game/tools/asc_store.py", line 236, in set_build
+    raise RuntimeError("no processed build of " + CFG["version"] + " yet")
+RuntimeError: no processed build of 1.0.9 yet
