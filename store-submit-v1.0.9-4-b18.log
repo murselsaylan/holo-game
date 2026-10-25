@@ -36,14 +36,7 @@ version 1.0.9 PREPARE_FOR_SUBMISSION
     tr 06_star_skins.png uploaded
     tr 07_gameplay.png uploaded
     tr 08_shop.png uploaded
-    en-US 01_menu.png uploaded
-    en-US 02_endless.png uploaded
-    en-US 03_endless_record.png uploaded
-    en-US 04_endless_climb.png uploaded
-    en-US 05_endless_result.png uploaded
-    en-US 06_star_skins.png uploaded
-    en-US 07_gameplay.png uploaded
-    en-US 08_shop.png uploaded
+    en-US screenshots already uploaded and processed - kept
     builds of 1.0.9 [('18', 'VALID')]
     build 18 attached
 
@@ -53,7 +46,7 @@ version 1.0.9 PREPARE_FOR_SUBMISSION
 == submit for review
    FAILED: POST /v1/reviewSubmissionItems -> 409: {
   "errors" : [ {
-    "id" : "9f919bba-c7a8-44e7-87c3-40ba84565255",
+    "id" : "cb65e9c6-6c79-4cc4-bcad-9957b392e227",
     "status" : "409",
     "code" : "STATE_ERROR.ENTITY_STATE_INVALID",
     "title" : "appStoreVersions with id '9b8f0aa7-b6a0-450e-b8a0-dc7072249f01' is not in valid state.",
@@ -61,7 +54,13 @@ version 1.0.9 PREPARE_FOR_SUBMISSION
     "meta" : {
       "associatedErrors" : {
         "/v1/appStoreVersions/9b8f0aa7-b6a0-450e-b8a0-dc7072249f01" : [ {
-          "id" : "a15fda29-910d-4eea-b031-464a6467b480",
+          "id" : "dfa58fea-4734-433c-baae-8bcfd4559e78",
+          "status" : "409",
+          "code" : "STATE_ERROR.ASSET_IN_POST_PROCESSING.APP_SCREENSHOT",
+          "title" : "Asset Library validation error.",
+          "detail" : "Asset is being processed."
+        }, {
+          "id" : "718caa72-8d9a-4f7f-b7b2-9df9d436fd42",
           "status" : "409",
           "code" : "STATE_ERROR.ASSET_IN_POST_PROCESSING.APP_SCREENSHOT",
           "title" : "Asset Library validation error.",
