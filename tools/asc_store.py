@@ -192,7 +192,12 @@ def set_shots(locs):
             sset = call("POST", "/v1/appScreenshotSets", {"data": {"type": "appScreenshotSets", "attributes": {
                 "screenshotDisplayType": kind}, "relationships": {"appStoreVersionLocalization": {"data": {
                     "type": "appStoreVersionLocalizations", "id": lid}}}}})["data"]
-        for old in call("GET", f"/v1/appScreenshotSets/{sset['id']}/appScreenshots")["data"]:
+        have = call("GET", f"/v1/appScreenshotSets/{sset['id']}/appScreenshots")["data"]
+        if ([x["attributes"]["fileName"] for x in have] == files[:10]
+                and all((x["attributes"].get("assetDeliveryState") or {}).get("state") == "COMPLETE" for x in have)):
+            print("   ", loc, "screenshots already uploaded and processed - kept")     # a re-upload restarts Apple's processing
+            continue
+        for old in have:
             call("DELETE", f"/v1/appScreenshots/{old['id']}")
         for name in files[:10]:
             blob = open(os.path.join(folder, name), "rb").read()
