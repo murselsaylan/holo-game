@@ -57,8 +57,15 @@ def version():
         if v["attributes"]["appStoreState"] in ("PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "REJECTED",
                                                  "METADATA_REJECTED", "WAITING_FOR_REVIEW", "READY_FOR_REVIEW"):
             return v
-    raise RuntimeError("no editable iOS version: " + json.dumps([(v["attributes"]["versionString"],
-                                                                  v["attributes"]["appStoreState"]) for v in r["data"]]))
+    # the last version is out (READY_FOR_SALE / PENDING_DEVELOPER_RELEASE ...): open the next one
+    if any(v["attributes"]["versionString"] == CFG["version"] for v in r["data"]):
+        raise RuntimeError("no editable iOS version: " + json.dumps([(v["attributes"]["versionString"],
+                                                                      v["attributes"]["appStoreState"]) for v in r["data"]]))
+    print("   no editable version - creating", CFG["version"], flush=True)
+    return call("POST", "/v1/appStoreVersions", {"data": {
+        "type": "appStoreVersions",
+        "attributes": {"platform": "IOS", "versionString": CFG["version"], "releaseType": "AFTER_APPROVAL"},
+        "relationships": {"app": {"data": {"type": "apps", "id": APP}}}}})["data"]
 
 
 def app_info():
