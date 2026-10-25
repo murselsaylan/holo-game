@@ -53,7 +53,7 @@ version 1.0.9 PREPARE_FOR_SUBMISSION
 == submit for review
    FAILED: POST /v1/reviewSubmissionItems -> 409: {
   "errors" : [ {
-    "id" : "340e356a-d28f-4bb0-a877-9d03340ef647",
+    "id" : "9f919bba-c7a8-44e7-87c3-40ba84565255",
     "status" : "409",
     "code" : "STATE_ERROR.ENTITY_STATE_INVALID",
     "title" : "appStoreVersions with id '9b8f0aa7-b6a0-450e-b8a0-dc7072249f01' is not in valid state.",
@@ -61,19 +61,7 @@ version 1.0.9 PREPARE_FOR_SUBMISSION
     "meta" : {
       "associatedErrors" : {
         "/v1/appStoreVersions/9b8f0aa7-b6a0-450e-b8a0-dc7072249f01" : [ {
-          "id" : "24ce75db-152c-4f58-87e4-89afb8895805",
-          "status" : "409",
-          "code" : "STATE_ERROR.ASSET_IN_POST_PROCESSING.APP_SCREENSHOT",
-          "title" : "Asset Library validation error.",
-          "detail" : "Asset is being processed."
-        }, {
-          "id" : "3af85767-4f92-45b2-9e90-f4784782ea3d",
-          "status" : "409",
-          "code" : "STATE_ERROR.ASSET_IN_POST_PROCESSING.APP_SCREENSHOT",
-          "title" : "Asset Library validation error.",
-          "detail" : "Asset is being processed."
-        }, {
-          "id" : "1858043e-7047-4270-a71c-e4e6d9e8ca45",
+          "id" : "a15fda29-910d-4eea-b031-464a6467b480",
           "status" : "409",
           "code" : "STATE_ERROR.ASSET_IN_POST_PROCESSING.APP_SCREENSHOT",
           "title" : "Asset Library validation error.",
