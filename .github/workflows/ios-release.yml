@@ -39,6 +39,9 @@ jobs:
       - name: Tools
         run: pip install pygame-ios requests pygame-ce==2.5.6
       - name: Xcode project
+        env:
+          # a tag ending in -noads builds without the Google Mobile Ads SDK (its embedded framework failed App Store signing)
+          HOLO_NO_ADMOB: ${{ endsWith(github.ref_name, '-noads') && '1' || '' }}
         run: python tools/make_ios_project.py
       - name: App Store Connect key
         env:
