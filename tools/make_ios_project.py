@@ -161,6 +161,27 @@ def _insert_after_block_list(pbx, block_marker, list_key, line):
     return pbx[:j] + line + pbx[j:]
 
 
+def _is_static_archive(path):
+    """True when the binary is a static library: a plain `ar` archive, or one wrapped in a one-slice fat header (the Google
+    Mobile Ads SDK ships like that - taking it for a dynamic framework embedded an unsignable archive: App Store 'Invalid
+    Signature')."""
+    import struct
+    with open(path, "rb") as f:
+        head = f.read(32)
+        if head[:8] == b"!<arch>\n":
+            return True
+        if head[:4] == b"\xca\xfe\xba\xbe":                      # fat header: (magic, n) then fat_arch records
+            n = struct.unpack(">I", head[4:8])[0]
+            for i in range(n):
+                f.seek(8 + 20 * i + 8)
+                off = struct.unpack(">I", f.read(4))[0]
+                f.seek(off)
+                if f.read(8) != b"!<arch>\n":
+                    return False
+            return n > 0
+    return False
+
+
 def add_xcframework(pbx, name):
     """Links (and, when it is dynamic, embeds) Support/<name> in the app target, like the template's own SDL2."""
     binary = None
@@ -168,7 +189,7 @@ def add_xcframework(pbx, name):
         for f in files:
             if f == name.replace(".xcframework", "") and "simulator" not in base:
                 binary = os.path.join(base, f)
-    static = bool(binary) and open(binary, "rb").read(8) == b"!<arch>\n"
+    static = bool(binary) and _is_static_archive(binary)
     fid, bid, eid = _pbx_id(name + ":ref"), _pbx_id(name + ":link"), _pbx_id(name + ":embed")
     pbx = pbx.replace("/* Begin PBXFileReference section */\n", "/* Begin PBXFileReference section */\n"
                       f"\t\t{fid} /* {name} */ = {{isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; "
