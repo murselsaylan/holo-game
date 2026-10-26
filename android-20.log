@@ -35,11 +35,11 @@
 [1m[90m[DEBUG][39m[0m:   	> Task :packageReleaseResources
 [1m[90m[DEBUG][39m[0m:   	> Task :parseReleaseLocalResources
 [1m[90m[DEBUG][39m[0m:   	> Task :extractReleaseVersionControlInfo
+[1m[90m[DEBUG][39m[0m:   	> Task :processReleaseManifestForPackage
 [1m[90m[DEBUG][39m[0m:   	> Task :javaPreCompileRelease
+[1m[90m[DEBUG][39m[0m:   	> Task :checkReleaseDuplicateClasses
 [1m[90m[DEBUG][39m[0m:   	> Task :desugarReleaseFileDependencies
 [1m[90m[DEBUG][39m[0m:   	> Task :mergeReleaseStartupProfile
-[1m[90m[DEBUG][39m[0m:   	> Task :processReleaseManifestForPackage
-[1m[90m[DEBUG][39m[0m:   	> Task :checkReleaseDuplicateClasses
 [1m[90m[DEBUG][39m[0m:   	> Task :processReleaseResources
 [1m[90m[DEBUG][39m[0m:   	> Task :mergeExtDexRelease
 [1m[90m[DEBUG][39m[0m:   	> Task :bundleReleaseResources
@@ -71,8 +71,8 @@
 [1m[90m[DEBUG][39m[0m:   	> Task :mergeDexRelease
 [1m[90m[DEBUG][39m[0m:   	> Task :buildReleasePreBundle
 [1m[90m[DEBUG][39m[0m:   	> Task :parseReleaseIntegrityConfig
-[1m[90m[DEBUG][39m[0m:   	> Task :validateSigningRelease
 [1m[90m[DEBUG][39m[0m:   	> Task :extractReleaseNativeSymbolTables
+[1m[90m[DEBUG][39m[0m:   	> Task :validateSigningRelease
 [1m[90m[DEBUG][39m[0m:   	> Task :compileReleaseArtProfile
 [1m[90m[DEBUG][39m[0m:   	> Task :lintVitalAnalyzeRelease
 [1m[90m[DEBUG][39m[0m:   	> Task :lintVitalReportRelease
@@ -91,7 +91,7 @@
 [1m[90m[DEBUG][39m[0m:   	
 [1m[90m[DEBUG][39m[0m:   	For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 [1m[90m[DEBUG][39m[0m:   	
-[1m[90m[DEBUG][39m[0m:   	BUILD SUCCESSFUL in 1m 59s
+[1m[90m[DEBUG][39m[0m:   	BUILD SUCCESSFUL in 1m 55s
 [1m[90m[DEBUG][39m[0m:   	50 actionable tasks: 49 executed, 1 up-to-date
 [1m[INFO][0m:    [36m<- directory context /home/runner/work/_temp/holo/.buildozer/android/platform/python-for-android[39m
 [1m[90m[DEBUG][39m[0m:   All possible dists: [<Distribution: name holo with recipes (hostpython3, jpeg, libffi, openssl, png, sdl2_image, sdl2_mixer, sdl2_ttf, sqlite3, python3, sdl2, pyjnius, setuptools, pygame, six, certifi)>]
