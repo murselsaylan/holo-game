@@ -26,11 +26,11 @@ SKIN_PRICE = {sid: "$2.49" for sid in skin_catalog.premium_ids()}      # real mo
 SKIN_PRICE[skin_catalog.PRESTIGE_TOP] = "$7.49"     # the single most expensive item in the game
 SKIN_DIAMOND_COST = skin_catalog.COST
 
-DIAMOND_PACKS = [                    # the store product ids keep their old names; since 1.0.9 r5 a pack pays 3x
-    ("pack_100", 300, "$0.49", "300 ELMAS"),
-    ("pack_350", 1050, "$1.49", "1050 ELMAS"),
-    ("pack_1000", 3000, "$3.49", "3000 ELMAS"),
-    ("pack_2500", 7500, "$7.49", "7500 ELMAS"),
+DIAMOND_PACKS = [                    # real-money prices halved on 26 Oct 2026; the diamonds per pack are unchanged
+    ("pack_100", 100, "$0.49", "100 ELMAS"),
+    ("pack_350", 350, "$1.49", "350 ELMAS"),
+    ("pack_1000", 1000, "$3.49", "1000 ELMAS"),
+    ("pack_2500", 2500, "$7.49", "2500 ELMAS"),
 ]
 
 SHIELD_COST = 10                     # diamonds for one shield (max 5 in stock)

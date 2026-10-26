@@ -18,6 +18,7 @@ from asc_store import APP, FAILED, ROOT, call, step   # noqa: E402
 import requests                                         # noqa: E402
 
 SHOTS = os.path.join(ROOT, "store_assets", "ios_iap")      # tools/make_iap_shots.py: skin.png, packs.png
+SUBMIT = "--submit" in sys.argv                           # send the products that are READY_TO_SUBMIT to App Review
 REPRICE = "--reprice" in sys.argv                         # set the price (and the texts) again even when they exist
 RESHOT = "--reshot" in sys.argv                            # replace review screenshots that are already there
 REVIEW_NOTE = ("Bought in the game's shop (main menu > SHOP). Diamonds are credited by our server after it checks the "
@@ -148,9 +149,31 @@ def ensure(pid, kind, usd, locs, have):
     run()
 
 
+def submit_all():
+    @step("submit the In-App Purchases for review")
+    def run():
+        for pid, iap in existing().items():
+            st = iap["attributes"].get("state")
+            if st != "READY_TO_SUBMIT":
+                print("   ", pid, st, "- skipped")
+                continue
+            try:
+                call("POST", "/v1/inAppPurchaseSubmissions", {"data": {"type": "inAppPurchaseSubmissions", "relationships": {
+                    "inAppPurchaseV2": {"data": {"type": "inAppPurchases", "id": iap["id"]}}}}})
+                print("   ", pid, "submitted")
+            except Exception as e:
+                print("   ", pid, "FAILED", str(e)[:400])
+                FAILED.append(pid)
+    run()
+
+
 def main():
     have = existing()
     print("already in App Store Connect:", sorted(have))
+    if SUBMIT:
+        submit_all()
+        print("\nstates:", {k: v["attributes"].get("state") for k, v in existing().items()})
+        sys.exit(1 if FAILED else 0)
     for pid, kind, usd, locs in products():
         ensure(pid, kind, usd, locs, have)
     print("\nstates:", {k: v["attributes"].get("state") for k, v in existing().items()})

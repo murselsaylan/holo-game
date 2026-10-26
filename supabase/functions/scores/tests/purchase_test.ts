@@ -26,19 +26,19 @@ setVerifier(async (product, token) => { calls++; if (token === "boom") throw new
 const tagA = await accountTag(A);
 play["tok-1"] = { state: "purchased", orderId: "GPA.1", account: tagA, consumed: false, test: true };
 let r = await buy(A, SA, "pack_1000", "tok-1");
-assert.equal(r.status, 200); assert.equal(r.body.balance, 3000); assert.equal(r.body.dup, false);   // pack_1000 pays 3000 (3x)
+assert.equal(r.status, 200); assert.equal(r.body.balance, 1000); assert.equal(r.body.dup, false);
 r = await buy(A, SA, "pack_1000", "tok-1");                          // the game retries after a lost answer
-assert.equal(r.status, 200); assert.equal(r.body.balance, 3000); assert.equal(r.body.dup, true);
+assert.equal(r.status, 200); assert.equal(r.body.balance, 1000); assert.equal(r.body.dup, true);
 r = await buy(B, SB, "pack_1000", "tok-1");                          // someone else replays the token
 assert.ok(r.status === 403 || r.status === 409, "token of A refused for B: " + r.status);
 play["tok-2"] = { state: "pending", orderId: "GPA.2", account: tagA, consumed: false, test: true };
-r = await buy(A, SA, "pack_350", "tok-2"); assert.equal(r.status, 202); assert.equal(r.body.balance, 3000);
+r = await buy(A, SA, "pack_350", "tok-2"); assert.equal(r.status, 202); assert.equal(r.body.balance, 1000);
 play["tok-2"].state = "purchased";                                   // paid later (cash / slow card)
-r = await buy(A, SA, "pack_350", "tok-2"); assert.equal(r.body.balance, 4050);
-r = await buy(A, SA, "pack_100", "fake-token"); assert.equal(r.status, 410); assert.equal(r.body.balance, 4050);
+r = await buy(A, SA, "pack_350", "tok-2"); assert.equal(r.body.balance, 1350);
+r = await buy(A, SA, "pack_100", "fake-token"); assert.equal(r.status, 410); assert.equal(r.body.balance, 1350);
 play["tok-3"] = { state: "purchased", orderId: "GPA.3", account: tagA, consumed: false, test: true };
 r = await buy(A, SA, "pack_2500", "tok-3x"); assert.equal(r.status, 410);          // token/product mismatch -> unknown token
-r = await buy(A, SA, "skin_big_bang", "tok-3"); assert.equal(r.status, 200); assert.equal(r.body.skin, "big_bang"); assert.equal(r.body.balance, 4050);
+r = await buy(A, SA, "skin_big_bang", "tok-3"); assert.equal(r.status, 200); assert.equal(r.body.skin, "big_bang"); assert.equal(r.body.balance, 1350);
 r = await buy(A, SA, "skin_angel_halo", "tok-9"); assert.equal(r.status, 400);     // not sold for real money
 await assert.rejects(buy(A, SA, "pack_100", "boom"));              // Google down -> index.ts answers 500, the game retries
 // ref must be the token's hash (signature covers it)
