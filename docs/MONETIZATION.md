@@ -26,7 +26,7 @@ Toplam: 15 bölüm ile, 8 başarımla, 57 mağazadan alınıyor. Katalog tanım�
 ## Play Console'da oluşturman gereken ürünler (20 adet, kimlikler birebir)
 Hepsi **Uygulama içi ürün (in-app product)**, tek seferlik.
 
-* **Elmas paketleri (tüketilebilir)**: `pack_100` ($0.99), `pack_350` ($2.99), `pack_1000` ($6.99), `pack_2500` ($14.99)
+* **Elmas paketleri (tüketilebilir)**: `pack_100` ($0.99 = 300 elmas), `pack_350` ($2.99 = 1050), `pack_1000` ($6.99 = 3000), `pack_2500` ($14.99 = 7500); ürün kimlikleri eski adlarında kaldı, miktarlar 3 katına çıktı
 * **Efsanevi skinler (tüketilemez)**, $4.99 (Cosmic Diamond hariç): `skin_cyber_phantom`, `skin_supernova`, `skin_event_horizon`, `skin_big_bang`, `skin_quantum_lattice`, `skin_saturn_ring`, `skin_galaxy_cat`, `skin_rainbow_unicorn`, `skin_royal_crown`, `skin_nova_heart`, `skin_sakura_fox`, `skin_leviathan`, `skin_void_walker`, `skin_snow_leopard`, `skin_rocket_bunny`
 * **En pahalı skin**: `skin_diamond_prestige` — **$14.99**
 

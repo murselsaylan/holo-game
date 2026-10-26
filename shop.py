@@ -26,11 +26,11 @@ SKIN_PRICE = {sid: "$4.99" for sid in skin_catalog.premium_ids()}
 SKIN_PRICE[skin_catalog.PRESTIGE_TOP] = "$14.99"     # the single most expensive item in the game
 SKIN_DIAMOND_COST = skin_catalog.COST
 
-DIAMOND_PACKS = [
-    ("pack_100", 100, "$0.99", "100 ELMAS"),
-    ("pack_350", 350, "$2.99", "350 ELMAS"),
-    ("pack_1000", 1000, "$6.99", "1000 ELMAS"),
-    ("pack_2500", 2500, "$14.99", "2500 ELMAS"),
+DIAMOND_PACKS = [                    # the store product ids keep their old names; since 1.0.9 r5 a pack pays 3x
+    ("pack_100", 300, "$0.99", "300 ELMAS"),
+    ("pack_350", 1050, "$2.99", "1050 ELMAS"),
+    ("pack_1000", 3000, "$6.99", "3000 ELMAS"),
+    ("pack_2500", 7500, "$14.99", "7500 ELMAS"),
 ]
 
 SHIELD_COST = 10                     # diamonds for one shield (max 5 in stock)

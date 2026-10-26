@@ -25,9 +25,9 @@ setAppleVerifier(async (product, tid, receipt) => {
     : { state: "cancelled", orderId: "", account: "", consumed: false, test: false };
 });
 let r = await buy("pack_350", "ios:2000000111", "UkVDRUlQVA==");
-assert.equal(r.status, 200); assert.equal(r.body.balance, 350);
+assert.equal(r.status, 200); assert.equal(r.body.balance, 1050);   // pack_350 pays 1050 (3x since 1.0.9 r5)
 assert.deepEqual(seen[0], ["pack_350", "2000000111", "UkVDRUlQVA=="]);
-r = await buy("pack_350", "ios:2000000111"); assert.equal(r.body.dup, true); assert.equal(r.body.balance, 350);
+r = await buy("pack_350", "ios:2000000111"); assert.equal(r.body.dup, true); assert.equal(r.body.balance, 1050);
 r = await buy("pack_100", "ios:999"); assert.equal(r.status, 410);
 setAppleVerifier(appleVerifier);
 
