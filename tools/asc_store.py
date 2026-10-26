@@ -255,6 +255,35 @@ def set_review(v):
 
 
 @step("submit for review")
+def attach_iaps(sub):
+    iaps = []
+    path = f"/v1/apps/{APP}/inAppPurchasesV2?limit=200"
+    while path:
+        r = call("GET", path)
+        iaps += r["data"]
+        nxt = (r.get("links") or {}).get("next")
+        path = nxt.replace(API, "") if nxt else None
+    todo = [i for i in iaps if i["attributes"].get("state") in ("READY_TO_SUBMIT", "PREPARE_FOR_SUBMISSION", "MISSING_METADATA")]
+    print("    In-App Purchases to attach:", len(todo), "of", len(iaps), flush=True)
+    failed = []
+    for i in todo:
+        ok = False
+        for rel in ("inAppPurchaseV2", "inAppPurchase"):
+            try:
+                call("POST", "/v1/reviewSubmissionItems", {"data": {"type": "reviewSubmissionItems", "relationships": {
+                    "reviewSubmission": {"data": {"type": "reviewSubmissions", "id": sub["id"]}},
+                    rel: {"data": {"type": "inAppPurchases", "id": i["id"]}}}}})
+                ok = True
+                break
+            except Exception as e:
+                last = str(e)[:300]
+        print("   ", i["attributes"].get("productId"), "attached" if ok else "FAILED " + last, flush=True)
+        if not ok:
+            failed.append(i["attributes"].get("productId"))
+    if failed:
+        raise RuntimeError("could not attach: " + ",".join(failed))
+
+
 def submit(v):
     open_ = call("GET", f"/v1/reviewSubmissions?filter[app]={APP}&filter[platform]=IOS&filter[state]=READY_FOR_REVIEW")["data"]
     sub = open_[0] if open_ else call("POST", "/v1/reviewSubmissions", {"data": {"type": "reviewSubmissions",
@@ -264,6 +293,8 @@ def submit(v):
         call("POST", "/v1/reviewSubmissionItems", {"data": {"type": "reviewSubmissionItems", "relationships": {
             "reviewSubmission": {"data": {"type": "reviewSubmissions", "id": sub["id"]}},
             "appStoreVersion": {"data": {"type": "appStoreVersions", "id": v["id"]}}}}})
+    if "--with-iaps" in sys.argv:                  # the first In-App Purchases travel with a new app version
+        attach_iaps(sub)
     call("PATCH", f"/v1/reviewSubmissions/{sub['id']}", {"data": {"type": "reviewSubmissions", "id": sub["id"],
          "attributes": {"submitted": True}}})
     print("    sent to App Review")
