@@ -4,26 +4,26 @@ Hello from the pygame community. https://www.pygame.org/contribute.html
 
 == pack_100 (CONSUMABLE, $0.49)
     state READY_TO_SUBMIT
-    text updated en-US 300 Diamonds
-    text updated tr 300 Elmas
+    text updated en-US 100 Diamonds
+    text updated tr 100 Elmas
     price 0.49 USD (other countries: Apple's equivalents)
 
 == pack_350 (CONSUMABLE, $1.49)
     state READY_TO_SUBMIT
-    text updated en-US 1050 Diamonds
-    text updated tr 1050 Elmas
+    text updated en-US 350 Diamonds
+    text updated tr 350 Elmas
     price 1.49 USD (other countries: Apple's equivalents)
 
 == pack_1000 (CONSUMABLE, $3.49)
     state READY_TO_SUBMIT
-    text updated en-US 3000 Diamonds
-    text updated tr 3000 Elmas
+    text updated en-US 1000 Diamonds
+    text updated tr 1000 Elmas
     price 3.49 USD (other countries: Apple's equivalents)
 
 == pack_2500 (CONSUMABLE, $7.49)
     state READY_TO_SUBMIT
-    text updated en-US 7500 Diamonds
-    text updated tr 7500 Elmas
+    text updated en-US 2500 Diamonds
+    text updated tr 2500 Elmas
     price 7.49 USD (other countries: Apple's equivalents)
 
 == skin_cyber_phantom (NON_CONSUMABLE, $2.49)
