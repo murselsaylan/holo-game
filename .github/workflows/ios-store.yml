@@ -37,6 +37,7 @@ jobs:
             python tools/asc_status.py 2>&1 | tee "$RUNNER_TEMP/store.log"
           elif [[ "$GITHUB_REF_NAME" == iap-* ]]; then
             R=$([[ "$GITHUB_REF_NAME" == *-reshot ]] && echo --reshot)
+            [[ "$GITHUB_REF_NAME" == *-reprice ]] && R=--reprice
             python tools/asc_iap.py $R 2>&1 | tee "$RUNNER_TEMP/store.log"
           else
             if [[ "$GITHUB_REF_NAME" == submit-v* ]]; then A=--submit; elif [[ "$GITHUB_REF_NAME" == resubmit-v* ]]; then A=--resubmit; else A=; fi

@@ -1,6 +1,6 @@
 """In-App Purchases in App Store Connect via the API (run by .github/workflows/ios-store.yml on an "iap-*" tag).
 
-    python tools/asc_iap.py            (--reshot: replace the review screenshots too)
+    python tools/asc_iap.py            (--reshot: replace the review screenshots too; --reprice: set prices / names again)
 
 Creates whatever is missing of the products the game sells (shop.py: diamond packs, legendary skins, remove_ads) with
 their names (tr + en), price, availability in every country and the review screenshot. Safe to run again: existing
@@ -18,6 +18,7 @@ from asc_store import APP, FAILED, ROOT, call, step   # noqa: E402
 import requests                                         # noqa: E402
 
 SHOTS = os.path.join(ROOT, "store_assets", "ios_iap")      # tools/make_iap_shots.py: skin.png, packs.png
+REPRICE = "--reprice" in sys.argv                         # set the price (and the texts) again even when they exist
 RESHOT = "--reshot" in sys.argv                            # replace review screenshots that are already there
 REVIEW_NOTE = ("Bought in the game's shop (main menu > SHOP). Diamonds are credited by our server after it checks the "
                "transaction with the App Store; skins appear in the SKINS screen; Remove Ads stops the ads between "
@@ -96,13 +97,18 @@ def ensure(pid, kind, usd, locs, have):
         have_locs = {x["attributes"]["locale"]: x for x in call("GET", f"/v2/inAppPurchases/{iid}/inAppPurchaseLocalizations")["data"]}
         for loc, (name, desc) in locs.items():
             if loc in have_locs:
+                if REPRICE and (have_locs[loc]["attributes"].get("name") != name):
+                    lid = have_locs[loc]["id"]
+                    call("PATCH", f"/v1/inAppPurchaseLocalizations/{lid}", {"data": {"type": "inAppPurchaseLocalizations", "id": lid,
+                         "attributes": {"name": name, "description": desc[:45]}}})
+                    print("    text updated", loc, name)
                 continue
             call("POST", "/v1/inAppPurchaseLocalizations", {"data": {"type": "inAppPurchaseLocalizations", "attributes": {
                 "locale": loc, "name": name, "description": desc[:45]}, "relationships": {"inAppPurchaseV2": {"data": {
                     "type": "inAppPurchases", "id": iid}}}}})
             print("    text", loc, name)
         sched = call("GET", f"/v2/inAppPurchases/{iid}/iapPriceSchedule?include=manualPrices", ok=(200, 404))
-        if not (sched.get("data") and (sched["data"].get("relationships", {}).get("manualPrices", {}).get("data"))):
+        if REPRICE or not (sched.get("data") and (sched["data"].get("relationships", {}).get("manualPrices", {}).get("data"))):
             pp = price_point(iid, usd)
             call("POST", "/v1/inAppPurchasePriceSchedules", {
                 "data": {"type": "inAppPurchasePriceSchedules", "relationships": {

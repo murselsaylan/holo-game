@@ -22,20 +22,20 @@ import paths
 import skin_catalog
 
 # Legendary skins can also be bought with real money (Play products skin_<id>); every shop skin can be bought with diamonds
-SKIN_PRICE = {sid: "$4.99" for sid in skin_catalog.premium_ids()}
-SKIN_PRICE[skin_catalog.PRESTIGE_TOP] = "$14.99"     # the single most expensive item in the game
+SKIN_PRICE = {sid: "$2.49" for sid in skin_catalog.premium_ids()}      # real money, halved on 26 Oct 2026
+SKIN_PRICE[skin_catalog.PRESTIGE_TOP] = "$7.49"     # the single most expensive item in the game
 SKIN_DIAMOND_COST = skin_catalog.COST
 
 DIAMOND_PACKS = [                    # the store product ids keep their old names; since 1.0.9 r5 a pack pays 3x
-    ("pack_100", 300, "$0.99", "300 ELMAS"),
-    ("pack_350", 1050, "$2.99", "1050 ELMAS"),
-    ("pack_1000", 3000, "$6.99", "3000 ELMAS"),
-    ("pack_2500", 7500, "$14.99", "7500 ELMAS"),
+    ("pack_100", 300, "$0.49", "300 ELMAS"),
+    ("pack_350", 1050, "$1.49", "1050 ELMAS"),
+    ("pack_1000", 3000, "$3.49", "3000 ELMAS"),
+    ("pack_2500", 7500, "$7.49", "7500 ELMAS"),
 ]
 
 SHIELD_COST = 10                     # diamonds for one shield (max 5 in stock)
 REMOVE_ADS = "remove_ads"            # one-time purchase: no interstitials between levels
-REMOVE_ADS_PRICE = "$2.99"
+REMOVE_ADS_PRICE = "$1.49"
 AD_REWARD = 50                       # diamonds for one rewarded video (the server pays it: wallet kind "ad")
 AD_PER_DAY = 30                      # 1.0.8: no limit a player meets - only the server's safety cap against forged claims
 AD_GAP_S = 0                         # the button comes back as soon as the next video has loaded
@@ -311,7 +311,7 @@ class Shop:
         dev builds can fake one with config "dev_sale_pct" (screenshots / UI tests)."""
         s = self.billing.offer(skin_product(skin_id)) if self.is_premium(skin_id) else None
         if s is None and self.billing.name == "dev" and config.get("dev_sale_pct") and skin_id in skin_catalog.featured_skins()[:1]:
-            return "$2.99", SKIN_PRICE.get(skin_id, "$4.99"), int(config.get("dev_sale_pct"))
+            return "$1.49", SKIN_PRICE.get(skin_id, "$2.49"), int(config.get("dev_sale_pct"))
         return s
 
     def pack_price(self, pack_id, default):
