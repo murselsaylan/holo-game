@@ -1,0 +1,97 @@
+already in App Store Connect: ['pack_100', 'pack_1000', 'pack_2500', 'pack_350', 'remove_ads', 'skin_big_bang', 'skin_cyber_phantom', 'skin_diamond_prestige', 'skin_event_horizon', 'skin_galaxy_cat', 'skin_leviathan', 'skin_nova_heart', 'skin_quantum_lattice', 'skin_rainbow_unicorn', 'skin_rocket_bunny', 'skin_royal_crown', 'skin_sakura_fox', 'skin_saturn_ring', 'skin_snow_leopard', 'skin_supernova', 'skin_void_walker']
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.15)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+
+== pack_100 (CONSUMABLE, $0.49)
+    state READY_TO_SUBMIT
+    text updated en-US 300 Diamonds
+    text updated tr 300 Elmas
+    price 0.49 USD (other countries: Apple's equivalents)
+
+== pack_350 (CONSUMABLE, $1.49)
+    state READY_TO_SUBMIT
+    text updated en-US 1050 Diamonds
+    text updated tr 1050 Elmas
+    price 1.49 USD (other countries: Apple's equivalents)
+
+== pack_1000 (CONSUMABLE, $3.49)
+    state READY_TO_SUBMIT
+    text updated en-US 3000 Diamonds
+    text updated tr 3000 Elmas
+    price 3.49 USD (other countries: Apple's equivalents)
+
+== pack_2500 (CONSUMABLE, $7.49)
+    state READY_TO_SUBMIT
+    text updated en-US 7500 Diamonds
+    text updated tr 7500 Elmas
+    price 7.49 USD (other countries: Apple's equivalents)
+
+== skin_cyber_phantom (NON_CONSUMABLE, $2.49)
+    state READY_TO_SUBMIT
+    price 2.49 USD (other countries: Apple's equivalents)
+
+== skin_supernova (NON_CONSUMABLE, $2.49)
+    state READY_TO_SUBMIT
+    price 2.49 USD (other countries: Apple's equivalents)
+
+== skin_event_horizon (NON_CONSUMABLE, $2.49)
+    state READY_TO_SUBMIT
+    price 2.49 USD (other countries: Apple's equivalents)
+
+== skin_big_bang (NON_CONSUMABLE, $2.49)
+    state READY_TO_SUBMIT
+    price 2.49 USD (other countries: Apple's equivalents)
+
+== skin_quantum_lattice (NON_CONSUMABLE, $2.49)
+    state READY_TO_SUBMIT
+    price 2.49 USD (other countries: Apple's equivalents)
+
+== skin_saturn_ring (NON_CONSUMABLE, $2.49)
+    state READY_TO_SUBMIT
+    price 2.49 USD (other countries: Apple's equivalents)
+
+== skin_galaxy_cat (NON_CONSUMABLE, $2.49)
+    state READY_TO_SUBMIT
+    price 2.49 USD (other countries: Apple's equivalents)
+
+== skin_rainbow_unicorn (NON_CONSUMABLE, $2.49)
+    state READY_TO_SUBMIT
+    price 2.49 USD (other countries: Apple's equivalents)
+
+== skin_royal_crown (NON_CONSUMABLE, $2.49)
+    state READY_TO_SUBMIT
+    price 2.49 USD (other countries: Apple's equivalents)
+
+== skin_nova_heart (NON_CONSUMABLE, $2.49)
+    state READY_TO_SUBMIT
+    price 2.49 USD (other countries: Apple's equivalents)
+
+== skin_sakura_fox (NON_CONSUMABLE, $2.49)
+    state READY_TO_SUBMIT
+    price 2.49 USD (other countries: Apple's equivalents)
+
+== skin_leviathan (NON_CONSUMABLE, $2.49)
+    state READY_TO_SUBMIT
+    price 2.49 USD (other countries: Apple's equivalents)
+
+== skin_void_walker (NON_CONSUMABLE, $2.49)
+    state READY_TO_SUBMIT
+    price 2.49 USD (other countries: Apple's equivalents)
+
+== skin_snow_leopard (NON_CONSUMABLE, $2.49)
+    state READY_TO_SUBMIT
+    price 2.49 USD (other countries: Apple's equivalents)
+
+== skin_rocket_bunny (NON_CONSUMABLE, $2.49)
+    state READY_TO_SUBMIT
+    price 2.49 USD (other countries: Apple's equivalents)
+
+== skin_diamond_prestige (NON_CONSUMABLE, $7.49)
+    state READY_TO_SUBMIT
+    price 7.49 USD (other countries: Apple's equivalents)
+
+== remove_ads (NON_CONSUMABLE, $1.49)
+    state READY_TO_SUBMIT
+    price 1.49 USD (other countries: Apple's equivalents)
+
+states: {'pack_100': 'READY_TO_SUBMIT', 'pack_1000': 'READY_TO_SUBMIT', 'pack_2500': 'READY_TO_SUBMIT', 'pack_350': 'READY_TO_SUBMIT', 'remove_ads': 'READY_TO_SUBMIT', 'skin_big_bang': 'READY_TO_SUBMIT', 'skin_cyber_phantom': 'READY_TO_SUBMIT', 'skin_diamond_prestige': 'READY_TO_SUBMIT', 'skin_event_horizon': 'READY_TO_SUBMIT', 'skin_galaxy_cat': 'READY_TO_SUBMIT', 'skin_leviathan': 'READY_TO_SUBMIT', 'skin_nova_heart': 'READY_TO_SUBMIT', 'skin_quantum_lattice': 'READY_TO_SUBMIT', 'skin_rainbow_unicorn': 'READY_TO_SUBMIT', 'skin_rocket_bunny': 'READY_TO_SUBMIT', 'skin_royal_crown': 'READY_TO_SUBMIT', 'skin_sakura_fox': 'READY_TO_SUBMIT', 'skin_saturn_ring': 'READY_TO_SUBMIT', 'skin_snow_leopard': 'READY_TO_SUBMIT', 'skin_supernova': 'READY_TO_SUBMIT', 'skin_void_walker': 'READY_TO_SUBMIT'}
