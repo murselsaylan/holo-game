@@ -2077,7 +2077,7 @@ _FRIEND_ERRORS = {
     "daily limit": "fr_err_limit", "already sent today": "fr_err_already", "already asked for this level today": "fr_err_already",
     "unknown code": "fr_err_unknown", "bad code": "fr_err_unknown", "that is your own code": "fr_err_self",
     "friend list full": "fr_err_full", "offline": "fr_err_offline", "friend already cleared it": "fr_challenge_none",
-    "clear the level first": "fr_challenge_none", "level not cleared yet": "fr_challenge_notyet",
+    "clear the level first": "fr_challenge_notyet", "level not cleared yet": "fr_challenge_notyet",
     "someone already helped": "fr_help_taken", "request gone": "fr_help_taken", "no friends": "fr_help_none",
 }
 
