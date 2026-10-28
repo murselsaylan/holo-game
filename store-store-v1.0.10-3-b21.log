@@ -1,0 +1,50 @@
+
+== build
+
+== wait for build 21
+    build 21: not uploaded yet
+    build 21: not uploaded yet
+    build 21: not uploaded yet
+    build 21: not uploaded yet
+    build 21 ready after ~9 min
+version 1.0.10 REJECTED
+
+== version number, copyright
+    {'copyright': '2026 Mürsel Saylan'}
+
+== version texts per language
+    tr ok
+    en-US ok
+
+== app name / subtitle / privacy URL per language
+    tr HOLO: İki Küre, Tek Nabız / Tek dokunuşla ritim ve refleks
+    en-US HOLO: Two Orbs, One Pulse / One-tap rhythm & reflex game
+
+== categories
+    ['GAMES', 'GAMES_ACTION']
+
+== age rating (no objectionable content -> 4+)
+    fields: ['advertising', 'ageAssurance', 'alcoholTobaccoOrDrugUseOrReferences', 'contests', 'gambling', 'gamblingSimulated', 'gunsOrOtherWeapons', 'healthOrWellnessTopics', 'horrorOrFearThemes', 'lootBox', 'matureOrSuggestiveThemes', 'medicalOrTreatmentInformation', 'messagingAndChat', 'parentalControls', 'profanityOrCrudeHumor', 'sexualContentGraphicAndNudity', 'sexualContentOrNudity', 'socialMedia', 'socialMediaAgeRestricted', 'unrestrictedWebAccess', 'userGeneratedContent', 'violenceCartoonOrFantasy', 'violenceRealistic', 'violenceRealisticProlongedGraphicOrSadistic']
+
+== content rights (no third-party content)
+
+== price: free
+    free from now on
+
+== screenshots
+    tr screenshots already uploaded and processed - kept
+   FAILED: GET /v1/appScreenshotSets/99b10819-3570-4f35-a43b-f3f2ae697e1e/appScreenshots -> 500: {
+	"errors": [{
+		"status": "500",
+		"code": "UNEXPECTED_ERROR",
+		"title": "An unexpected error occurred.",
+		"detail": "An unexpected error occurred on the server side. If this issue continues, contact us at https://developer.apple.com/contact/."
+	}]
+}
+    builds of 1.0.10 [('21', 'VALID'), ('20', 'VALID'), ('19', 'VALID')]
+    build 21 attached
+
+== App Review details: no sign-in needed
+    contact: Mürsel Saylan | email set: True | phone set: True
+
+FAILED: ['screenshots']
