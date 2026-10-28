@@ -1,0 +1,6 @@
+
+===== betaFeedbackCrashSubmissions
+GET /v1/apps/6819440077/betaFeedbackCrashSubmissions?limit=20 -> 200
+
+===== betaFeedbackScreenshotSubmissions
+GET /v1/apps/6819440077/betaFeedbackScreenshotSubmissions?limit=20 -> 200
