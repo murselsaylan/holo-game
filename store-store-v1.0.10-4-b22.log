@@ -1,13 +1,13 @@
 
 == build
 
-== wait for build 21
-    build 21: not uploaded yet
-    build 21: not uploaded yet
-    build 21: not uploaded yet
-    build 21: not uploaded yet
-    build 21 ready after ~9 min
-version 1.0.10 REJECTED
+== wait for build 22
+    build 22: not uploaded yet
+    build 22: not uploaded yet
+    build 22: not uploaded yet
+    build 22: not uploaded yet
+    build 22 ready after ~10 min
+version 1.0.10 PREPARE_FOR_SUBMISSION
 
 == version number, copyright
     {'copyright': '2026 Mürsel Saylan'}
@@ -33,18 +33,11 @@ version 1.0.10 REJECTED
 
 == screenshots
     tr screenshots already uploaded and processed - kept
-   FAILED: GET /v1/appScreenshotSets/99b10819-3570-4f35-a43b-f3f2ae697e1e/appScreenshots -> 500: {
-	"errors": [{
-		"status": "500",
-		"code": "UNEXPECTED_ERROR",
-		"title": "An unexpected error occurred.",
-		"detail": "An unexpected error occurred on the server side. If this issue continues, contact us at https://developer.apple.com/contact/."
-	}]
-}
-    builds of 1.0.10 [('21', 'VALID'), ('20', 'VALID'), ('19', 'VALID')]
-    build 21 attached
+    en-US screenshots already uploaded and processed - kept
+    builds of 1.0.10 [('22', 'VALID'), ('21', 'VALID'), ('20', 'VALID'), ('19', 'VALID')]
+    build 22 attached
 
 == App Review details: no sign-in needed
     contact: Mürsel Saylan | email set: True | phone set: True
 
-FAILED: ['screenshots']
+ALL STEPS OK 
