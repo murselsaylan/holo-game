@@ -5,6 +5,7 @@ tools/make_ios_project.py links into the app, through rubicon-objc.
 Every SDK callback is delivered on the main thread while SDL pumps its events (inside pygame.event.get), so plain
 Python lists and dicts are enough - nothing here runs concurrently with the game loop.
 """
+import ctypes
 import time
 
 from rubicon.objc import Block, NSObject, ObjCClass, ObjCInstance, objc_method
@@ -74,7 +75,36 @@ class AdsBridgeIOS:
         self._keep = []                 # blocks the SDK holds until it calls them
         self._last_tick = 0.0
         self.delegate = HoloAdDelegate.alloc().init()
-        self._consent()
+        self.att_wait = True            # the system tracking prompt (ATT) is still to be answered: no ads before it
+        self._att_next = None
+        self._att_due = time.monotonic() + 2.5      # the prompt needs the app active: ask a moment after the first frames
+
+    # ------------------------------------------------------------------ ATT (system prompt) -> consent (UMP) -> SDK start
+    def _att(self):
+        """App Tracking Transparency comes first (App Review 5.1.2(i)): the system asks before the consent form is shown
+        and before any ad is requested. An answer of 'not allowed' still lets ads run (without the advertising id)."""
+        try:
+            mgr = ObjCClass("ATTrackingManager")
+            status = int(_p(mgr, "trackingAuthorizationStatus"))
+        except Exception as e:
+            print("ads (iOS): ATT unavailable:", e)
+            self.att_wait = False
+            self._consent()
+            return
+        if status != 0:                 # already answered (0 = not determined)
+            self.att_wait = False
+            self._consent()
+            return
+        try:
+            mgr.requestTrackingAuthorizationWithCompletionHandler_(self._block(self._att_done, ctypes.c_ulong))
+            print("ads (iOS): ATT prompt requested")
+        except Exception as e:
+            print("ads (iOS): ATT request failed:", e)
+            self.att_wait = False
+            self._consent()
+
+    def _att_done(self, status):
+        self._att_next = "consent"      # the next tick() (the game's main thread) goes on with the consent form
 
     # ------------------------------------------------------------------ consent (UMP) -> SDK start
     def _block(self, fn, *argtypes):
@@ -115,7 +145,7 @@ class AdsBridgeIOS:
             return True                 # no UMP in the build: Google's own defaults apply
 
     def _start_if_allowed(self):
-        if self.started or not self._can_request():
+        if self.started or self.att_wait or not self._can_request():
             return
         self.started = True
         try:
@@ -163,9 +193,20 @@ class AdsBridgeIOS:
     def tick(self):
         """Called every frame by ads.Ads.poll: retries the slots whose last load failed."""
         now = time.monotonic()
+        if self._att_due and now >= self._att_due:
+            self._att_due = 0.0
+            self._att()
+            return
+        if self._att_next == "consent":
+            self._att_next = None
+            self.att_wait = False
+            self._consent()
+            return
         if now - self._last_tick < 1.0:
             return
         self._last_tick = now
+        if self.att_wait:
+            return                      # waiting for the player's answer to the tracking prompt
         if not self.started:
             self._start_if_allowed()
             return

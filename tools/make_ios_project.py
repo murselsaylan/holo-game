@@ -214,6 +214,7 @@ def add_privacy_manifest(pbx, sdk_names):
     """The app's PrivacyInfo.xcprivacy: the statically linked SDKs' own manifests are not copied into the app, so
     their declarations (collected data, required-reason APIs) are merged into the app's, plus what Python itself uses
     (file timestamps, boot time for monotonic clocks)."""
+    domains = set()
     collected, apis = {}, {"NSPrivacyAccessedAPICategoryFileTimestamp": {"C617.1"},
                            "NSPrivacyAccessedAPICategorySystemBootTime": {"35F9.1"}}
     for name in sdk_names:
@@ -230,10 +231,11 @@ def add_privacy_manifest(pbx, sdk_names):
                     for p in c.get("NSPrivacyCollectedDataTypePurposes", []):
                         if p not in cur["NSPrivacyCollectedDataTypePurposes"]:
                             cur["NSPrivacyCollectedDataTypePurposes"].append(p)
+                domains.update(d.get("NSPrivacyTrackingDomains", []))
                 for a in d.get("NSPrivacyAccessedAPITypes", []):
                     apis.setdefault(a["NSPrivacyAccessedAPIType"], set()).update(a.get("NSPrivacyAccessedAPITypeReasons", []))
                 break
-    manifest = {"NSPrivacyTracking": False, "NSPrivacyTrackingDomains": [],
+    manifest = {"NSPrivacyTracking": True, "NSPrivacyTrackingDomains": sorted(domains),   # the ads SDK tracks (ATT asks first)
                 "NSPrivacyCollectedDataTypes": list(collected.values()),
                 "NSPrivacyAccessedAPITypes": [{"NSPrivacyAccessedAPIType": k, "NSPrivacyAccessedAPITypeReasons": sorted(v)}
                                               for k, v in sorted(apis.items())]}
@@ -282,6 +284,8 @@ def add_admob(pbx, info):
              '"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/$(PLATFORM_NAME)", '
              '"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.6/$(PLATFORM_NAME)", );\n\t\t\t\t')
     pbx = pbx.replace(f"PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};", flags + f"PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};")
+    info["NSUserTrackingUsageDescription"] = ("HOLO is free thanks to ads. Allowing this lets us show you ads that fit you better. "
+                                              "/ HOLO reklamlarla ücretsiz. İzin verirsen sana daha uygun reklamlar gösteririz.")
     info["GADApplicationIdentifier"] = app_id
     info["SKAdNetworkItems"] = [{"SKAdNetworkIdentifier": f"{x}.skadnetwork"} for x in SKADNETWORK_IDS]
     print("AdMob: app id", app_id)

@@ -248,13 +248,12 @@ def set_build(v):
 def set_review(v):
     d = call("GET", f"/v1/appStoreVersions/{v['id']}/appStoreReviewDetail")["data"]
     call("PATCH", f"/v1/appStoreReviewDetails/{d['id']}", {"data": {"type": "appStoreReviewDetails", "id": d["id"],
-         "attributes": {"demoAccountRequired": False}}})
+         "attributes": {"demoAccountRequired": False, "notes": CFG.get("review_notes", "")}}})
     a = d["attributes"]
     print("    contact:", a.get("contactFirstName"), a.get("contactLastName"), "| email set:", bool(a.get("contactEmail")),
           "| phone set:", bool(a.get("contactPhone")))
 
 
-@step("submit for review")
 def attach_iaps(sub):
     iaps = []
     path = f"/v1/apps/{APP}/inAppPurchasesV2?limit=200"
@@ -284,6 +283,8 @@ def attach_iaps(sub):
         raise RuntimeError("could not attach: " + ",".join(failed))
 
 
+
+@step("submit for review")
 def submit(v):
     open_ = call("GET", f"/v1/reviewSubmissions?filter[app]={APP}&filter[platform]=IOS&filter[state]=READY_FOR_REVIEW")["data"]
     sub = open_[0] if open_ else call("POST", "/v1/reviewSubmissions", {"data": {"type": "reviewSubmissions",
