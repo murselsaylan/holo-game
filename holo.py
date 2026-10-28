@@ -390,6 +390,7 @@ class HoloGame:
         self.settings_modal = ui.SettingsModal(self.save_mgr, self.audio, self.toggle_fullscreen, self.close_settings,
                                                self.on_language_change, on_reset=self.on_progress_reset, desktop=not self.android)
         self.settings_modal.privacy = (lambda: self.ads.privacy_options_required(), lambda: self.ads.show_privacy_options())
+        self.settings_modal.ads_status = self.ads.status
 
     def on_language_change(self):
         self.menu_ui.refresh_texts()

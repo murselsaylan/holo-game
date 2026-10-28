@@ -75,6 +75,7 @@ class AdsBridgeIOS:
         self._keep = []                 # blocks the SDK holds until it calls them
         self._last_tick = 0.0
         self.delegate = HoloAdDelegate.alloc().init()
+        self.note = ""                 # the last problem, shown in Settings (ads status line)
         self.att_wait = True            # the system tracking prompt (ATT) is still to be answered: no ads before it
         self._att_next = None
         self._att_due = time.monotonic() + 2.5      # the prompt needs the app active: ask a moment after the first frames
@@ -125,6 +126,7 @@ class AdsBridgeIOS:
 
     def _consent_info(self, err):
         if err:
+            self.note = "consent: " + _why(_inst(err))[:60]
             print("ads (iOS): consent info:", _why(_inst(err)))
         try:
             ObjCClass("UMPConsentForm").loadAndPresentIfRequiredFromViewController_completionHandler_(
@@ -180,6 +182,7 @@ class AdsBridgeIOS:
             n = self.fails.get(slot, 0)
             self.fails[slot] = n + 1
             self.next_try[slot] = time.monotonic() + RETRY_S[min(n, len(RETRY_S) - 1)]
+            self.note = f"{slot}: {_why(_inst(err)) if err else '?'}"[:70]
             print("ads (iOS): no", slot, "ad:", _why(_inst(err)) if err else "?")
             return
         self.fails[slot] = 0
@@ -189,6 +192,15 @@ class AdsBridgeIOS:
             ad.setFullScreenContentDelegate_(self.delegate)
         self.ads[slot] = ad
         print("ads (iOS):", slot, "ad loaded")
+
+    def status(self):
+        """One line for the Settings screen: where the ads are (tracking prompt, consent, SDK, loaded slots, last problem)."""
+        try:
+            att = int(_p(ObjCClass("ATTrackingManager"), "trackingAuthorizationStatus"))
+        except Exception:
+            att = -1
+        return (f"ATT {att} | wait {int(self.att_wait)} | SDK {int(self.started)} | ready {','.join(sorted(self.ads)) or '-'}"
+                f"{' | ' + self.note if self.note else ''}")
 
     def tick(self):
         """Called every frame by ads.Ads.poll: retries the slots whose last load failed."""

@@ -3902,6 +3902,7 @@ class SettingsModal:
         self.btn_fs = Button((x, y + 945, w, 92), t("fullscreen"), 32, callback=on_toggle_fullscreen) if desktop else None
         # phones with ads: Google's privacy options form, required where a consent form was shown (EEA / UK)
         self.privacy = None                 # (required(), show()) set by HoloGame
+        self.ads_status = None              # () -> a short text about the ads, set by HoloGame (phones only)
         self.btn_privacy = Button((x, y + 945, w, 92), t("privacy_options"), 28, bg_color=(90, 100, 140),
                                   callback=lambda: self.privacy and self.privacy[1]())
         self.on_reset = on_reset          # kept for callers; progress reset is no longer offered in the settings
@@ -3991,6 +3992,9 @@ class SettingsModal:
         elif self._privacy_on():
             self.btn_privacy.draw(surface)
         self.btn_close.draw(surface)
+        st = self.ads_status() if self.ads_status else ""
+        if st:
+            draw_text(surface, st, 15, TEXT_MUTED, (VW // 2, self.card.bottom - 66), bold=False, max_w=self.card.w - 40)
         draw_text(surface, t("privacy_note"), 20, TEXT_MUTED, (VW // 2, self.card.bottom - 34), bold=False, max_w=self.card.w - 60)
 
 

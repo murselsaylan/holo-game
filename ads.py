@@ -39,6 +39,7 @@ def unit_ids():
 class Ads:
     def __init__(self):
         self._bridge = None
+        self._why = "off"                   # why there is no bridge (Settings shows it on phones)
         self._wait = {}                     # slot -> (on_reward, on_close)
         self._muted = False
         if not paths.is_mobile() or config.get("ads_off", False):
@@ -51,6 +52,7 @@ class Ads:
             except Exception as e:
                 print("ads unavailable:", e)
                 self._bridge = None
+                self._why = "iOS bridge: " + str(e)[:70]
             return
         try:
             from jnius import autoclass     # python-for-android only
@@ -59,6 +61,17 @@ class Ads:
         except Exception as e:
             print("ads unavailable:", e)
             self._bridge = None
+            self._why = "Android bridge: " + str(e)[:70]
+
+    def status(self):
+        """A short line about the ads for Settings ('' when this build has no ads at all)."""
+        if self._bridge is None:
+            return "" if self._why == "off" else self._why
+        fn = getattr(self._bridge, "status", None)
+        try:
+            return str(fn()) if fn else ""
+        except Exception:
+            return ""
 
     def available(self, slot):
         """An ad of this slot can be shown right now (SDK in the build, consent given where needed, one loaded)."""
