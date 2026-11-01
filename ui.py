@@ -1451,6 +1451,7 @@ class MainMenu:
             draw_text(surface, str(index + 1), 18, SECTOR_COL[index + 1] if fraction else TEXT_MUTED, (track.centerx, track.bottom + 14))
         ax, ay = cx + track_w // 2 + 26, y + 34            # a chevron: the track opens the levels page
         pygame.draw.lines(surface, ACCENT_CYAN, False, [(ax - 6, ay - 10), (ax + 4, ay), (ax - 6, ay + 10)], 4)
+        draw_text(surface, t("levels_btn"), 17, ACCENT_CYAN, (ax - 2, ay + 24), max_w=90)       # says where the track leads
 
         if backdrop is not None:        # the big buttons sit straight on the static space backdrop
             draw_buttons_on_backdrop(surface, self.buttons, backdrop)
@@ -1470,7 +1471,7 @@ class MainMenu:
             pygame.draw.circle(surface, (255, 60, 70), dot, 15)
             pygame.draw.circle(surface, (255, 255, 255), dot, 15, 2)
             draw_text(surface, str(n), 20, (255, 255, 255), dot)
-        draw_text(surface, t("footer", ver=__version__), 20, (90, 100, 125), (cx, VH - 22), bold=False)
+        draw_text(surface, f"HOLO v{__version__}", 20, (90, 100, 125), (VW - 28, VH - 22), anchor="midright", bold=False)   # right of Olo
         if config.test_tools():
             pill = pygame.Rect(0, 0, 640, 46)
             pill.midbottom = (cx, VH - 48 - self.DOCK_H - 14)    # just above the bottom icon dock (same `base` as build())
@@ -2576,6 +2577,10 @@ class SkinScreen:
         self.equip_button = Button((VW // 2 - 220, 556, 440, 88), "", 34, callback=self._equip_selected)
         self.btn_prev = Button((30, VH - 96, 300, 76), "", 24, callback=self._prev)
         self.btn_next = Button((VW - 330, VH - 96, 300, 76), "", 24, callback=self._next)
+        self.on_profile = None                                  # set by HoloGame: opens the profile (name, flag, frame, title)
+        self.profile_rect = pygame.Rect(0, 0, 440, 76)
+        self.profile_rect.center = (VW // 2 + 40, 80)
+        self._profile_down = False
 
     def refresh_texts(self):
         self.btn_back.text = t("back")
@@ -2661,6 +2666,13 @@ class SkinScreen:
             return self._prev
         if self.btn_next.handle_event(event):
             return self._next
+        if self.on_profile and event.type in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP) and event.button == 1:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self._profile_down = self.profile_rect.collidepoint(event.pos)
+            else:
+                was, self._profile_down = self._profile_down, False
+                if was and self.profile_rect.collidepoint(event.pos):
+                    return self.on_profile
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             self._swipe_from = event.pos
         elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
@@ -2716,13 +2728,24 @@ class SkinScreen:
         draw_orb(surface, p1, 26, sk["color1"], sk["glow1"], False, sk, self.time_val)
         draw_orb(surface, p2, 26, sk["color2"], sk["glow2"], True, sk, self.time_val)
 
+    def _draw_profile_card(self, surface):
+        """The skins page doubles as the profile page: flag + callsign on top, tap to edit (name, flag, frame, title)."""
+        sm = self.save_mgr
+        r = self.profile_rect
+        pygame.draw.rect(surface, (14, 22, 38), r, border_radius=38)
+        pygame.draw.rect(surface, (0, 170, 210) if self._profile_down else (50, 70, 105), r, 2, border_radius=38)
+        draw_country_badge(surface, sm.player_country, r.x + 58, r.centery, width=74, height=36)
+        draw_text(surface, sm.player_name, 30, (215, 235, 255), (r.x + 110, r.centery - 12), anchor="midleft", max_w=r.w - 140)
+        draw_text(surface, t("profile_btn"), 18, ACCENT_CYAN, (r.x + 110, r.centery + 18), anchor="midleft", bold=False, max_w=r.w - 140)
+
     def draw(self, surface):
         sm = self.save_mgr
         lang = get_language()
         star_page = self.cat == catalog.STAR_THEME
         # the star pill is the endless star wallet - shown only on the Yıldız Avcısı page, where stars buy skins
-        header(surface, t("skins_title"), self.btn_back, f"{sm.star_coins}" if star_page else None)
+        header(surface, "", self.btn_back, f"{sm.star_coins}" if star_page else None)
         draw_diamond_badge(surface, VW - 225 if star_page else VW - 100, 122, sm.diamonds)
+        self._draw_profile_card(surface)
         sid = self.selected_skin
         sk = SKINS.get(sid, SKINS["neon_pulse"])
         tier = catalog.tier(sid)
@@ -4479,6 +4502,8 @@ class VictoryModal:
             if info.get("country_rank"):
                 txt += f"   •   {t('rank_country', rank=fmt_int(info['country_rank']))}"
             draw_text(surface, txt, 34, ACCENT_GREEN, (VW // 2, oy), max_w=card.w - 60)
+            if int(info.get("win_diamonds") or 0) > 0:               # the server paid this clear (1.0.11)
+                draw_text(surface, t("win_diamonds", n=int(info["win_diamonds"])), 32, (120, 230, 255), (VW // 2, oy + 52), max_w=card.w - 60)
         else:
             key = "submit_rejected" if info.get("rejected") else "submit_queued"
             draw_text(surface, t(key), 26, (255, 170, 90), (VW // 2, oy), bold=False, max_w=card.w - 60)

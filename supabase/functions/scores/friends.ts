@@ -23,10 +23,10 @@ export const CHALLENGES_PER_DAY = 5;
 export const MSG_KEEP_S = 7 * 86_400;
 // invite reward: whoever redeems a friend code as a brand-new pilot (no verified clear yet) is an invitee - once per account
 // (friend_invites.invitee is the key). Paid when the invitee's FIRST verified level clear is recorded: invitee + inviter.
-export const INVITEE_REWARD = 30;
-export const INVITER_REWARD = 50;
+export const INVITEE_REWARD = 100;
+export const INVITER_REWARD = 200;
 export const INVITER_DAY_CAP = 3;            // paid invites per inviter per UTC day
-export const INVITER_TOTAL_CAP = 10;         // ... and in total
+export const INVITER_TOTAL_CAP = 5;          // ... and in total
 
 export interface FriendRow { id: string; name: string; country: string; levels: number; score: number; stars: number;
                              frame?: string; title?: string;

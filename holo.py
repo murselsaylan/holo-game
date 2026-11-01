@@ -367,6 +367,7 @@ class HoloGame:
                                                    on_edit_profile=lambda: self.open_profile("leaderboard"), online=self.online)
         self.leaderboard_ui.on_friends = self.open_friends
         self.skin_ui = ui.SkinScreen(self.save_mgr, self.open_menu, audio_manager=self.audio, on_shop=self.open_shop)
+        self.skin_ui.on_profile = lambda: self.open_profile("skins")
         self.shop = shop_mod.Shop(self.save_mgr)
         self.online.on_purchase = self.shop.purchase_result
         self.ach_ui = ui.AchievementsScreen(self.save_mgr, self.open_menu, audio_manager=self.audio)

@@ -4,12 +4,14 @@ decided by the server (supabase/functions/scores/friends.ts) - this file only sh
 import pygame
 
 import name_filter
+import share
 from locales import t
 from theme import ACCENT_CYAN, ACCENT_GOLD, ACCENT_GREEN, TEXT_MUTED, TEXT_WHITE
 from ui import (Button, Scroller, VH, VW, dim, draw_paragraph, draw_text, friend_text, panel)
 
 ROW_H = 118
 CODE_LEN = 8
+INVITER_GEMS, INVITEE_GEMS = 200, 100            # friends.ts INVITER_REWARD / INVITEE_REWARD (the server pays)
 
 
 class FriendsModal:
@@ -26,6 +28,8 @@ class FriendsModal:
         self.input_rect = pygame.Rect(b.x + 30, b.y + 290, b.w - 60 - 200, 84)
         self.btn_add = Button((self.input_rect.right + 12, self.input_rect.y, 176, 84), t("fr_add_go"), 30,
                               bg_color=(25, 70, 50), hover_color=ACCENT_GREEN, callback=self._add)
+        self.btn_share = Button((b.right - 30 - 176, b.y + 140, 176, 100), t("fr_share_btn"), 30,
+                                bg_color=(120, 80, 10), hover_color=ACCENT_GOLD, callback=self._share)
         self.view = pygame.Rect(b.x + 16, b.y + 440, b.w - 32, b.h - 440 - 130)
         self.btn_close = Button((VW // 2 - 280, b.bottom - 112, 560, 92), t("back"), 34, callback=self._close)
         self._rows = []             # [(key, title, sub, [Button])]
@@ -44,6 +48,14 @@ class FriendsModal:
         except Exception:
             pass
         self.on_close()
+
+    def _share(self):
+        """The system share sheet with the invite code (text only); the server pays when the friend clears a level."""
+        code = (self.online.friends or {}).get("code")
+        if not code:
+            return
+        if not share.send("", t("fr_share_text", code=code)):
+            self._say(code)                      # desktop: nothing to open, show the code
 
     def _say(self, text, secs=3.0):
         self.toast = (text, secs)
@@ -154,6 +166,7 @@ class FriendsModal:
         self._refresh_rows()
         self.btn_close.update(mouse_pos, dt)
         self.btn_add.update(mouse_pos, dt)
+        self.btn_share.update(mouse_pos, dt)
         self.scroll.update(len(self._rows) * ROW_H + 16, self.view.h, dt)
         self._layout()
         for _k, _t, _s, bs in self._rows:
@@ -166,6 +179,9 @@ class FriendsModal:
             return True
         if self.btn_add.handle_event(event):
             self._add()
+            return True
+        if self.btn_share.handle_event(event):
+            self._share()
             return True
         if event.type == pygame.TEXTINPUT:
             for ch in event.text.upper():
@@ -209,12 +225,13 @@ class FriendsModal:
         panel(surface, b, (18, 24, 38), (45, 65, 105), 28, 2)
         draw_text(surface, t("fr_title"), 44, ACCENT_CYAN, (VW // 2, b.y + 55), max_w=b.w - 60)
         draw_text(surface, t("fr_my_code"), 24, TEXT_MUTED, (VW // 2, b.y + 118), bold=False)
-        cr = pygame.Rect(b.x + 30, b.y + 140, b.w - 60, 100)
+        cr = pygame.Rect(b.x + 30, b.y + 140, b.w - 60 - 188, 100)
         pygame.draw.rect(surface, (25, 33, 52), cr, border_radius=18)
         pygame.draw.rect(surface, ACCENT_GOLD, cr, 3, border_radius=18)
         code = (self.online.friends or {}).get("code") or "- - -"
-        draw_text(surface, code, 58, ACCENT_GOLD, cr.center, max_w=cr.w - 30)
-        draw_text(surface, t("fr_code_help"), 22, TEXT_MUTED, (VW // 2, b.y + 262), bold=False, max_w=b.w - 60)
+        draw_text(surface, code, 54, ACCENT_GOLD, cr.center, max_w=cr.w - 30)
+        self.btn_share.draw(surface)
+        draw_text(surface, t("fr_invite_reward", a=INVITER_GEMS, b=INVITEE_GEMS), 23, ACCENT_GOLD, (VW // 2, b.y + 264), max_w=b.w - 50)
 
         r = self.input_rect
         pygame.draw.rect(surface, (25, 33, 52), r, border_radius=16)

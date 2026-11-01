@@ -1,0 +1,24 @@
+<tr-TR>
+Her bölüm sonunda 3 elmas ödül.
+Arkadaş daveti: kodunu tek dokunuşla paylaş; arkadaşın gelirse sen 200, o 100 elmas kazanır.
+Skinler sayfası artık profil sayfan: isim, bayrak ve çerçeve düzenleme.
+Ana menüde kafa karıştıran yerler düzeltildi (kilitli mod şartı, sürüm yazısı, bölümler ipucu).
+</tr-TR>
+<en-US>
+3 diamonds for every level you clear.
+Invite a friend: share your code with one tap; you get 200 diamonds, they get 100.
+The skins page is now your profile page: edit your name, flag and frame.
+A clearer main menu (locked mode requirement, version label, levels hint).
+</en-US>
+<de-DE>
+3 Diamanten für jedes geschaffte Level.
+Freunde einladen: Code mit einem Tipp teilen; du bekommst 200 Diamanten, dein Freund 100.
+Die Skin-Seite ist jetzt deine Profilseite: Name, Flagge und Rahmen bearbeiten.
+Klareres Hauptmenü (Freischalt-Bedingung, Versionsanzeige, Level-Hinweis).
+</de-DE>
+<es-ES>
+3 diamantes por cada nivel superado.
+Invita a un amigo: comparte tu código con un toque; tú ganas 200 diamantes y él 100.
+La página de aspectos ahora es tu perfil: edita nombre, bandera y marco.
+Menú principal más claro (requisito del modo bloqueado, versión, pista de niveles).
+</es-ES>

@@ -2,6 +2,9 @@
 
 TUTORIAL = {
     "tr": {
+        "fr_invite_reward": "Arkadaşın senin kodunla gelirse sen +{a}, o +{b} elmas kazanır", "fr_share_btn": "PAYLAŞ",
+        "fr_share_text": "HOLO'yu dene! Davet kodum: {code} - girersen ikimiz de elmas kazanırız. Android: https://play.google.com/store/apps/details?id=com.hologame.holo  iOS: https://apps.apple.com/app/id6819440077",
+        "win_diamonds": "+{n} ELMAS",           # 1.0.11 level-clear reward line on the victory card
         "tut_hud_title": "EĞİTİM", "tut_title": "İLK YÖRÜNGE", "tut_sector": "EĞİTİM UÇUŞU",
         "tut_tap": "EKRANA DOKUN!",
         "tut_tap_sub": "İki küre birbirine bağlı. Biri döner, biri durur. Dokununca roller değişir.",
@@ -19,6 +22,9 @@ TUTORIAL = {
         "tut_done_title": "EĞİTİM TAMAM!", "tut_done_sub": "+{n} elmas  •  şimdi 1. bölüm",
     },
     "en": {
+        "fr_invite_reward": "A friend who joins with your code: you get +{a}, they get +{b} diamonds", "fr_share_btn": "SHARE",
+        "fr_share_text": "Try HOLO! My invite code is {code} - enter it and we both get diamonds. Android: https://play.google.com/store/apps/details?id=com.hologame.holo  iOS: https://apps.apple.com/app/id6819440077",
+        "win_diamonds": "+{n} DIAMONDS",           # 1.0.11 level-clear reward line on the victory card
         "tut_hud_title": "TRAINING", "tut_title": "FIRST ORBIT", "tut_sector": "TRAINING FLIGHT",
         "tut_tap": "TAP THE SCREEN!",
         "tut_tap_sub": "The two orbs are tied together. One spins, one stays. A tap swaps them.",
@@ -36,6 +42,9 @@ TUTORIAL = {
         "tut_done_title": "TRAINING DONE!", "tut_done_sub": "+{n} diamonds  •  now level 1",
     },
     "de": {
+        "fr_invite_reward": "Ein Freund mit deinem Code: du bekommst +{a}, er +{b} Diamanten", "fr_share_btn": "TEILEN",
+        "fr_share_text": "Probier HOLO! Mein Einladungscode: {code} - gib ihn ein und wir bekommen beide Diamanten. Android: https://play.google.com/store/apps/details?id=com.hologame.holo  iOS: https://apps.apple.com/app/id6819440077",
+        "win_diamonds": "+{n} DIAMANTEN",           # 1.0.11 level-clear reward line on the victory card
         "tut_hud_title": "TRAINING", "tut_title": "ERSTER ORBIT", "tut_sector": "TRAININGSFLUG",
         "tut_tap": "TIPPE AUF DEN BILDSCHIRM!",
         "tut_tap_sub": "Die zwei Kugeln hängen zusammen. Eine dreht, eine bleibt. Ein Tipp tauscht sie.",
@@ -53,6 +62,9 @@ TUTORIAL = {
         "tut_done_title": "TRAINING GESCHAFFT!", "tut_done_sub": "+{n} Diamanten  •  jetzt Level 1",
     },
     "es": {
+        "fr_invite_reward": "Un amigo con tu código: tú +{a}, él +{b} diamantes", "fr_share_btn": "COMPARTIR",
+        "fr_share_text": "¡Prueba HOLO! Mi código de invitación es {code}: escríbelo y los dos ganamos diamantes. Android: https://play.google.com/store/apps/details?id=com.hologame.holo  iOS: https://apps.apple.com/app/id6819440077",
+        "win_diamonds": "+{n} DIAMANTES",           # 1.0.11 level-clear reward line on the victory card
         "tut_hud_title": "ENTRENAMIENTO", "tut_title": "PRIMERA ÓRBITA", "tut_sector": "VUELO DE PRÁCTICA",
         "tut_tap": "¡TOCA LA PANTALLA!",
         "tut_tap_sub": "Las dos esferas están unidas. Una gira y otra se queda. Un toque las cambia.",

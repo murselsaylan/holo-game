@@ -438,6 +438,8 @@ class OnlineClient:
             elif kind == "submit":
                 if not payload.get("bg"):                 # a re-sent old best is not the run on the victory screen
                     self.last_submit = payload
+                if payload.get("balance") is not None:           # 1.0.11: the clear's diamond reward is in the balance
+                    self.save.set_server_balance(payload["balance"])
                 if payload.get("ok"):
                     self.status = "ok"
                     self.rank_info = {"rank": payload.get("world_rank"), "country_rank": payload.get("country_rank")}

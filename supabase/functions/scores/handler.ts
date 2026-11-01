@@ -3,7 +3,7 @@ import { LevelData, replay, SIM_VERSION, MAX_LEVELS } from "./sim.ts";
 import type { Assist, Result } from "./sim.ts";
 import { LEVELS, DIGESTS, LEGACY } from "./levels_data.ts";
 import { GOALS as ENDLESS_GOALS, WEEK_PRIZES, DIAMOND_EVERY_M, DIAMONDS_PER_DAY, ENDLESS_VERSIONS, MAX_STEPS as ENDLESS_MAX_STEPS, poolDigest, replayEndless, seedOf, weekOf, weekStart, assistDigest, MAX_REVIVES as ENDLESS_MAX_REVIVES } from "./endless.ts";
-import { accountTag, dailyDeal, earnClaim, freeShieldDay, IMPORT_CAP, productValue, spendPrice, streakSkins } from "./wallet.ts";
+import { accountTag, dailyDeal, earnClaim, freeShieldDay, IMPORT_CAP, LEVEL_WIN, LEVEL_WIN_PER_DAY, productValue, spendPrice, streakSkins } from "./wallet.ts";
 import { devPurchases, googleVerifier } from "./play.ts";
 import { googleConfigured, maskEmail, verifyGoogleIdToken } from "./google_id.ts";
 import type { Verifier } from "./play.ts";
@@ -474,9 +474,20 @@ async function submit(store: Store, d: Record<string, unknown>, ip: string, nowM
   const starsAdded = await campaignStars(store.ranked, pid, level, result.stars, Math.floor(nowMs / 1000));   // star wallet (ranked.ts)
   await weeklyClear(store.live, pid, level, nowMs);                // this week's featured level (crowd.ts)
   const ranks = (await store.ranks(pid)) ?? ({} as Partial<Ranks>);
+  // 1.0.11: a diamond reward for every verified clear (the wallet must be open; capped per rolling day)
+  let winDiamonds = 0, balance: number | null = null;
+  const nowS = Math.floor(nowMs / 1000);
+  if (typeof store.walletBalance === "function" && (await store.walletBalance(pid)) !== null) {
+    if ((await store.walletCount(pid, "lvlwin", nowS - 86_400)).n < LEVEL_WIN_PER_DAY) {
+      const w = await store.walletChange(pid, LEVEL_WIN, "lvlwin", `${level}:${ts}`, nowS);
+      if (!w.dup) winDiamonds = LEVEL_WIN;
+    }
+    balance = await store.walletBalance(pid);
+  }
   return R(200, {
     ok: true, level_score: result.level_total, stars: result.stars, improved: rec.improved, levels: rec.levels,
     score: rec.score, world_rank: ranks.rank ?? null, country_rank: ranks.country_rank ?? null,
+    win_diamonds: winDiamonds, balance,
   });
 }
 

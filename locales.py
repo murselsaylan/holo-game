@@ -271,7 +271,7 @@ _TR_NEW = {
     "submit_rejected": "Bu geçiş sıralamaya kabul edilmedi. Oyunu güncelleyip tekrar oyna.",
     "lb_unranked": "Sıralamada sayılmayan bölümler: {levels} — tekrar geçince eklenir",
     "endless_btn": "SONSUZ",
-    "endless_locked_btn": "SONSUZ • 10. BÖLÜM",
+    "endless_locked_btn": "SONSUZ • 10. BÖLÜMDE AÇILIR",
     "endless_title": "SONSUZ TIRMANIŞ",
     "endless_locked_toast": "Sonsuz tırmanış 10. bölümü geçince açılır",
     "endless_best_short": "HAFTANIN EN İYİSİ",
@@ -544,7 +544,7 @@ _EN_NEW = {
     "submit_rejected": "This clear was not accepted by the ranking. Update the game and play again.",
     "lb_unranked": "Not counted in the ranking yet: levels {levels} — clear them again",
     "endless_btn": "ENDLESS",
-    "endless_locked_btn": "ENDLESS • LEVEL 10",
+    "endless_locked_btn": "ENDLESS • UNLOCKS AT LEVEL 10",
     "endless_title": "ENDLESS CLIMB",
     "endless_locked_toast": "The endless climb opens after level 10",
     "endless_best_short": "WEEK'S BEST", "endless_record_short": "YOUR RECORD",
@@ -672,7 +672,7 @@ _EN_NEW = {
     "shield_used": "SHIELD USED",
     "shield_on_popup": "SHIELD ON!",
     "bounce_popup": "BOUNCE! SPEED UP",
-    "ach_btn": "GOALS",
+    "ach_btn": "BADGES",
     "ach_title": "ACHIEVEMENTS",
     "profile_short": "PILOT",
     "ach_toast": "ACHIEVEMENT UNLOCKED",
@@ -827,7 +827,7 @@ _DE = {
     "submit_assisted": "Fortsetzen / gekaufter Schild benutzt — zählt nicht für die Rangliste.",
     "submit_rejected": "Von der Rangliste nicht angenommen. Spiel aktualisieren und erneut spielen.", "lb_unranked": "Noch nicht in der Rangliste: Level {levels} — erneut schaffen",
     "endless_btn": "ENDLOS",
-    "endless_locked_btn": "ENDLOS • LEVEL 10",
+    "endless_locked_btn": "ENDLOS • AB LEVEL 10",
     "endless_title": "ENDLOSER AUFSTIEG",
     "endless_locked_toast": "Der endlose Aufstieg öffnet sich nach Level 10",
     "endless_best_short": "BESTE DER WOCHE", "endless_record_short": "DEIN REKORD",
@@ -1005,7 +1005,7 @@ _ES = {
     "submit_assisted": "Continuar / escudo comprado usado — no cuenta para la clasificación.",
     "submit_rejected": "La clasificación no aceptó esta partida. Actualiza el juego y vuelve a jugar.", "lb_unranked": "Aún no cuentan en la clasificación: niveles {levels} — supéralos otra vez",
     "endless_btn": "INFINITO",
-    "endless_locked_btn": "INFINITO • NIVEL 10",
+    "endless_locked_btn": "INFINITO • DESDE EL NIVEL 10",
     "endless_title": "ASCENSO INFINITO",
     "endless_locked_toast": "El ascenso infinito se abre tras el nivel 10",
     "endless_best_short": "MEJOR DE LA SEMANA", "endless_record_short": "TU RÉCORD",
@@ -1135,10 +1135,10 @@ for _lang, _ready in {"tr": "HAZIR OL", "en": "GET READY", "de": "BEREIT MACHEN"
     STRINGS[_lang]["resume_ready"] = _ready
 
 # short labels under the main menu's edge icons
-for _lang, _labels in {"tr": ("SIRALAMA", "SKİNLER", "AYARLAR", "ÇIKIŞ", "BÖLÜMLER"),
-                       "en": ("RANKING", "SKINS", "SETTINGS", "QUIT", "LEVELS"),
-                       "de": ("RANGLISTE", "SKINS", "OPTIONEN", "BEENDEN", "LEVEL"),
-                       "es": ("RANKING", "SKINS", "AJUSTES", "SALIR", "NIVELES")}.items():
+for _lang, _labels in {"tr": ("SIRALAMA", "PROFİL", "AYARLAR", "ÇIKIŞ", "BÖLÜMLER"),
+                       "en": ("RANKING", "PROFILE", "SETTINGS", "QUIT", "LEVELS"),
+                       "de": ("RANGLISTE", "PROFIL", "OPTIONEN", "BEENDEN", "LEVEL"),
+                       "es": ("RANKING", "PERFIL", "AJUSTES", "SALIR", "NIVELES")}.items():
     for _k, _v in zip(("icon_rank", "icon_skins", "icon_settings", "icon_quit", "icon_levels"), _labels):
         STRINGS[_lang][_k] = _v
 
