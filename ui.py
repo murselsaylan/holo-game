@@ -1107,6 +1107,9 @@ class _Chip:
         return False
 
 
+SECTOR_REWARD = 100                                     # shop.SECTOR_WIN (wallet.ts is the authority)
+
+
 class MainMenu:
     """Clean main screen: logo, pilot chip, progress, one big PLAY button and a LEVELS button in the middle; every
     other destination is a round icon in a screen corner: settings top-left, shop + diamonds top-right, ranking /
@@ -1332,7 +1335,9 @@ class MainMenu:
         col = SECTOR_COL[sec]
         cx = VW // 2
         title = self.level_title(cl)
-        block_h = 104 + 44 + (46 if title else 0) + 34
+        end = sec * 20
+        goal = cl <= end and str(end) not in self.save_mgr.data.get("level_stats", {})
+        block_h = 104 + 44 + (46 if title else 0) + 34 + (40 if goal else 0)
         y = int((self.free_top + self.card_bottom - block_h) / 2)
         icon = sector_icon(sec, 124)
         surface.blit(icon, icon.get_rect(center=(cx, y + 52)))
@@ -1344,6 +1349,8 @@ class MainMenu:
             draw_text(surface, title, 44, (255, 255, 255), (cx, y), max_w=780)
             y += 46
         draw_text(surface, t(f"sector_desc_{sec}"), 24, TEXT_MUTED, (cx, y), bold=False, max_w=760)
+        if goal:                                        # the goal gradient: how close the sector's +100 is
+            draw_text(surface, t("sector_goal", n=SECTOR_REWARD, left=end - cl + 1), 26, ACCENT_GOLD, (cx, y + 42), max_w=760)
 
     # ------------------------------------------------------------------ fast path (cached plate)
     def _plate_key(self, backdrop):
