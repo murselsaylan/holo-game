@@ -4521,7 +4521,16 @@ class VictoryModal:
                 pop = 1.0 + 0.3 * max(0.0, 1.0 - abs(el - 48) / 14.0)  # a little pop when it lands
                 if win > 0:
                     draw_text(surface, t("win_diamonds", n=int(round(win * eased))), int(34 * pop), (120, 230, 255),
-                              (VW // 2, oy - 78), max_w=card.w - 120)
+                              (VW // 2, oy - 118), max_w=card.w - 120)
+                drop = info.get("drop") if isinstance(info.get("drop"), dict) else None
+                if drop and el > 20:                                    # the bonus: a pop and a glow, it is the surprise
+                    kd = min(1.0, (el - 20) / 18.0)
+                    dpop = 1.0 + 0.5 * max(0.0, 1.0 - abs(el - 38) / 12.0)
+                    key = {"shield": "drop_shield", "revive": "drop_revive"}.get(drop.get("kind"), "drop_gems")
+                    cols = {"shield": (110, 235, 255), "revive": (255, 130, 170)}.get(drop.get("kind"), (255, 215, 90))
+                    if kd >= 1.0 or int(el) % 2 == 0:
+                        draw_text(surface, t(key, n=int(drop.get("payload") or 1)), int(40 * dpop), cols,
+                                  (VW // 2, oy - 64), max_w=card.w - 80)
                 if sector > 0 and el > 40:
                     kk = min(1.0, (el - 40) / 30.0)
                     glow = 0.5 + 0.5 * math.sin(el * 0.2)

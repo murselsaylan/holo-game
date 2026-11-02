@@ -9,6 +9,9 @@ export const TUTORIAL_REWARD = 20;           // 1.1.0: finishing the first-run t
 export const ACH_REWARD = 5;
 export const LEVEL_WIN = 3;                 // 1.0.11: every verified level clear pays this, (level, ts) once - the replay proved the clear
 export const LEVEL_WIN_3STAR = 2;             // ... plus this for a 3-star clear
+export const LEVEL_DROP_BIG = 15;             // a lucky level clear: a big diamond drop
+// bonus drop chances per 1000 clears (a 3-star clear rolls the second column): [big diamonds, a revive, a shield]
+export const LEVEL_DROP = { normal: [20, 60, 150], three: [30, 90, 220] } as const;
 export const SECTOR_WIN = 100;                // the first clear of a sector's last level (20, 40, ... 140), once per sector
 export const LEVEL_WIN_PER_DAY = 30;          // payouts per rolling 24 h (90 diamonds), so replaying one level all day cannot farm
 export const AD_REWARD = 50;                 // 1.0.8: the developer's choice - 50 a video, watch as many as you like

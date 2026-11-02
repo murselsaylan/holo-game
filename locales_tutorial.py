@@ -2,6 +2,7 @@
 
 TUTORIAL = {
     "tr": {
+        "drop_shield": "ŞANS! BONUS +1 KALKAN", "drop_revive": "ŞANS! BONUS +1 CANLANMA", "drop_gems": "ŞANSLI BİTİRİŞ! +{n} ELMAS",
         "sector_goal": "SEKTÖR ÖDÜLÜ: +{n} ELMAS  •  {left} bölüm kaldı",
         "backpay_title": "GEÇMİŞ BÖLÜMLERİN ÖDÜLÜ: +{n} ELMAS", "backpay_sub": "{levels} bölüm ve {sectors} sektör için hesabına eklendi.",
         "reward_hint": "BİTİR: +{a} ELMAS   •   3 YILDIZ: +{b}", "reward_sector": "SEKTÖR SONU: +{n} ELMAS (ilk bitirişte)",
@@ -27,6 +28,7 @@ TUTORIAL = {
         "tut_done_title": "EĞİTİM TAMAM!", "tut_done_sub": "+{n} elmas  •  şimdi 1. bölüm",
     },
     "en": {
+        "drop_shield": "LUCKY! BONUS +1 SHIELD", "drop_revive": "LUCKY! BONUS +1 REVIVE", "drop_gems": "LUCKY CLEAR! +{n} DIAMONDS",
         "sector_goal": "SECTOR REWARD: +{n} DIAMONDS  •  {left} levels to go",
         "backpay_title": "REWARD FOR LEVELS YOU CLEARED: +{n} DIAMONDS", "backpay_sub": "Added for {levels} levels and {sectors} sectors.",
         "reward_hint": "CLEAR: +{a} DIAMONDS   •   3 STARS: +{b}", "reward_sector": "SECTOR FINALE: +{n} DIAMONDS (first clear)",
@@ -52,6 +54,7 @@ TUTORIAL = {
         "tut_done_title": "TRAINING DONE!", "tut_done_sub": "+{n} diamonds  •  now level 1",
     },
     "de": {
+        "drop_shield": "GLÜCK! BONUS +1 SCHILD", "drop_revive": "GLÜCK! BONUS +1 WIEDERBELEBUNG", "drop_gems": "GLÜCKSTREFFER! +{n} DIAMANTEN",
         "sector_goal": "SEKTOR-BELOHNUNG: +{n} DIAMANTEN  •  noch {left} Level",
         "backpay_title": "BELOHNUNG FÜR GESCHAFFTE LEVEL: +{n} DIAMANTEN", "backpay_sub": "Für {levels} Level und {sectors} Sektoren gutgeschrieben.",
         "reward_hint": "SCHAFFEN: +{a} DIAMANTEN   •   3 STERNE: +{b}", "reward_sector": "SEKTOR-FINALE: +{n} DIAMANTEN (erstes Mal)",
@@ -77,6 +80,7 @@ TUTORIAL = {
         "tut_done_title": "TRAINING GESCHAFFT!", "tut_done_sub": "+{n} Diamanten  •  jetzt Level 1",
     },
     "es": {
+        "drop_shield": "¡SUERTE! BONO +1 ESCUDO", "drop_revive": "¡SUERTE! BONO +1 REVIVIR", "drop_gems": "¡SUERTE! +{n} DIAMANTES",
         "sector_goal": "PREMIO DE SECTOR: +{n} DIAMANTES  •  faltan {left} niveles",
         "backpay_title": "PREMIO POR NIVELES SUPERADOS: +{n} DIAMANTES", "backpay_sub": "Añadido por {levels} niveles y {sectors} sectores.",
         "reward_hint": "SUPERAR: +{a} DIAMANTES   •   3 ESTRELLAS: +{b}", "reward_sector": "FINAL DE SECTOR: +{n} DIAMANTES (primera vez)",

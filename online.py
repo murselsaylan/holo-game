@@ -441,6 +441,12 @@ class OnlineClient:
                     self.last_submit = payload
                 if payload.get("balance") is not None:           # 1.0.11: the clear's diamond reward is in the balance
                     self.save.set_server_balance(payload["balance"])
+                drop = payload.get("drop")
+                if isinstance(drop, dict):                        # the bonus drop: the server logged the paid-help row, we stock it
+                    if drop.get("kind") == "shield":
+                        self.save.add_shield(int(drop.get("payload") or 1))
+                    elif drop.get("kind") == "revive":
+                        self.save.add_revive(int(drop.get("payload") or 1))
                 if payload.get("ok"):
                     self.status = "ok"
                     self.rank_info = {"rank": payload.get("world_rank"), "country_rank": payload.get("country_rank")}

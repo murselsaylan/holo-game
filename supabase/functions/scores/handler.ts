@@ -3,7 +3,7 @@ import { LevelData, replay, SIM_VERSION, MAX_LEVELS } from "./sim.ts";
 import type { Assist, Result } from "./sim.ts";
 import { LEVELS, DIGESTS, LEGACY } from "./levels_data.ts";
 import { GOALS as ENDLESS_GOALS, WEEK_PRIZES, DIAMOND_EVERY_M, DIAMONDS_PER_DAY, ENDLESS_VERSIONS, MAX_STEPS as ENDLESS_MAX_STEPS, poolDigest, replayEndless, seedOf, weekOf, weekStart, assistDigest, MAX_REVIVES as ENDLESS_MAX_REVIVES } from "./endless.ts";
-import { accountTag, dailyDeal, earnClaim, freeShieldDay, IMPORT_CAP, LEVEL_WIN, LEVEL_WIN_3STAR, LEVEL_WIN_PER_DAY, SECTOR_WIN, productValue, spendPrice, streakSkins } from "./wallet.ts";
+import { accountTag, dailyDeal, earnClaim, freeShieldDay, IMPORT_CAP, LEVEL_DROP, LEVEL_DROP_BIG, LEVEL_WIN, LEVEL_WIN_3STAR, LEVEL_WIN_PER_DAY, SECTOR_WIN, productValue, spendPrice, streakSkins } from "./wallet.ts";
 import { devPurchases, googleVerifier } from "./play.ts";
 import { googleConfigured, maskEmail, verifyGoogleIdToken } from "./google_id.ts";
 import type { Verifier } from "./play.ts";
@@ -476,12 +476,29 @@ async function submit(store: Store, d: Record<string, unknown>, ip: string, nowM
   const ranks = (await store.ranks(pid)) ?? ({} as Partial<Ranks>);
   // 1.0.11: a diamond reward for every verified clear (the wallet must be open; capped per rolling day)
   let winDiamonds = 0, sectorDiamonds = 0, balance: number | null = null;
+  let drop: { kind: string; payload: number } | null = null;
   const nowS = Math.floor(nowMs / 1000);
   if (typeof store.walletBalance === "function" && (await store.walletBalance(pid)) !== null) {
     if ((await store.walletCount(pid, "lvlwin", nowS - 86_400)).n < LEVEL_WIN_PER_DAY) {
       const amount = LEVEL_WIN + (result.stars >= 3 ? LEVEL_WIN_3STAR : 0);
       const w = await store.walletChange(pid, amount, "lvlwin", `${level}:${ts}`, nowS);
-      if (!w.dup) winDiamonds = amount;
+      if (!w.dup) {
+        winDiamonds = amount;
+        // the bonus drop: the same dice for the same clear (hash of player, level and time), so a retried request lands on
+        // the same answer. Shields / revives are paid-help rows like the chest's, the game stocks them from the reply.
+        const roll = parseInt((await sha256Hex(`${pid}|${level}|${ts}|drop`)).slice(0, 8), 16) % 1000;
+        const [pBig, pRev, pShield] = result.stars >= 3 ? LEVEL_DROP.three : LEVEL_DROP.normal;
+        if (roll < pBig) {
+          await store.walletChange(pid, LEVEL_DROP_BIG, "lvldrop", `${level}:${ts}`, nowS);
+          drop = { kind: "gems", payload: LEVEL_DROP_BIG };
+        } else if (roll < pBig + pRev) {
+          await store.walletChange(pid, 0, "spend:revive", `ld:${level}:${ts}:0`, nowS);
+          drop = { kind: "revive", payload: 1 };
+        } else if (roll < pBig + pRev + pShield) {
+          await store.walletChange(pid, 0, "spend:shield", `ld:${level}:${ts}:0`, nowS);
+          drop = { kind: "shield", payload: 1 };
+        }
+      }
     }
     if (level % 20 === 0) {                                          // a sector is done: once per sector, whatever the daily cap says
       const sw = await store.walletChange(pid, SECTOR_WIN, "sectorwin", String(level / 20), nowS);
@@ -492,7 +509,7 @@ async function submit(store: Store, d: Record<string, unknown>, ip: string, nowM
   return R(200, {
     ok: true, level_score: result.level_total, stars: result.stars, improved: rec.improved, levels: rec.levels,
     score: rec.score, world_rank: ranks.rank ?? null, country_rank: ranks.country_rank ?? null,
-    win_diamonds: winDiamonds, sector_diamonds: sectorDiamonds, balance,
+    win_diamonds: winDiamonds, sector_diamonds: sectorDiamonds, drop, balance,
   });
 }
 
