@@ -106,6 +106,7 @@ class HoloGame:
         self.failure_modal = None
         self.victory_modal = None
         self.profile_modal = None
+        self.pilot_modal = None
         self.recovery_modal = None
         self.friends_modal = None        # the friends window (state "friends", opened from the leaderboard's friends tab)
         self.daily_run = None            # {"level"} while the one-try daily level is being played
@@ -369,7 +370,7 @@ class HoloGame:
         self.menu_ui.build()
         self.level_select_ui = ui.LevelSelectScreen(self.save_mgr, self.on_select_level, self.open_menu)
         self.leaderboard_ui = ui.LeaderboardScreen(self.save_mgr, self.open_menu,
-                                                   on_edit_profile=lambda: self.open_profile("leaderboard"), online=self.online)
+                                                   on_edit_profile=lambda: self.open_profile("leaderboard", edit=True), online=self.online)
         self.leaderboard_ui.on_friends = self.open_friends
         self.skin_ui = ui.SkinScreen(self.save_mgr, self.open_menu, audio_manager=self.audio, on_shop=self.open_shop)
         self.skin_ui.on_profile = lambda: self.open_profile("skins")
@@ -823,11 +824,31 @@ class HoloGame:
         self.state = self.prev_state
         self._click()
 
-    def open_profile(self, from_state="menu"):
+    def open_profile(self, from_state="menu", edit=False):
         self.prev_profile_state = from_state
         self.state = "profile"
+        if self.save_mgr.is_profile_set and not edit:           # a named pilot first sees the card; "edit" opens the editor
+            self.profile_modal = None
+            self.pilot_modal = ui.PilotCard(
+                self.save_mgr, on_edit=self._pilot_edit, on_close=self._pilot_close,
+                code_provider=lambda: (self.online.friends or {}).get("code"),
+                friends_provider=lambda: len(self.online.friend_rows()))
+            self._click()
+            return
+        self.pilot_modal = None
         self.profile_modal = ui.ProfileModal(self.save_mgr, on_save=self.close_profile, on_recovery=self.open_recovery)
         self.profile_modal.on_equip = self.shop_ui.extra.equip
+        self._click()
+
+    def _pilot_edit(self):
+        self.pilot_modal = None
+        self.profile_modal = ui.ProfileModal(self.save_mgr, on_save=self.close_profile, on_recovery=self.open_recovery)
+        self.profile_modal.on_equip = self.shop_ui.extra.equip
+        self._click()
+
+    def _pilot_close(self):
+        self.pilot_modal = None
+        self.state = self.prev_profile_state
         self._click()
 
     # ------------------------------------------------------------------ account recovery
@@ -1147,6 +1168,7 @@ class HoloGame:
     def close_profile(self):
         self.state = self.prev_profile_state
         self.profile_modal = None
+        self.pilot_modal = None
         self.menu_ui.build()
         self.online.register()
         self.online.wallet_sync()
@@ -2189,8 +2211,8 @@ class HoloGame:
                 self.ach_ui.update(v_mouse, dt * 60.0)
             elif st == "daily":
                 self.daily_ui.update(v_mouse, dt * 60.0)
-            elif st == "profile" and self.profile_modal:
-                self.profile_modal.update(v_mouse, dt * 60.0)
+            elif st == "profile" and (self.pilot_modal or self.profile_modal):
+                (self.pilot_modal or self.profile_modal).update(v_mouse, dt * 60.0)
             elif st == "recovery" and self.recovery_modal:
                 self.recovery_modal.update(v_mouse, dt * 60.0)
             elif st == "friends" and self.friends_modal:
@@ -2313,6 +2335,8 @@ class HoloGame:
                     self.open_menu()
                 elif st == "settings":
                     self.close_settings()
+                elif st == "profile" and self.pilot_modal:
+                    self._pilot_close()
                 elif st == "profile" and self.save_mgr.is_profile_set:
                     self.profile_modal.close()
                     self.close_profile()
@@ -2396,8 +2420,8 @@ class HoloGame:
             action = self.ach_ui.handle_event(event)
         elif st == "daily":
             action = self.daily_ui.handle_event(event)
-        elif st == "profile" and self.profile_modal:
-            self.profile_modal.handle_event(event)
+        elif st == "profile" and (self.pilot_modal or self.profile_modal):
+            (self.pilot_modal or self.profile_modal).handle_event(event)
         elif st == "recovery" and self.recovery_modal:
             self.recovery_modal.handle_event(event)
         elif st == "friends" and self.friends_modal:
@@ -2424,7 +2448,7 @@ class HoloGame:
             return {"paused": self.pause_modal, "howto": self.howto_ui, "victory": self.victory_modal,
                     "failed": self.failure_modal}.get(st)
         if st == "profile":
-            return self.profile_modal
+            return self.pilot_modal or self.profile_modal
         if st == "recovery":
             return self.recovery_modal
         if st == "login":
@@ -2601,7 +2625,9 @@ class HoloGame:
                 self.leaderboard_ui.draw(f)
             else:
                 self._menu_under_modal(f, skin)
-            if self.profile_modal:
+            if self.pilot_modal:
+                self.pilot_modal.draw(f)
+            elif self.profile_modal:
                 self.profile_modal.draw(f)
         elif st == "login":
             self._menu_under_modal(f, skin)

@@ -3434,6 +3434,92 @@ class ShopScreen:
 
 
 # ================================================================================================ profile
+class PilotCard:
+    """The pilot's identity card (a pop-up over the menu): who, how far, how complete the collection is. The name / flag
+    editor (ProfileModal) is one tap away. Pattern: a profile with an ID, progress numbers and a collection percentage."""
+
+    def __init__(self, save_manager, on_edit, on_close, code_provider=None, friends_provider=None):
+        self.save_mgr = save_manager
+        self.code_provider = code_provider
+        self.friends_provider = friends_provider
+        self.time_val = 0.0
+        self.box = pygame.Rect(50, 150, VW - 100, 1260)
+        b = self.box
+        self.btn_edit = Button((b.x + 60, b.bottom - 200, b.w - 120, 90), t("profile_btn"), 32, bg_color=(25, 70, 50),
+                               hover_color=ACCENT_GREEN, callback=on_edit)
+        self.btn_close = Button((b.x + 60, b.bottom - 100, b.w - 120, 80), t("back"), 32, callback=on_close)
+        self.on_close = on_close
+
+    def _stats(self):
+        sm = self.save_mgr
+        v = lambda src: ach_mod.value(sm, src)
+        total_skins = max(1, len(SKINS))
+        return [(f"{v('stat:levels')} / {MAX_LEVELS}", t("pc_levels"), (0, 214, 255)),
+                (f"{v('stat:stars')}", t("pc_stars"), ACCENT_GOLD),
+                (f"{v('stat:three_star')}", t("pc_three"), (255, 205, 65)),
+                (f"{v('stat:srank')}", t("pc_srank"), (255, 120, 190)),
+                (f"{v('stat:endless_m')} m", t("pc_endless"), (190, 110, 255)),
+                (f"{v('stat:skins')} / {total_skins}", t("pc_skins"), (90, 230, 150))]
+
+    def update(self, mouse_pos, dt=1.0):
+        self.time_val += 0.03 * dt
+        self.btn_edit.update(mouse_pos, dt)
+        self.btn_close.update(mouse_pos, dt)
+
+    def handle_event(self, event):
+        if self.btn_edit.handle_event(event):
+            self.btn_edit.callback()
+        elif self.btn_close.handle_event(event):
+            self.btn_close.callback()
+        return True
+
+    def draw(self, surface):
+        dim(surface, 220)
+        sm = self.save_mgr
+        b = self.box
+        panel(surface, b, (18, 24, 38), (45, 65, 105), 28, 2)
+        cx = b.centerx
+        # identity: flag + callsign + the pilot's code
+        draw_country_badge(surface, sm.player_country, b.x + 120, b.y + 90, width=84, height=44)
+        draw_text(surface, sm.player_name, 54, (225, 240, 255), (b.x + 190, b.y + 80), anchor="midleft", max_w=b.w - 260)
+        code = (self.code_provider() if self.code_provider else "") or ""
+        friends = self.friends_provider() if self.friends_provider else 0
+        if code:
+            draw_text(surface, f"{t('pc_code')}  #{code}", 24, ACCENT_CYAN, (b.x + 190, b.y + 128), anchor="midleft", bold=False, max_w=b.w - 260)
+        if friends:
+            draw_text(surface, t("pc_friends", n=friends), 22, TEXT_MUTED, (b.right - 50, b.y + 128), anchor="midright", bold=False)
+        # the equipped skin
+        sk = SKINS.get(sm.equipped_skin, SKINS["neon_pulse"])
+        py = b.y + 290
+        p1 = (cx + math.cos(self.time_val) * 90, py + math.sin(self.time_val) * 90)
+        p2 = (cx - math.cos(self.time_val) * 90, py - math.sin(self.time_val) * 90)
+        draw_tether(surface, p1, p2, sk, self.time_val)
+        draw_orb(surface, p1, 26, sk["color1"], sk["glow1"], False, sk, self.time_val)
+        draw_orb(surface, p2, 26, sk["color2"], sk["glow2"], True, sk, self.time_val)
+        # the numbers
+        stats = self._stats()
+        cw, ch, gx, gy = (b.w - 120 - 20) // 2, 132, 20, 18
+        y0 = b.y + 440
+        for i, (val, label, col) in enumerate(stats):
+            r = pygame.Rect(b.x + 60 + (i % 2) * (cw + gx), y0 + (i // 2) * (ch + gy), cw, ch)
+            pygame.draw.rect(surface, (24, 32, 52), r, border_radius=22)
+            pygame.draw.rect(surface, col, r, 2, border_radius=22)
+            draw_text(surface, val, 48, col, (r.centerx, r.y + 52), max_w=r.w - 30)
+            draw_text(surface, label, 22, TEXT_MUTED, (r.centerx, r.y + 104), bold=False, max_w=r.w - 30)
+        # the collection bar
+        total = max(1, len(SKINS))
+        owned = ach_mod.value(sm, "stat:skins")
+        pct = max(0.0, min(1.0, owned / total))
+        by = y0 + 3 * (ch + gy) + 20
+        draw_text(surface, t("pc_collection", pct=int(round(pct * 100))), 26, TEXT_WHITE, (cx, by), max_w=b.w - 120)
+        bar = pygame.Rect(b.x + 60, by + 28, b.w - 120, 18)
+        pygame.draw.rect(surface, (32, 42, 62), bar, border_radius=9)
+        if pct > 0:
+            pygame.draw.rect(surface, (90, 230, 150), (bar.x, bar.y, max(6, int(bar.w * pct)), bar.h), border_radius=9)
+        self.btn_edit.draw(surface)
+        self.btn_close.draw(surface)
+
+
 class ProfileModal:
     def __init__(self, save_manager, on_save, on_recovery=None):
         self.save_mgr = save_manager

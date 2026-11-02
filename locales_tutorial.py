@@ -2,6 +2,7 @@
 
 TUTORIAL = {
     "tr": {
+        "pc_levels": "BÖLÜM", "pc_stars": "YILDIZ", "pc_three": "3 YILDIZLI BÖLÜM", "pc_srank": "S+ DERECE", "pc_endless": "SONSUZ REKOR", "pc_skins": "SKİN", "pc_code": "KOD", "pc_friends": "{n} arkadaş", "pc_collection": "Skin koleksiyonu: %{pct}",
         "guide_btn": "YOLU GÖSTER", "guide_on": "YOL AÇIK", "guide_toast": "{name} bu bölümü böyle geçti: noktaları takip et",
         "dl_streak": "SERİ {n} GÜN",
         "nudge_daily": "GÜNÜN BÖLÜMÜ HAZIR!", "nudge_daily_sub": "Bölüm {n}  •  +{r} elmas  •  tek deneme",
@@ -32,6 +33,7 @@ TUTORIAL = {
         "tut_done_title": "EĞİTİM TAMAM!", "tut_done_sub": "+{n} elmas  •  şimdi 1. bölüm",
     },
     "en": {
+        "pc_levels": "LEVELS", "pc_stars": "STARS", "pc_three": "3-STAR LEVELS", "pc_srank": "S+ RANKS", "pc_endless": "ENDLESS BEST", "pc_skins": "SKINS", "pc_code": "CODE", "pc_friends": "{n} friends", "pc_collection": "Skin collection: {pct}%",
         "guide_btn": "SHOW THE WAY", "guide_on": "GUIDE ON", "guide_toast": "{name} cleared this one like this: follow the dots",
         "dl_streak": "{n}-DAY STREAK",
         "nudge_daily": "TODAY'S LEVEL IS READY!", "nudge_daily_sub": "Level {n}  •  +{r} diamonds  •  one try",
@@ -62,6 +64,7 @@ TUTORIAL = {
         "tut_done_title": "TRAINING DONE!", "tut_done_sub": "+{n} diamonds  •  now level 1",
     },
     "de": {
+        "pc_levels": "LEVEL", "pc_stars": "STERNE", "pc_three": "3-STERNE-LEVEL", "pc_srank": "S+-RÄNGE", "pc_endless": "ENDLOS-REKORD", "pc_skins": "SKINS", "pc_code": "CODE", "pc_friends": "{n} Freunde", "pc_collection": "Skin-Sammlung: {pct} %",
         "guide_btn": "WEG ZEIGEN", "guide_on": "WEG AN", "guide_toast": "{name} hat das so geschafft: folge den Punkten",
         "dl_streak": "{n} TAGE IN FOLGE",
         "nudge_daily": "DAS TAGESLEVEL IST DA!", "nudge_daily_sub": "Level {n}  •  +{r} Diamanten  •  ein Versuch",
@@ -92,6 +95,7 @@ TUTORIAL = {
         "tut_done_title": "TRAINING GESCHAFFT!", "tut_done_sub": "+{n} Diamanten  •  jetzt Level 1",
     },
     "es": {
+        "pc_levels": "NIVELES", "pc_stars": "ESTRELLAS", "pc_three": "NIVELES 3 ESTRELLAS", "pc_srank": "RANGOS S+", "pc_endless": "RÉCORD INFINITO", "pc_skins": "ASPECTOS", "pc_code": "CÓDIGO", "pc_friends": "{n} amigos", "pc_collection": "Colección de aspectos: {pct} %",
         "guide_btn": "MOSTRAR CAMINO", "guide_on": "GUÍA ACTIVA", "guide_toast": "{name} lo superó así: sigue los puntos",
         "dl_streak": "RACHA DE {n} DÍAS",
         "nudge_daily": "¡EL NIVEL DE HOY ESTÁ LISTO!", "nudge_daily_sub": "Nivel {n}  •  +{r} diamantes  •  un intento",
