@@ -1,11 +1,12 @@
 // Invite reward: a brand-new pilot who redeems a code and clears a first level pays both sides once (friends.ts settleInvite).
 import { handle, sign, signFriends, signWallet } from "../handler.ts";
 import { INVITEE_REWARD, INVITER_REWARD, INVITER_DAY_CAP } from "../friends.ts";
-import { LEVEL_WIN } from "../wallet.ts";   // every verified clear also pays LEVEL_WIN (once per level+ts)
+import { LEVEL_WIN, LEVEL_WIN_3STAR } from "../wallet.ts";   // every verified clear also pays LEVEL_WIN (once per level+ts)
 import { MemStore } from "./mem.ts";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
+const WIN = LEVEL_WIN + LEVEL_WIN_3STAR;          // level 1's reference run is a 3-star clear
 const store = new MemStore();
 const now = Date.UTC(2026, 9, 21, 12, 0, 0);
 const hex = (c: string, n: number) => c.repeat(n);
@@ -27,10 +28,10 @@ assert.equal((await fr(fresh, "add", code)).body.invite, false, "once per accoun
 const b0 = await sync(inviter), f0 = await sync(fresh);
 assert.equal(await sync(fresh), f0, "nothing is paid before the first clear");
 assert.equal((await clear(fresh)).status, 200);
-assert.equal(await sync(fresh), f0 + INVITEE_REWARD + LEVEL_WIN, "invitee paid (+ the clear's own reward)");
+assert.equal(await sync(fresh), f0 + INVITEE_REWARD + WIN, "invitee paid (+ the clear's own reward)");
 assert.equal(await sync(inviter), b0 + INVITER_REWARD, "inviter paid");
 await clear(fresh); await post("/api/submit", { player_id: fresh, level: 1, ts, taps: refTaps, sig: await sign(sec[fresh], fresh, 1, ts, refTaps) });
-assert.equal(await sync(fresh), f0 + INVITEE_REWARD + LEVEL_WIN, "never paid twice");
+assert.equal(await sync(fresh), f0 + INVITEE_REWARD + WIN, "never paid twice");
 assert.equal(await sync(inviter), b0 + INVITER_REWARD);
 
 // a pilot who already cleared a level is not an invitee; an own code is refused
@@ -46,7 +47,7 @@ for (let k = 4; k < 4 + INVITER_DAY_CAP + 2; k++) {
   await fr(p, "add", code);
   const before = await sync(p);
   await clear(p);
-  assert.equal(await sync(p), before + INVITEE_REWARD + LEVEL_WIN);
+  assert.equal(await sync(p), before + INVITEE_REWARD + WIN);
 }
 paidInviter = (await sync(inviter) - inv0) / INVITER_REWARD;
 assert.equal(paidInviter, INVITER_DAY_CAP - 1, "daily cap counts the invite already paid today");
@@ -57,5 +58,5 @@ const late = await reg(9);
 assert.equal((await fr(late, "add", "GHOSTGHO")).body.invite, true);
 const l0 = await sync(late);
 await clear(late);
-assert.equal(await sync(late), l0 + LEVEL_WIN, "invite stays open while the inviter's wallet never opened (only the clear's reward)");
+assert.equal(await sync(late), l0 + WIN, "invite stays open while the inviter's wallet never opened (only the clear's reward)");
 console.log("invite_test OK", hex("x", 1));

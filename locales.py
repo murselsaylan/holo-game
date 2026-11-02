@@ -1135,10 +1135,10 @@ for _lang, _ready in {"tr": "HAZIR OL", "en": "GET READY", "de": "BEREIT MACHEN"
     STRINGS[_lang]["resume_ready"] = _ready
 
 # short labels under the main menu's edge icons
-for _lang, _labels in {"tr": ("SIRALAMA", "PROFİL", "AYARLAR", "ÇIKIŞ", "BÖLÜMLER"),
-                       "en": ("RANKING", "PROFILE", "SETTINGS", "QUIT", "LEVELS"),
-                       "de": ("RANGLISTE", "PROFIL", "OPTIONEN", "BEENDEN", "LEVEL"),
-                       "es": ("RANKING", "PERFIL", "AJUSTES", "SALIR", "NIVELES")}.items():
+for _lang, _labels in {"tr": ("SIRALAMA", "SKİNLER", "AYARLAR", "ÇIKIŞ", "BÖLÜMLER"),
+                       "en": ("RANKING", "SKINS", "SETTINGS", "QUIT", "LEVELS"),
+                       "de": ("RANGLISTE", "SKINS", "OPTIONEN", "BEENDEN", "LEVEL"),
+                       "es": ("RANKING", "SKINS", "AJUSTES", "SALIR", "NIVELES")}.items():
     for _k, _v in zip(("icon_rank", "icon_skins", "icon_settings", "icon_quit", "icon_levels"), _labels):
         STRINGS[_lang][_k] = _v
 

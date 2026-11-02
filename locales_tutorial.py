@@ -2,6 +2,10 @@
 
 TUTORIAL = {
     "tr": {
+        "backpay_title": "GEÇMİŞ BÖLÜMLERİN ÖDÜLÜ: +{n} ELMAS", "backpay_sub": "{levels} bölüm ve {sectors} sektör için hesabına eklendi.",
+        "reward_hint": "BİTİR: +{a} ELMAS   •   3 YILDIZ: +{b}", "reward_sector": "SEKTÖR SONU: +{n} ELMAS (ilk bitirişte)",
+        "sector_done": "SEKTÖR TAMAM!  +{n} ELMAS",
+        "nudge_invite": "ARKADAŞINI DAVET ET: +200 ELMAS", "nudge_invite_sub": "Sıralama > Arkadaşlar'dan kodunu paylaş; o da +100 kazanır.",
         "fr_invite_reward": "Arkadaşın senin kodunla gelirse sen +{a}, o +{b} elmas kazanır", "fr_share_btn": "PAYLAŞ",
         "fr_share_text": "HOLO'yu dene! Davet kodum: {code} - girersen ikimiz de elmas kazanırız. Android: https://play.google.com/store/apps/details?id=com.hologame.holo  iOS: https://apps.apple.com/app/id6819440077",
         "win_diamonds": "+{n} ELMAS",           # 1.0.11 level-clear reward line on the victory card
@@ -22,6 +26,10 @@ TUTORIAL = {
         "tut_done_title": "EĞİTİM TAMAM!", "tut_done_sub": "+{n} elmas  •  şimdi 1. bölüm",
     },
     "en": {
+        "backpay_title": "REWARD FOR LEVELS YOU CLEARED: +{n} DIAMONDS", "backpay_sub": "Added for {levels} levels and {sectors} sectors.",
+        "reward_hint": "CLEAR: +{a} DIAMONDS   •   3 STARS: +{b}", "reward_sector": "SECTOR FINALE: +{n} DIAMONDS (first clear)",
+        "sector_done": "SECTOR COMPLETE!  +{n} DIAMONDS",
+        "nudge_invite": "INVITE A FRIEND: +200 DIAMONDS", "nudge_invite_sub": "Share your code from Ranking > Friends; they get +100 too.",
         "fr_invite_reward": "A friend who joins with your code: you get +{a}, they get +{b} diamonds", "fr_share_btn": "SHARE",
         "fr_share_text": "Try HOLO! My invite code is {code} - enter it and we both get diamonds. Android: https://play.google.com/store/apps/details?id=com.hologame.holo  iOS: https://apps.apple.com/app/id6819440077",
         "win_diamonds": "+{n} DIAMONDS",           # 1.0.11 level-clear reward line on the victory card
@@ -42,6 +50,10 @@ TUTORIAL = {
         "tut_done_title": "TRAINING DONE!", "tut_done_sub": "+{n} diamonds  •  now level 1",
     },
     "de": {
+        "backpay_title": "BELOHNUNG FÜR GESCHAFFTE LEVEL: +{n} DIAMANTEN", "backpay_sub": "Für {levels} Level und {sectors} Sektoren gutgeschrieben.",
+        "reward_hint": "SCHAFFEN: +{a} DIAMANTEN   •   3 STERNE: +{b}", "reward_sector": "SEKTOR-FINALE: +{n} DIAMANTEN (erstes Mal)",
+        "sector_done": "SEKTOR GESCHAFFT!  +{n} DIAMANTEN",
+        "nudge_invite": "FREUND EINLADEN: +200 DIAMANTEN", "nudge_invite_sub": "Teile deinen Code unter Rangliste > Freunde; er bekommt +100.",
         "fr_invite_reward": "Ein Freund mit deinem Code: du bekommst +{a}, er +{b} Diamanten", "fr_share_btn": "TEILEN",
         "fr_share_text": "Probier HOLO! Mein Einladungscode: {code} - gib ihn ein und wir bekommen beide Diamanten. Android: https://play.google.com/store/apps/details?id=com.hologame.holo  iOS: https://apps.apple.com/app/id6819440077",
         "win_diamonds": "+{n} DIAMANTEN",           # 1.0.11 level-clear reward line on the victory card
@@ -62,6 +74,10 @@ TUTORIAL = {
         "tut_done_title": "TRAINING GESCHAFFT!", "tut_done_sub": "+{n} Diamanten  •  jetzt Level 1",
     },
     "es": {
+        "backpay_title": "PREMIO POR NIVELES SUPERADOS: +{n} DIAMANTES", "backpay_sub": "Añadido por {levels} niveles y {sectors} sectores.",
+        "reward_hint": "SUPERAR: +{a} DIAMANTES   •   3 ESTRELLAS: +{b}", "reward_sector": "FINAL DE SECTOR: +{n} DIAMANTES (primera vez)",
+        "sector_done": "¡SECTOR COMPLETADO!  +{n} DIAMANTES",
+        "nudge_invite": "INVITA A UN AMIGO: +200 DIAMANTES", "nudge_invite_sub": "Comparte tu código en Ranking > Amigos; él recibe +100.",
         "fr_invite_reward": "Un amigo con tu código: tú +{a}, él +{b} diamantes", "fr_share_btn": "COMPARTIR",
         "fr_share_text": "¡Prueba HOLO! Mi código de invitación es {code}: escríbelo y los dos ganamos diamantes. Android: https://play.google.com/store/apps/details?id=com.hologame.holo  iOS: https://apps.apple.com/app/id6819440077",
         "win_diamonds": "+{n} DIAMANTES",           # 1.0.11 level-clear reward line on the victory card

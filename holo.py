@@ -462,6 +462,21 @@ class HoloGame:
                 and not self.toasts and self.ui_time > getattr(self, "_login_popup_after", 0.0)):
             self._login_popup_after = self.ui_time + 3600.0      # at most once an hour if they close it unclaimed
             self.open_login_reward()
+            return
+        self._invite_nudge()
+
+    def _invite_nudge(self):
+        """A toast on the main screen about the invite reward (+200 diamonds), at most once every 20 hours and only for a
+        pilot who has played a little - nobody finds the friends window on their own."""
+        sm = self.save_mgr
+        if self.toasts or not sm.is_profile_set or sm.levels_cleared < 3 or not self.online.enabled:
+            return
+        now = time.time()
+        if now - float(sm.data.get("invite_nudge_t", 0) or 0) < 20 * 3600:
+            return
+        sm.data["invite_nudge_t"] = now
+        sm.save()
+        self.toasts.append([t("nudge_invite"), t("nudge_invite_sub"), 4.0])
 
     def on_progress_reset(self):
         """Settings -> reset progress (armed 2nd tap): wipe the in-memory run state and land back on the menu."""
@@ -1978,6 +1993,11 @@ class HoloGame:
             self.toasts.append([t("gift_title", n=self.online.gift_notice), t("gift_sub"), 4.5])
             self.online.gift_notice = 0
             self.audio.play_sfx("sfx_coin")
+        if getattr(self.online, "backpay_notice", None) and self.state not in ("intro", "playing", "dying"):
+            d_, l_, s_ = self.online.backpay_notice
+            self.toasts.append([t("backpay_title", n=d_), t("backpay_sub", levels=l_, sectors=s_), 6.0])
+            self.online.backpay_notice = None
+            self.audio.play_sfx("sfx_coin")
         if getattr(self.online, "prize_notice", None) and self.state not in ("intro", "playing", "dying"):
             n_, rk_ = self.online.prize_notice
             self.toasts.append([t("endless_prize_title", n=n_), t("endless_prize_sub", rank=rk_), 5.0])
@@ -2701,6 +2721,20 @@ class HoloGame:
             ui.draw_text(view, lvl.level_title, 66, fade((255, 255, 255)), (VW // 2, y0 + 62), max_w=820, bg="key")
             if self.level_id % 20 == 0:
                 ui.draw_text(view, t("boss_tag"), 34, fade((255, 90, 110)), (VW // 2, y0 + 128), bg="key")
+
+        # what clearing this level pays - known before the player starts (level 1+, every attempt)
+        if (run is None and arun is None and self.tut is None and self.state == "playing" and self.level_id >= 1
+                and s.swaps == 0 and s.t < 3.2 and self.online.enabled):
+            k = min(1.0, s.t / 0.35, (3.2 - s.t) / 0.7)
+            fade = lambda c: tuple(int(v * max(0.0, k)) for v in c)
+            boss = self.level_id % 20 == 0
+            y1 = int(self.view_h * 0.24) + (186 if boss and self.attempts == 1 else 150 if self.attempts == 1 else 40)
+            self.intro_band.draw(view, (0, y1 - 34), int(170 * max(0.0, k)) / 255.0)
+            ui.draw_text(view, t("reward_hint", a=shop_mod.LEVEL_WIN, b=shop_mod.LEVEL_WIN + shop_mod.LEVEL_WIN_3STAR), 28,
+                         fade((120, 230, 255)), (VW // 2, y1), max_w=860, bg="key")
+            if boss and str(self.level_id) not in self.save_mgr.data.get("level_stats", {}):
+                ui.draw_text(view, t("reward_sector", n=shop_mod.SECTOR_WIN), 34, fade((255, 220, 100)), (VW // 2, y1 + 46),
+                             max_w=860, bg="key")
 
         # arrow towards the portal when it is off-screen (tall levels)
         gx, gy = lvl.data.end

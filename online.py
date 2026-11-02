@@ -164,6 +164,7 @@ class OnlineClient:
         self.first_bonus = False        # 1.0.8: this account's first diamond pack pays double (server says so)
         self.free_shield = False        # 1.0.9: today's first shield is free (server says so; spent = False)
         self.prize_notice = None        # (diamonds, rank) of last week's climb prize, for the game to announce
+        self.backpay_notice = None      # (diamonds, levels, sectors): the 1.0.11 reward for everything cleared before it existed
         self.on_purchase = None         # shop.purchase_result(product, token, "ok"|"rejected"|"wait", body)
         self.endless_result = None      # server answer for the endless climb just finished (result screen)
         self.google = None              # {"state": "wait"|"ok"|"fail", ...} of the last Google link / restore
@@ -488,6 +489,9 @@ class OnlineClient:
                 if isinstance(payload.get("credits"), dict):
                     self.credits = {"shield": int(payload["credits"].get("shield") or 0),
                                     "revive": int(payload["credits"].get("revive") or 0)}
+                bp = payload.get("backpay")
+                if isinstance(bp, dict) and int(bp.get("diamonds") or 0) > 0:
+                    self.backpay_notice = (int(bp["diamonds"]), int(bp.get("levels") or 0), int(bp.get("sectors") or 0))
                 pr = payload.get("prize")
                 if isinstance(pr, dict) and int(pr.get("diamonds") or 0) > 0:
                     self.prize_notice = (int(pr["diamonds"]), int(pr.get("rank") or 0))
@@ -707,7 +711,7 @@ class OnlineClient:
                 self._wallet_open = True
                 self._results.put(("wallet", {"balance": r["balance"], "gift": r.get("gift", 0),
                                               "skins": r.get("skins", []), "account": r.get("account", ""),
-                                              "first_bonus": bool(r.get("first_bonus")), "prize": r.get("prize"),
+                                              "first_bonus": bool(r.get("first_bonus")), "prize": r.get("prize"), "backpay": r.get("backpay"),
                                               "free_shield": bool(r.get("free_shield")),
                                               "credits": r.get("credits")}))
             for op in list(s.data.get("wallet_ops", [])):

@@ -3,7 +3,7 @@ import { LevelData, replay, SIM_VERSION, MAX_LEVELS } from "./sim.ts";
 import type { Assist, Result } from "./sim.ts";
 import { LEVELS, DIGESTS, LEGACY } from "./levels_data.ts";
 import { GOALS as ENDLESS_GOALS, WEEK_PRIZES, DIAMOND_EVERY_M, DIAMONDS_PER_DAY, ENDLESS_VERSIONS, MAX_STEPS as ENDLESS_MAX_STEPS, poolDigest, replayEndless, seedOf, weekOf, weekStart, assistDigest, MAX_REVIVES as ENDLESS_MAX_REVIVES } from "./endless.ts";
-import { accountTag, dailyDeal, earnClaim, freeShieldDay, IMPORT_CAP, LEVEL_WIN, LEVEL_WIN_PER_DAY, productValue, spendPrice, streakSkins } from "./wallet.ts";
+import { accountTag, dailyDeal, earnClaim, freeShieldDay, IMPORT_CAP, LEVEL_WIN, LEVEL_WIN_3STAR, LEVEL_WIN_PER_DAY, SECTOR_WIN, productValue, spendPrice, streakSkins } from "./wallet.ts";
 import { devPurchases, googleVerifier } from "./play.ts";
 import { googleConfigured, maskEmail, verifyGoogleIdToken } from "./google_id.ts";
 import type { Verifier } from "./play.ts";
@@ -475,19 +475,24 @@ async function submit(store: Store, d: Record<string, unknown>, ip: string, nowM
   await weeklyClear(store.live, pid, level, nowMs);                // this week's featured level (crowd.ts)
   const ranks = (await store.ranks(pid)) ?? ({} as Partial<Ranks>);
   // 1.0.11: a diamond reward for every verified clear (the wallet must be open; capped per rolling day)
-  let winDiamonds = 0, balance: number | null = null;
+  let winDiamonds = 0, sectorDiamonds = 0, balance: number | null = null;
   const nowS = Math.floor(nowMs / 1000);
   if (typeof store.walletBalance === "function" && (await store.walletBalance(pid)) !== null) {
     if ((await store.walletCount(pid, "lvlwin", nowS - 86_400)).n < LEVEL_WIN_PER_DAY) {
-      const w = await store.walletChange(pid, LEVEL_WIN, "lvlwin", `${level}:${ts}`, nowS);
-      if (!w.dup) winDiamonds = LEVEL_WIN;
+      const amount = LEVEL_WIN + (result.stars >= 3 ? LEVEL_WIN_3STAR : 0);
+      const w = await store.walletChange(pid, amount, "lvlwin", `${level}:${ts}`, nowS);
+      if (!w.dup) winDiamonds = amount;
+    }
+    if (level % 20 === 0) {                                          // a sector is done: once per sector, whatever the daily cap says
+      const sw = await store.walletChange(pid, SECTOR_WIN, "sectorwin", String(level / 20), nowS);
+      if (!sw.dup) sectorDiamonds = SECTOR_WIN;
     }
     balance = await store.walletBalance(pid);
   }
   return R(200, {
     ok: true, level_score: result.level_total, stars: result.stars, improved: rec.improved, levels: rec.levels,
     score: rec.score, world_rank: ranks.rank ?? null, country_rank: ranks.country_rank ?? null,
-    win_diamonds: winDiamonds, balance,
+    win_diamonds: winDiamonds, sector_diamonds: sectorDiamonds, balance,
   });
 }
 
@@ -664,8 +669,26 @@ async function wallet(store: Store, d: Record<string, unknown>, ip: string, nowM
       if (r.ok) balance = r.balance;
       if (r.ok && !r.dup) prize = { week: lastWeek, rank: rk, diamonds: WEEK_PRIZES[rk - 1] };
     }
+    // 1.0.11 back-pay: the level / sector rewards for everything cleared before they existed, once per player
+    let backpay: { levels: number; sectors: number; diamonds: number } | null = null;
+    if ((await store.walletCount(pl.id, "lvlcatch", 0)).n === 0) {
+      const bests = await store.playerBests(pl.id);
+      if (bests.length) {
+        const levels = bests.reduce((n, b) => n + LEVEL_WIN + (b.stars >= 3 ? LEVEL_WIN_3STAR : 0), 0);
+        const done = new Set(bests.map((b) => b.level));
+        let sectors = 0, total = 0;
+        for (let k = 1; k * 20 <= MAX_LEVELS; k++) {
+          if (!done.has(k * 20)) continue;
+          const sw = await store.walletChange(pl.id, SECTOR_WIN, "sectorwin", String(k), now);   // the same ref the live payout uses
+          if (sw.ok && !sw.dup) { sectors++; total += SECTOR_WIN; balance = sw.balance; }
+        }
+        const lc = await store.walletChange(pl.id, levels, "lvlcatch", "once", now);
+        if (lc.ok && !lc.dup) { total += levels; balance = lc.balance; }
+        if (total > 0) backpay = { levels: bests.length, sectors, diamonds: total };
+      }
+    }
     const first = store.packPurchases ? (await store.packPurchases(pl.id)) === 0 : false;
-    return R(200, { ok: true, balance, gift: w.gift, imported: w.imported, skins: await store.walletSkins(pl.id),
+    return R(200, { ok: true, balance, gift: w.gift, backpay, imported: w.imported, skins: await store.walletSkins(pl.id),
                     account: await accountTag(pl.id), first_bonus: first, deal: dailyDeal(nowMs), prize,
                     free_shield: !(await store.walletRefs(pl.id, "freeshield", now - 2 * 86400)).includes(freeShieldDay(nowMs)),
                     credits: { shield: await store.friendCredits(pl.id, "shield"), revive: await store.friendCredits(pl.id, "revive") } });

@@ -4422,7 +4422,9 @@ class VictoryModal:
         on = self.online
         info = on.last_submit if on else None
         # the stars pop in during the first ~2 s (redrawn every frame), then the card is still
-        return (int(self.anim) if self.anim < 150 else -1, repr(info), on.status if on else None,
+        t0 = getattr(self, "_win_t0", None)
+        busy = self.anim < 150 or (t0 is not None and self.anim - t0 < 130)           # the reward count-up keeps redrawing
+        return (int(self.anim) if busy else -1, repr(info), on.status if on else None,
                 on.enabled if on else False)
 
     def update(self, mouse_pos, dt=1.0):
@@ -4502,8 +4504,23 @@ class VictoryModal:
             if info.get("country_rank"):
                 txt += f"   •   {t('rank_country', rank=fmt_int(info['country_rank']))}"
             draw_text(surface, txt, 34, ACCENT_GREEN, (VW // 2, oy), max_w=card.w - 60)
-            if int(info.get("win_diamonds") or 0) > 0:               # the server paid this clear (1.0.11)
-                draw_text(surface, t("win_diamonds", n=int(info["win_diamonds"])), 32, (120, 230, 255), (VW // 2, oy + 52), max_w=card.w - 60)
+            win, sector = int(info.get("win_diamonds") or 0), int(info.get("sector_diamonds") or 0)
+            if win > 0 or sector > 0:                                  # the server paid this clear (1.0.11)
+                if getattr(self, "_win_t0", None) is None:
+                    self._win_t0 = self.anim
+                el = self.anim - self._win_t0
+                k = max(0.0, min(1.0, (el - 8) / 40.0))
+                eased = 1.0 - (1.0 - k) ** 3                           # counts up fast, settles slowly
+                pop = 1.0 + 0.3 * max(0.0, 1.0 - abs(el - 48) / 14.0)  # a little pop when it lands
+                if win > 0:
+                    draw_text(surface, t("win_diamonds", n=int(round(win * eased))), int(34 * pop), (120, 230, 255),
+                              (VW // 2, oy - 78), max_w=card.w - 120)
+                if sector > 0 and el > 40:
+                    kk = min(1.0, (el - 40) / 30.0)
+                    glow = 0.5 + 0.5 * math.sin(el * 0.2)
+                    col = (255, int(205 + 40 * glow), int(80 + 60 * glow))
+                    draw_text(surface, t("sector_done", n=int(round(sector * kk))), int(38 + 6 * glow), col,
+                              (VW // 2, oy + 58), max_w=card.w - 40)
         else:
             key = "submit_rejected" if info.get("rejected") else "submit_queued"
             draw_text(surface, t(key), 26, (255, 170, 90), (VW // 2, oy), bold=False, max_w=card.w - 60)
