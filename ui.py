@@ -4334,8 +4334,12 @@ class FailureModal:
         pygame.draw.rect(surface, (55, 25, 38), pb, border_radius=8)
         fw = int(pb.w * self.progress_pct / 100.0)
         if fw > 0:
-            pygame.draw.rect(surface, (255, 60, 85), (pb.x, pb.y, fw, pb.h), border_radius=8)
+            pygame.draw.rect(surface, (255, 200, 70) if self.progress_pct >= 80 else (255, 60, 85), (pb.x, pb.y, fw, pb.h), border_radius=8)
         draw_text(surface, t("failure_attempts", val=self.attempts), 34, TEXT_WHITE, (VW // 2, self.top + 315), bg=(24, 16, 24))
+        if self.progress_pct >= 80:                               # the near-miss: "so close" makes the next try feel winnable
+            glow = 0.5 + 0.5 * math.sin(self.anim * 0.18)
+            draw_text(surface, t("near_miss_fail"), 30, (255, int(170 + 70 * glow), 70), (VW // 2, self.top + 282),
+                      max_w=card.w - 80, bg=(24, 16, 24))
         for i in range(3):
             draw_vector_star(surface, VW // 2 - 60 + i * 60, self.top + 380, radius=22, filled=i < self.stars, color=(255, 205, 65))
 
