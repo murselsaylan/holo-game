@@ -1,5 +1,6 @@
 """Achievements: purely local (no server needed). Progress comes from save stats and event counters."""
 import locales
+from achievements_i18n import I18N
 
 # id, source, target, (tr title, tr description), (en title, en description)
 # source: "stat:levels" (highest cleared), "stat:stars", "stat:srank", or a counter name.
@@ -47,12 +48,23 @@ ACHIEVEMENTS = [
 BY_ID = {a[0]: a for a in ACHIEVEMENTS}
 
 
+def _text(a, i):
+    lang = locales.get_language()
+    if lang == "tr":
+        return a[3][i]
+    if lang in ("de", "es"):                                        # 1.0.11: German / Spanish (achievements_i18n.py)
+        row = I18N.get(a[0], {}).get(lang)
+        if row:
+            return row[i]
+    return a[4][i]
+
+
 def title(a):
-    return a[3][0] if locales.get_language() == "tr" else a[4][0]
+    return _text(a, 0)
 
 
 def desc(a):
-    return a[3][1] if locales.get_language() == "tr" else a[4][1]
+    return _text(a, 1)
 
 
 def counters(save):

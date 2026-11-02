@@ -1094,7 +1094,7 @@ _ES = {
     "shield_bought": "¡Escudo comprado! Úsalo tras un fallo", "shield_full": "Escudos al máximo (máx. 5)",
     "shield_used": "ESCUDO USADO", "shield_on_popup": "¡ESCUDO ACTIVO!", "bounce_popup": "¡REBOTE! MÁS VELOCIDAD",
     "ach_btn": "LOGROS", "ach_title": "LOGROS", "profile_short": "PERFIL", "ach_toast": "LOGRO DESBLOQUEADO",
-    "set_haptics": "Vibración", "set_olo": "Olo (el alien burlón)", "set_ghost": "Carrera fantasma (n.º 1 mundial)",
+    "set_haptics": "Vibración", "set_olo": "Olo (el alien burlón)", "set_ghost": "Carrera fantasma (el mejor del mundo)",
     "privacy_note": "Tu nombre, país y puntuaciones se envían al servidor de clasificación. No se recopilan más datos.",
     "howto_title": "CÓMO JUGAR", "howto_1": "Toca: el orbe que gira se fija, el otro gira a su alrededor",
     "howto_2": "No toques paredes, láseres ni obstáculos", "howto_3": "Recoge las estrellas, llega al portal",
@@ -1178,7 +1178,7 @@ for _lang, (_deal, _first, _pt, _ps) in {
         "tr": ("GÜNÜN İNDİRİMİ", "İLK ALIMDA 2 KAT", "TIRMANIŞ ÖDÜLÜ: +{n} ELMAS", "Geçen hafta tırmanışta {rank}. oldun!"),
         "en": ("TODAY'S DEAL", "2X ON FIRST BUY", "CLIMB PRIZE: +{n} DIAMONDS", "You came {rank}. in last week's climb!"),
         "de": ("ANGEBOT DES TAGES", "1. KAUF: DOPPELT", "KLETTERPREIS: +{n} DIAMANTEN", "Platz {rank} beim Klettern letzte Woche!"),
-        "es": ("OFERTA DEL DÍA", "1.ª COMPRA: X2", "PREMIO DE ESCALADA: +{n} DIAMANTES", "¡Puesto {rank} en la escalada de la semana pasada!")}.items():
+        "es": ("OFERTA DEL DÍA", "PRIMERA COMPRA: X2", "PREMIO DE ESCALADA: +{n} DIAMANTES", "¡Puesto {rank} en la escalada de la semana pasada!")}.items():
     STRINGS[_lang]["deal_tag"] = _deal
     STRINGS[_lang]["first_bonus_tag"] = _first
     STRINGS[_lang]["endless_prize_title"] = _pt
