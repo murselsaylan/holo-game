@@ -93,6 +93,9 @@ export const FUNNEL_STEPS = new Set([
   "app_open", "profile_shown", "profile_done",
   "tut_start", "tut_tap", "tut_half", "tut_star", "tut_done", "tut_skip", "tut_death",
   "l1_start", "l1_fail", "l1_clear", "l2_clear", "l3_clear", "l5_clear", "l10_clear",
+  // 1.0.11: every level of the first week - where do pilots stop? (start / clear once per install, fail = a counter)
+  ...Array.from({ length: 15 }, (_, i) => `l${i + 1}_start`), ...Array.from({ length: 15 }, (_, i) => `l${i + 1}_clear`),
+  ...Array.from({ length: 15 }, (_, i) => `l${i + 1}_fail`),
 ]);
 export const FUNNEL_MAX_EVENTS = 20;
 export const FUNNEL_MAX_N = 50;

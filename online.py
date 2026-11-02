@@ -226,8 +226,9 @@ class OnlineClient:
             self._submit_jobs.put(("perf", text))
 
     # ---- first-run funnel (1.1.0, server: /api/funnel, table funnel_events)
-    FUNNEL_ONCE = {"profile_shown", "profile_done", "tut_start", "tut_tap", "tut_half", "tut_star", "tut_done",
-                   "tut_skip", "l1_start", "l1_clear", "l2_clear", "l3_clear", "l5_clear", "l10_clear"}
+    FUNNEL_ONCE = ({"profile_shown", "profile_done", "tut_start", "tut_tap", "tut_half", "tut_star", "tut_done",
+                    "tut_skip", "l1_start", "l1_clear", "l2_clear", "l3_clear", "l5_clear", "l10_clear"}
+                   | {f"l{n}_{k}" for n in range(1, 16) for k in ("start", "clear")})     # the first week, level by level
 
     def funnel(self, step):
         """Count one first-run milestone ("tut_start", "l1_fail" ...). One-time steps are counted once per install;

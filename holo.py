@@ -1202,8 +1202,8 @@ class HoloGame:
             if hasattr(self.online, "fetch_friend_ghost") and self.online.friend_rows():
                 self.online.fetch_friend_ghost(level_id, lvl.data.digest)
         self.restart_level(count_attempt=False)
-        if level_id == 1:
-            self.online.funnel("l1_start")
+        if 1 <= level_id <= 15 and self.tut is None and self.daily_run is None and self.endless_run is None and self.arena_run is None:
+            self.online.funnel(f"l{level_id}_start")
         if level_id == 1 and not self.save_mgr.data.get("howto_seen"):
             self.howto_ui.reset()
             if self._tut_just_done:
@@ -1650,7 +1650,7 @@ class HoloGame:
             self.save_mgr.data.setdefault("counters", {})["combo4"] = 1
         # the run's paid help is kept with its taps (a best the server missed can be re-sent); the ghost skips such runs
         improved = self.save_mgr.record_level_clear(self.level_id, res, self.taps, self.assists)
-        if first_clear and self.level_id in (1, 2, 3, 5, 10):
+        if first_clear and 1 <= self.level_id <= 15:
             self.online.funnel(f"l{self.level_id}_clear")
         self.save_mgr.set_level_attempts(self.level_id, 1)       # cleared: the next visit counts from 1 again
         self.save_mgr.bump_daily("levels_played", 1)
@@ -2148,8 +2148,8 @@ class HoloGame:
                     save_mgr=self.save_mgr, shop=self.shop, on_revive=self.revive_run, revive_cost=REVIVE_COST,
                     on_endless=self.open_endless if self.save_mgr.endless_unlocked else None)
                 self.failure_modal.cp_resume = self._checkpoint_ready()      # the retry button continues from the flag
-                if self.level_id == 1:
-                    self.online.funnel("l1_fail")
+                if 1 <= self.level_id <= 15 and self.tut is None and self.daily_run is None:
+                    self.online.funnel(f"l{self.level_id}_fail")
                 self.failure_modal.refresh_texts()
                 self.failure_modal.on_help = self.show_guide
                 self.failure_modal.on_shield = self.retry_with_shield

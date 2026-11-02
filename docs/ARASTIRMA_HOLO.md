@@ -51,3 +51,29 @@ Arama sonuçları bazı sorularda zayıf kaldı (Geometry Dash'in ödül döngü
 - Yani sorun yalnızca görünmezlik değil, **amacın oyuncuya uymamasıydı**.
 - Yapılan: seviye bandı (3-12 / 13-30 / 31-60 / 61-100, her bandın kendi sıralaması), ödül 25 (+15 üç yıldız), üst üste gün serisi (+5 elmas/gün, 6 güne kadar), ana menüde canlı kart ve günlük bildirim.
 - Henüz ölçülmedi: yayından sonra günlük bölüm oynayan sayısına bakılmalı (`daily_runs`). Haftanın bölümü için aynı kontrol sırada.
+
+## İkinci tur: daha derin araştırma ve ekonomi denetimi (02.11.2026)
+
+Kaynaklar sektör blogları ve analiz şirketlerinin yazıları; çoğu birincil veri vermiyor, rakamlar kaynaklar arasında çelişiyor. Yön gösterir, kanıt değildir.
+
+### Dış bulgular
+| Konu | Bulgu | Kaynak türü | Karar |
+|---|---|---|---|
+| İlk oturum | Hangi adımda çıkıldığına bakmadan "ortalama" bakmak yanıltır; tutorial içinde çıkış = uzunluk, ilk birkaç bölümden sonra çıkış = zorluk; 90 sn'lik anlatım yerine 3 mini görev + kozmetik ödül tek bir vakada D1'i %18'den %38'e çıkarmış | analiz blogları (tek vaka) | Bölüm bölüm huni ölçümü eklendi (l1..l15 start/clear/fail) |
+| Seri (streak) | Kayıp korkusu seriyi tutar; "seri dondurma" tek kaçırılan günü affederek sert çıkışı önler; titiz bir nedensel çalışma bulunamadı | Duolingo blogu + analizler | Seri tek günlük toleransla yumuşatıldı (haftada 1 gün affedilir) |
+| Hayalet yarışı | Arkadaşın ya da lider tablosundakinin hayaleti, girdi kaydı olduğu için hile denetimi de sağlar; elde tutma verisi yok | geliştirici yazıları | "Yolu göster" bu kalıpla yapıldı |
+| Türkiye | D1 ~%19, D30 ~%1 (küresel altı), kullanıcıların %76'sı Android, yerli gelirin ~%97'si puzzle | pazar raporları (çelişkili) | İlk günü ve ilk haftayı ölç; Android öncelikli |
+| Ekonomi | Kaynaklar sönümden büyükse enflasyon; yeni kaynak eklemeden önce sönüm denetle | ekonomi tasarım yazıları | Aşağıdaki denetim |
+
+### HOLO ekonomi denetimi (son 14 gün, 104 aktif oyuncu)
+- Ücretsiz elmas kaynağı toplam 105.186; bunun **89.300'ü "hediye"** (98 oyuncu, kişi başı ~900). Hediye hariç kaynak yalnızca ~16.000 (oyuncu/gün ~11 elmas).
+- Harcama 99.440 (canlanma 65.440, kalkan 10.200). Hediye hariç gelirle harcama arasında ~6 kat açık var: harcamayı hediye finanse ediyor.
+- Toplam bakiye 317.868 (oyuncu başına ~2.160).
+- CLAUDE.md notu: hediyenin varsayılanı **15 Kasım 2026'dan sonra 0'a** çekilecek (`alter table players alter column gift set default 0`). O gün ücretsiz gelir ~%85 düşer; canlanma (20 elmas) alışkanlığı finansmansız kalır.
+- Bu yüzden bölüm sonu elmas, şans ödülü, sektör ve günlük ödüller (oyuncu/gün tahmini 40-100 elmas) hediyenin yerini tutmak için gerekli, gereksiz şişirme değil. Yine de ölçülmeli: `wallet_log` ile oyuncu başına net elmas/gün.
+
+### Ölçüm planı (yayından sonra)
+1. `funnel_events`: `l1..l15_start/clear/fail` ile hangi bölümde kim bırakıyor.
+2. `daily_runs`: günlük bölümü oynayan oyuncu sayısı (önce 16 / 12 gün).
+3. `wallet_log`: kaynak/sönüm oranı, `lvlwin`, `lvldrop`, `sectorwin`, `dlevel`.
+4. 7. gün geri dönüş (önce ~%12).

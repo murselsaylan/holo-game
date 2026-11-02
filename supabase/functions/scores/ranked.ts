@@ -57,9 +57,13 @@ const dayStartS = (day: number) => day * 86_400;
 /** Unbroken days of the daily level ending today (when `today` is already cleared) or yesterday. `refs` = the "dlevel" wallet refs. */
 export function dailyStreak(refs: string[], day: number, clearedToday: boolean): number {
   const have = new Set(refs);
-  let d = clearedToday ? day : day - 1, n = 0;
-  while (have.has(String(d))) { n++; d--; }
-  return n;
+  let d = clearedToday ? day : day - 1, n = 0, lastGap = Infinity;
+  for (;;) {
+    if (have.has(String(d))) { n++; d--; continue; }
+    // a missed day is forgiven when the day before it was played and no other gap was forgiven within a week
+    if (have.has(String(d - 1)) && lastGap - d >= 7) { lastGap = d; d--; continue; }
+    return n;
+  }
 }
 
 /** The level everybody plays on a (UTC) day; never the week's featured level. */
