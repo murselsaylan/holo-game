@@ -77,3 +77,17 @@ Kaynaklar sektör blogları ve analiz şirketlerinin yazıları; çoğu birincil
 2. `daily_runs`: günlük bölümü oynayan oyuncu sayısı (önce 16 / 12 gün).
 3. `wallet_log`: kaynak/sönüm oranı, `lvlwin`, `lvldrop`, `sectorwin`, `dlevel`.
 4. 7. gün geri dönüş (önce ~%12).
+
+## Üçüncü tur: ekran ekran denetim (03.11.2026)
+
+Dış kalıplar (aynı sektör yazıları, birincil veri sınırlı): ana ekran tek merkez, özellikler tam ekran değil açılır pencere (Clash Royale analizi); ana ekranda öne çıkan etkinlik ama "özellik kalabalığı" eleştirisi (Brawl Stars eleştirisi); profil = kimlik numarası + ilerleme sayıları + koleksiyon yüzdesi (Brawl Stars profili); ücretsiz yol cömert kalmalı (Brawl Pass ücretsiz yol yazısı); titreşim ve ses için ayrı kapatma (oyun erişilebilirlik rehberi).
+
+| Ekran | Bulunan eksik | Yapılan |
+|---|---|---|
+| Profil | Yalnızca isim/bayrak düzenleme; kimlik, ilerleme ve koleksiyon yok | Pilot kartı (kod, bölüm, yıldız, 3 yıldız, S+, sonsuz rekor, skin %); düzenleme karttan açılır |
+| Bölüm seçimi | Açılmamış bölümler hiç görünmüyordu (kilit çizimi koda vardı ama döngü bitiyordu); sektör ödülü görünmüyordu | Sektörün kalanı kilitli kutucuklarla, sektör finalinde +100 |
+| Görevler | Tamamlanmamış görev "KİLİTLİ" yazıyordu; "1 levels" çoğul hatası | "DEVAM EDİYOR" (kilitsiz), "1 level" |
+| Ayarlar | Bildirim kapatma yoktu (oyun hatırlatma planlıyor) | "Hatırlatmalar" düğmesi; kapatınca planlı bildirimler iptal (Android/iOS) |
+| Ana ekran | Sektör hedefi, günün bölümü kartı | Önceki tur |
+
+Henüz yapılmayanlar (öncelik sırası): bedava kapsül (4 saatte bir), skin makinesi (elmasla rastgele skin, tekrar = iade), başlangıç paketi (ilk 3 gün, mağaza ürünü gerekir), mağaza ve skin ekranı ayrıntı denetimi, öğretici sonrası ilk 3 bölüm için mini görevler.

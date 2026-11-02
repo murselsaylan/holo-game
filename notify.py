@@ -77,9 +77,33 @@ def daily_delay(save, now=None):
     return int((target - now).total_seconds()), day, login_rewards.LOGIN_REWARDS[day - 1]
 
 
+TAGS = ("daily", "comeback", "weekly")
+
+
+def enabled(save):
+    return bool(save.settings.get("reminders", True))
+
+
+def cancel_all():
+    """Settings: reminders off - the pending ones (Android WorkManager / iOS pending requests) are cancelled."""
+    try:
+        if paths.is_ios():
+            import notify_ios
+            for tag in TAGS:
+                notify_ios.cancel(tag)
+        else:
+            from jnius import autoclass
+            cls = autoclass("org.holo.notify.NotifyWorker")
+            act = autoclass("org.kivy.android.PythonActivity").mActivity
+            for tag in TAGS:
+                cls.cancel(act, tag)
+    except Exception as e:
+        print("cancelling reminders failed:", e)
+
+
 def plan(save, now=None):
     schedule, _ask = _bridge()
-    if schedule is None or not save.is_profile_set:
+    if schedule is None or not save.is_profile_set or not enabled(save):
         return False
     try:
         delay, day, gems = daily_delay(save, now)

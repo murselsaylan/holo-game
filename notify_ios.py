@@ -28,6 +28,10 @@ def schedule(tag, delay_s, title, text, _id=0):
     _center().addNotificationRequest_withCompletionHandler_(req, None)      # same identifier = replaces the older one
 
 
+def cancel(tag):
+    _center().removePendingNotificationRequestsWithIdentifiers_(["holo_" + tag])
+
+
 def ask_permission():
     done = Block(lambda granted, error: None, None, bool, objc_id)
     _center().requestAuthorizationWithOptions_completionHandler_(AUTH_OPTIONS, done)
