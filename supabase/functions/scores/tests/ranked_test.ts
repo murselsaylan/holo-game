@@ -64,7 +64,7 @@ const ref = "ab".repeat(8);
 r = await rk(B, "spend", "shield:" + ref); assert.equal(r.status, 402);                                                    // 5 stars < 12
 r = await rk(A, "spend", "shield:" + ref); assert.equal(r.status, 200); assert.equal(r.body.stars, 300 - RANKED.SHIELD_STARS);
 r = await rk(A, "spend", "shield:" + ref); assert.equal(r.body.stars, 300 - RANKED.SHIELD_STARS, "a retried ref is not charged twice");
-assert.equal(store.log.filter((l: any) => l.pid === A.p && l.reason === "spend:shield").length, 1);
+assert.equal(store.log.filter((l: any) => l.pid === A.p && l.reason === "spend:shield" && !String(l.ref).startsWith("ld:")).length, 1);   // (a level clear's bonus drop is not this spend)
 st = await rk(A, "stars");
 assert.equal(st.body.earned, 300, "spending did not lower the earned total");
 for (let i = 0; i < 6; i++) r = await rk(A, "spend", "shield:" + String(i).repeat(16));
