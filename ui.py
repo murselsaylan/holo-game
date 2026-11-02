@@ -4226,8 +4226,8 @@ class FailureModal:
         cx = VW // 2
         top = VH // 2 - 380
         self.top = top
-        self.btn_help = Button((VW // 2 + 110, top + 348, 240, 64), "", 20, bg_color=(45, 95, 190), hover_color=(70, 125, 225),
-                               border_color=(230, 140, 230), callback=self._help)
+        self.btn_help = Button((VW // 2 + 112, top + 352, 210, 58), "", 22, bg_color=(26, 44, 84), hover_color=(40, 70, 130),
+                               border_color=(0, 214, 255), callback=self._help)        # inside the card, same cyan outline as the rest
         self.btn_revive = Button((cx - 320, top + 425, 640, 96), "", 32, bg_color=(0, 190, 235), hover_color=(60, 225, 255),
                                  text_color=(255, 255, 255), callback=self._revive)
         self.pack_buttons = []
@@ -4392,7 +4392,7 @@ class FailureModal:
         hs = self._help_state()
         if hs is not None:
             self.btn_help.text = t("fr_help_asked") if hs else t("fr_help_btn")
-            self.btn_help.bg_color = (60, 50, 70) if hs else (45, 95, 190)
+            self.btn_help.bg_color = (34, 36, 48) if hs else (26, 44, 84)
             self.btn_help.draw(surface)
         if self._ad_on():
             self.btn_ad.text = t("ad_continue_btn")
