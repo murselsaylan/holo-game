@@ -2,6 +2,7 @@
 
 TUTORIAL = {
     "tr": {
+        "guide_btn": "YOLU GÖSTER", "guide_on": "YOL AÇIK", "guide_toast": "{name} bu bölümü böyle geçti: noktaları takip et",
         "dl_streak": "SERİ {n} GÜN",
         "nudge_daily": "GÜNÜN BÖLÜMÜ HAZIR!", "nudge_daily_sub": "Bölüm {n}  •  +{r} elmas  •  tek deneme",
         "near_miss_fail": "NEREDEYSE! Çok yakındın",
@@ -31,6 +32,7 @@ TUTORIAL = {
         "tut_done_title": "EĞİTİM TAMAM!", "tut_done_sub": "+{n} elmas  •  şimdi 1. bölüm",
     },
     "en": {
+        "guide_btn": "SHOW THE WAY", "guide_on": "GUIDE ON", "guide_toast": "{name} cleared this one like this: follow the dots",
         "dl_streak": "{n}-DAY STREAK",
         "nudge_daily": "TODAY'S LEVEL IS READY!", "nudge_daily_sub": "Level {n}  •  +{r} diamonds  •  one try",
         "near_miss_fail": "SO CLOSE! Almost there",
@@ -60,6 +62,7 @@ TUTORIAL = {
         "tut_done_title": "TRAINING DONE!", "tut_done_sub": "+{n} diamonds  •  now level 1",
     },
     "de": {
+        "guide_btn": "WEG ZEIGEN", "guide_on": "WEG AN", "guide_toast": "{name} hat das so geschafft: folge den Punkten",
         "dl_streak": "{n} TAGE IN FOLGE",
         "nudge_daily": "DAS TAGESLEVEL IST DA!", "nudge_daily_sub": "Level {n}  •  +{r} Diamanten  •  ein Versuch",
         "near_miss_fail": "FAST GESCHAFFT! So nah",
@@ -89,6 +92,7 @@ TUTORIAL = {
         "tut_done_title": "TRAINING GESCHAFFT!", "tut_done_sub": "+{n} Diamanten  •  jetzt Level 1",
     },
     "es": {
+        "guide_btn": "MOSTRAR CAMINO", "guide_on": "GUÍA ACTIVA", "guide_toast": "{name} lo superó así: sigue los puntos",
         "dl_streak": "RACHA DE {n} DÍAS",
         "nudge_daily": "¡EL NIVEL DE HOY ESTÁ LISTO!", "nudge_daily_sub": "Nivel {n}  •  +{r} diamantes  •  un intento",
         "near_miss_fail": "¡CASI! Muy cerca",

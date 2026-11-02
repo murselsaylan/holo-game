@@ -126,6 +126,10 @@ class HoloGame:
         self.ghost_name = None          # who the ghost is (a friend / the world's #1), None = my own best
         self.ghost_friend = False       # the ghost is a friend's run (labelled with a heart instead of "#1")
         self.help_asked = set()         # levels I asked my friends for help on in this session
+        self.guide_level = None         # the level whose route is shown as a dotted guide (a friend's / the world's best run)
+        self.guide_path = []            # [(x, y)] of that run's pivot, every GUIDE_EVERY steps (built in a thread)
+        self.guide_key = None           # (level, id of the run) the path was built for
+        self._guide_i = 0               # where the pilot is along the path
         self.heart_timer = 0.0
         self.tick_timer = 0.0
         self.tension = 0.0
@@ -1005,6 +1009,75 @@ class HoloGame:
         said[:] = (said + [key])[-12:]
         self.save_mgr.save()
         self._olo_say(kind, where="menu", delay=1.2, lvl=w.get("level") or 1, pct=int(float(w.get("pct") or 0)))
+
+    GUIDE_EVERY = 4
+
+    def _guide_run(self):
+        """The taps of the run a guide would show: a friend's best clean run of this level, else the world's #1."""
+        friend = (getattr(self.online, "friend_ghosts", None) or {}).get(self.level_id) or {}
+        world = (getattr(self.online, "ghosts", None) or {}).get(self.level_id) or {}
+        me = self.save_mgr.player_id
+        for run, is_friend in ((friend, True), (world, False)):
+            if run.get("taps") and run.get("id") != me:
+                return run, is_friend
+        return None, False
+
+    def show_guide(self):
+        """Failure screen, 'show the way': the dotted route of someone who cleared this level, then try again with it."""
+        run, is_friend = self._guide_run()
+        if run is None or self.level is None:
+            return
+        self.guide_level = self.level_id
+        key = (self.level_id, run.get("id"), len(run["taps"]))
+        if self.guide_key != key:
+            self.guide_key, self.guide_path, self._guide_i = key, [], 0
+            import threading
+            threading.Thread(target=self._build_guide, args=(key, self.level.data, sorted(run["taps"])), daemon=True).start()
+        import name_filter
+        who = name_filter.shown_name(self.save_mgr, run.get("id"), run.get("name") or "#1") or "#1"
+        self.toasts.append([t("guide_toast", name=who), "", 3.4])
+        self.audio.play_sfx("sfx_click")
+        if self.failure_modal is not None and self.failure_modal.on_retry:
+            self.failure_modal.on_retry()
+
+    def _build_guide(self, key, data, taps):
+        """Replays the run in its own Sim (the game's sim is deterministic) and keeps the pivot's position along the way."""
+        try:
+            sim, i, path = Sim(data), 0, []
+            while not sim.dead and not sim.won and sim.n < 30000:
+                while i < len(taps) and taps[i] <= sim.n:
+                    sim.swap()
+                    i += 1
+                sim.step()
+                if sim.n % self.GUIDE_EVERY == 0:
+                    o = sim.orbs[1 - sim.piv]                       # the swinging orb: its track is the route (the pivot only jumps)
+                    path.append((o.x, o.y))
+            if self.guide_key == key and sim.won:
+                self.guide_path = path
+        except Exception as e:
+            print("guide failed:", e)
+
+    def _draw_guide(self, view, s, oy):
+        """The next stretch of the route as dots, ahead of the pair (not tied to the ghost's clock)."""
+        path = self.guide_path
+        if self.guide_level != self.level_id or not path or self.endless_run is not None or self.daily_run is not None:
+            return
+        mo = s.orbs[1 - s.piv]
+        px, py = mo.x, mo.y
+        i = self._guide_i = min(self._guide_i, len(path) - 1)
+        for _ in range(60):                                 # follow the pilot along the route, never jump backwards
+            if i + 1 < len(path) and (path[i + 1][0] - px) ** 2 + (path[i + 1][1] - py) ** 2 < (path[i][0] - px) ** 2 + (path[i][1] - py) ** 2:
+                i += 1
+            else:
+                break
+        self._guide_i = i
+        for k in range(2, 44, 2):
+            j = i + k
+            if j >= len(path):
+                break
+            x, y = path[j]
+            fade = 1.0 - k / 46.0
+            pygame.draw.circle(view, (int(60 + 120 * fade), int(180 + 60 * fade), 255), (int(x), int(y - oy)), max(3, int(8 * fade)), 0)
 
     def ask_friends_help(self):
         """Failure screen, 'I am stuck': tell my friends (the server picks the shield / revive they can send)."""
@@ -2078,10 +2151,10 @@ class HoloGame:
                 if self.level_id == 1:
                     self.online.funnel("l1_fail")
                 self.failure_modal.refresh_texts()
-                self.failure_modal.on_help = self.ask_friends_help
+                self.failure_modal.on_help = self.show_guide
                 self.failure_modal.on_shield = self.retry_with_shield
                 self.failure_modal.on_shield_short = lambda: self.toasts.append([t("shield_short_toast"), "", 2.6])
-                self.failure_modal.help_probe = lambda: (bool(self.online.friend_rows()), self.level_id in self.help_asked)
+                self.failure_modal.help_probe = lambda: (self._guide_run()[0] is not None, self.guide_level == self.level_id)
                 self._offer_ad_continue(self.failure_modal)
                 self._level_finished_for_ad()
                 pct = int(s.max_progress * 100)
@@ -2677,6 +2750,7 @@ class HoloGame:
                 piv = ga if g.piv == 0 else gb
                 ui.draw_text(view, ("" if self.ghost_friend else "#1 ") + self.ghost_name, 18,
                              (255, 190, 215) if self.ghost_friend else (190, 200, 230), (piv[0], piv[1] - 34), bold=False)
+        self._draw_guide(view, s, oy)
         if self.state not in ("dying", "failed"):
             p0, p1 = s.orbs
             q0, q1 = self.prev_pos

@@ -4391,7 +4391,7 @@ class FailureModal:
         self._draw_shield(surface)
         hs = self._help_state()
         if hs is not None:
-            self.btn_help.text = t("fr_help_asked") if hs else t("fr_help_btn")
+            self.btn_help.text = t("guide_on") if hs else t("guide_btn")
             self.btn_help.bg_color = (34, 36, 48) if hs else (26, 44, 84)
             self.btn_help.draw(surface)
         if self._ad_on():
