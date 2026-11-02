@@ -36,6 +36,7 @@ r = await submit(44, t44, help, true); assert.equal(r.status, 403, "help list is
 r = await submit(44, t44, help); assert.equal(r.status, 200); assert.ok(r.body.level_score > 0); assert.equal(r.body.levels, 44);
 // the two paid shields are used up now: another assisted run needs new payments
 const t3 = refTaps(3);
+store.log = store.log.filter((l: any) => !String(l.ref).startsWith("ld:"));      // (a clear's bonus drop is a free paid-help row - not part of this check)
 r = await submit(3, t3, [[0, "S"]]); assert.equal(r.status, 402);
 // plain runs work as before
 r = await submit(3, t3); assert.equal(r.status, 200); assert.ok(r.body.level_score > 0);
