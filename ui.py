@@ -1640,6 +1640,8 @@ def state_pill(surface, r, text, mode):
         cx, cy = r.x + 30, r.centery
         pygame.draw.lines(surface, (255, 255, 255), False, [(cx - 9, cy), (cx - 2, cy + 7), (cx + 10, cy - 7)], 4)
         draw_text(surface, text, 22, (230, 255, 240), (r.centerx + 12, r.centery), max_w=r.w - 56)
+    elif mode == "progress":                              # not done yet: quiet, no padlock (nothing is locked)
+        draw_text(surface, text, 21, (140, 152, 180), r.center, bold=False, max_w=r.w - 24)
     else:
         lx, ly = r.x + 28, r.centery + 2                  # small padlock
         pygame.draw.rect(surface, (100, 115, 150), (lx - 8, ly - 2, 16, 12), border_radius=3)
@@ -1939,7 +1941,8 @@ class DailyMissionsScreen(_ClaimMixin):
         orbit_badge(surface, r.x + 66, r.centery, 40, (60, 210, 130) if got else accent, "check" if got else "gem",
                     lit=got or done_full or cur > 0)
         tx = r.x + 128
-        draw_text(surface, t(m["label_key"], n=fmt_int(tot)), 28, TEXT_WHITE, (tx, r.y + 34), anchor="midleft",
+        label = "daily_level_one" if m["label_key"] == "daily_levels" and tot == 1 else m["label_key"]       # "1 level", not "1 levels"
+        draw_text(surface, t(label, n=fmt_int(tot)), 28, TEXT_WHITE, (tx, r.y + 34), anchor="midleft",
                   max_w=r.w - 350)
         draw_diamond_icon(surface, tx + 10, r.y + 68, 10, (0, 230, 255))
         draw_text(surface, t("daily_reward", n=m["reward"]), 21, (255, 215, 120), (tx + 26, r.y + 68), anchor="midleft",
@@ -1954,7 +1957,7 @@ class DailyMissionsScreen(_ClaimMixin):
         elif done_full:
             self._button(surface, br, kind, m["id"])
         else:
-            state_pill(surface, br, t("locked"), "locked")
+            state_pill(surface, br, t("mission_progress"), "progress")
 
     def draw(self, surface):
         sm = self.save_mgr
@@ -2010,7 +2013,8 @@ class LevelSelectScreen:
     def refresh_content_height(self):
         unlocked = self.save_mgr.unlocked_level
         full_sectors, last_index = divmod(unlocked - 1, 20)
-        rows = (last_index + 1 + self.COLS - 1) // self.COLS
+        last = min(20, MAX_LEVELS - full_sectors * 20)               # the whole current sector is shown, locked tiles included
+        rows = (last + self.COLS - 1) // self.COLS
         self.content_h = full_sectors * self.sec_block + self.SEC_H + rows * (self.CARD + self.GAP) + 30
 
     def focus_level(self, lvl):
@@ -2077,7 +2081,7 @@ class LevelSelectScreen:
             draw_text(surface, f"{done}/20", 46, TEXT_WHITE, (hr.right - 30, hr.centery), anchor="midright")
         unlocked = sm.unlocked_level
         current = sm.campaign_level
-        for lvl in range(1, unlocked + 1):
+        for lvl in range(1, min(MAX_LEVELS, ((unlocked - 1) // 20 + 1) * 20) + 1):
             r = self.card_rect(lvl)
             if r.bottom < self.top or r.top > VH:
                 continue
@@ -2097,9 +2101,15 @@ class LevelSelectScreen:
                     draw_text(surface, f"{best_score:,}", 24, (160, 220, 255), (r.centerx, r.bottom - 26), bold=False)
                 else:
                     draw_text(surface, t("play"), 26, sec_col, (r.centerx, r.bottom - 26))
+                if lvl % 20 == 0 and not stars:                        # a sector finale not cleared yet: +100 waits on it
+                    draw_diamond_icon(surface, r.right - 30, r.y + 26, 9, (255, 215, 90))
+                    draw_text(surface, f"+{SECTOR_REWARD}", 20, (255, 215, 90), (r.right - 54, r.y + 26), anchor="midright")
             else:
                 panel(surface, r, (14, 17, 26), (30, 35, 50), 20, 2)
                 draw_text(surface, f"{lvl}", 46, (60, 70, 92), (r.centerx, r.y + 58))
+                if lvl % 20 == 0:                                      # the sector's last level: its reward is on show
+                    draw_diamond_icon(surface, r.centerx - 30, r.bottom - 26, 9, (190, 160, 60))
+                    draw_text(surface, f"+{SECTOR_REWARD}", 22, (190, 160, 60), (r.centerx + 6, r.bottom - 26))
                 cx, cy = r.centerx, r.y + 118
                 pygame.draw.arc(surface, (90, 100, 125), (cx - 16, cy - 30, 32, 30), 0, math.pi, 4)
                 pygame.draw.rect(surface, (64, 74, 98), (cx - 20, cy - 10, 40, 32), border_radius=6)
