@@ -82,7 +82,7 @@ r = await rk(A, "league"); assert.equal(r.status, 400, "league op is gone");
 console.log("NO LEAGUE OK");
 
 // ---- 3. daily level: one level for all, one try, replay-checked, reward once, ranking
-const day = Math.floor(now0 / 86_400_000), dl = dailyLevel(day);
+const day = Math.floor(now0 / 86_400_000), dl = dailyLevel(day, 0);   // the test pilots have cleared nothing: band 0
 const D = await mk("A"), E = await mk("B");
 r = await rk(D, "daily"); assert.equal(r.body.level, dl); assert.equal(r.body.state, "open");
 assert.equal((await rk(E, "daily")).body.level, dl, "same level for everybody");

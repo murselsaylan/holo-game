@@ -43,3 +43,11 @@ Arama sonuçları bazı sorularda zayıf kaldı (Geometry Dash'in ödül döngü
 
 - Rastgele ödüller ve kutular bazı ülkelerde kumar kuralına girebilir; olasılıklar oyunda gösterilmeli ve gerçek parayla rastgele kutu satılmamalı (yalnız oyunda kazanılan elmasla).
 - Çocuk kullanıcılar: oyunun yaş derecelendirmesi ve reklam politikası kontrol edilmeli.
+
+## Günlük bölüm neden işlemedi (veri, 02.11.2026)
+
+- 12 günde yalnızca 16 oyuncu, 26 deneme. Haftanın bölümünü 0 oyuncu oynadı. Arkadaş bağlantısı 3, davet 0.
+- Neden: günlük bölüm herkes için **10-100 arasından tek bir bölümdü** (tek deneme). Aktif oyuncunun ortalama %19'u o günün bölümünü açmıştı; 106 aktif oyuncudan 68'i çoğu günü oynayamıyordu. Ödül 10 elmastı.
+- Yani sorun yalnızca görünmezlik değil, **amacın oyuncuya uymamasıydı**.
+- Yapılan: seviye bandı (3-12 / 13-30 / 31-60 / 61-100, her bandın kendi sıralaması), ödül 25 (+15 üç yıldız), üst üste gün serisi (+5 elmas/gün, 6 güne kadar), ana menüde canlı kart ve günlük bildirim.
+- Henüz ölçülmedi: yayından sonra günlük bölüm oynayan sayısına bakılmalı (`daily_runs`). Haftanın bölümü için aynı kontrol sırada.

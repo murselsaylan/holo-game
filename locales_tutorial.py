@@ -2,6 +2,8 @@
 
 TUTORIAL = {
     "tr": {
+        "dl_streak": "SERİ {n} GÜN",
+        "nudge_daily": "GÜNÜN BÖLÜMÜ HAZIR!", "nudge_daily_sub": "Bölüm {n}  •  +{r} elmas  •  tek deneme",
         "near_miss_fail": "NEREDEYSE! Çok yakındın",
         "drop_shield": "ŞANS! BONUS +1 KALKAN", "drop_revive": "ŞANS! BONUS +1 CANLANMA", "drop_gems": "ŞANSLI BİTİRİŞ! +{n} ELMAS",
         "sector_goal": "SEKTÖR ÖDÜLÜ: +{n} ELMAS  •  {left} bölüm kaldı",
@@ -29,6 +31,8 @@ TUTORIAL = {
         "tut_done_title": "EĞİTİM TAMAM!", "tut_done_sub": "+{n} elmas  •  şimdi 1. bölüm",
     },
     "en": {
+        "dl_streak": "{n}-DAY STREAK",
+        "nudge_daily": "TODAY'S LEVEL IS READY!", "nudge_daily_sub": "Level {n}  •  +{r} diamonds  •  one try",
         "near_miss_fail": "SO CLOSE! Almost there",
         "drop_shield": "LUCKY! BONUS +1 SHIELD", "drop_revive": "LUCKY! BONUS +1 REVIVE", "drop_gems": "LUCKY CLEAR! +{n} DIAMONDS",
         "sector_goal": "SECTOR REWARD: +{n} DIAMONDS  •  {left} levels to go",
@@ -56,6 +60,8 @@ TUTORIAL = {
         "tut_done_title": "TRAINING DONE!", "tut_done_sub": "+{n} diamonds  •  now level 1",
     },
     "de": {
+        "dl_streak": "{n} TAGE IN FOLGE",
+        "nudge_daily": "DAS TAGESLEVEL IST DA!", "nudge_daily_sub": "Level {n}  •  +{r} Diamanten  •  ein Versuch",
         "near_miss_fail": "FAST GESCHAFFT! So nah",
         "drop_shield": "GLÜCK! BONUS +1 SCHILD", "drop_revive": "GLÜCK! BONUS +1 WIEDERBELEBUNG", "drop_gems": "GLÜCKSTREFFER! +{n} DIAMANTEN",
         "sector_goal": "SEKTOR-BELOHNUNG: +{n} DIAMANTEN  •  noch {left} Level",
@@ -83,6 +89,8 @@ TUTORIAL = {
         "tut_done_title": "TRAINING GESCHAFFT!", "tut_done_sub": "+{n} Diamanten  •  jetzt Level 1",
     },
     "es": {
+        "dl_streak": "RACHA DE {n} DÍAS",
+        "nudge_daily": "¡EL NIVEL DE HOY ESTÁ LISTO!", "nudge_daily_sub": "Nivel {n}  •  +{r} diamantes  •  un intento",
         "near_miss_fail": "¡CASI! Muy cerca",
         "drop_shield": "¡SUERTE! BONO +1 ESCUDO", "drop_revive": "¡SUERTE! BONO +1 REVIVIR", "drop_gems": "¡SUERTE! +{n} DIAMANTES",
         "sector_goal": "PREMIO DE SECTOR: +{n} DIAMANTES  •  faltan {left} niveles",

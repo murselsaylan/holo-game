@@ -12,6 +12,10 @@ SHIELD_STARS = 12                  # one-attempt start shield (same shield as th
 SHIELD_STARS_PER_DAY = 5
 
 # daily level: one level for everybody (UTC day), one try
-DAILY_FIRST, DAILY_LAST = 10, 100
-DAILY_REWARD = 10                  # diamonds for clearing it
-DAILY_REWARD_3STAR = 5             # extra for three stars
+DAILY_FIRST, DAILY_LAST = 10, 100                       # the old single pool (kept for old tests / clients)
+# 1.0.11: the day's level fits the pilot - [first level, last level, levels cleared needed]; each band has its own ranking
+DAILY_BANDS = [[3, 12, 0], [13, 30, 15], [31, 60, 35], [61, 100, 65]]
+DAILY_REWARD = 25                  # diamonds for clearing it
+DAILY_REWARD_3STAR = 15
+DAILY_STREAK_STEP = 5               # extra diamonds per day of an unbroken daily-level streak (the 2nd day pays 1 step ...)
+DAILY_STREAK_MAX = 6                # ... up to this many steps (the 7th day on)            # extra for three stars

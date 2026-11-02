@@ -654,7 +654,7 @@ async function ranked(store: Store, d: Record<string, unknown>, ip: string, nowM
   const digest = op === "daily_submit" ? await sha256Hex(taps.join(",")) : "";
   const pl = await authed(store, d, nowMs, (secret) => signLive(secret, String(d.player_id), Number(d.ts), "ranked", op, arg, digest));
   if (!pl) return R(403, { error: "bad signature" });
-  const r = await rankedOp({ rs: store.ranked, ws: store, level: getLevel, sha256: sha256Hex }, pl.id, op, arg, { ...d, taps }, nowMs);
+  const r = await rankedOp({ rs: store.ranked, ws: store, level: getLevel, sha256: sha256Hex, levels: pl.levels }, pl.id, op, arg, { ...d, taps }, nowMs);
   return R(r.status, r.body);
 }
 

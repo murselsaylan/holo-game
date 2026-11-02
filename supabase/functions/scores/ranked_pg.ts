@@ -59,18 +59,19 @@ export class PgRanked implements RankedStore {
       WHERE day = ${day} AND player_id = ${pid} AND finished = 0 RETURNING 1`;
     return r.length > 0;
   }
-  async dailyBoard(day: number, limit: number): Promise<DailyRow[]> {
+  async dailyBoard(day: number, limit: number, level?: number): Promise<DailyRow[]> {
+    const lv = level ?? -1;                                              // -1: every level of the day (old callers)
     const r = await this.sql`SELECT d.player_id AS id, p.name, p.country, d.score, d.stars, d."time" FROM daily_runs d
-      JOIN players p ON p.id = d.player_id WHERE d.day = ${day} AND d.finished > 0 ORDER BY d.score DESC, d."time" ASC, d.finished ASC LIMIT ${limit}`;
+      JOIN players p ON p.id = d.player_id WHERE d.day = ${day} AND (${lv} < 0 OR d.level = ${lv}) AND d.finished > 0 ORDER BY d.score DESC, d."time" ASC, d.finished ASC LIMIT ${limit}`;
     return r.map((x: Sql) => ({ id: String(x.id), name: String(x.name), country: String(x.country), score: Number(x.score),
                                 stars: Number(x.stars), time: Number(x.time) }));
   }
   async dailyRank(day: number, pid: string) {
-    const me = await this.sql`SELECT score, "time" FROM daily_runs WHERE day = ${day} AND player_id = ${pid} AND finished > 0`;
+    const me = await this.sql`SELECT score, "time", level FROM daily_runs WHERE day = ${day} AND player_id = ${pid} AND finished > 0`;
     if (!me.length) return null;
-    const a = await this.sql`SELECT COUNT(*)::int AS n FROM daily_runs WHERE day = ${day} AND finished > 0
+    const a = await this.sql`SELECT COUNT(*)::int AS n FROM daily_runs WHERE day = ${day} AND level = ${me[0].level} AND finished > 0
       AND (score > ${me[0].score} OR (score = ${me[0].score} AND "time" < ${me[0].time}))`;
-    const t = await this.sql`SELECT COUNT(*)::int AS n FROM daily_runs WHERE day = ${day} AND finished > 0`;
+    const t = await this.sql`SELECT COUNT(*)::int AS n FROM daily_runs WHERE day = ${day} AND level = ${me[0].level} AND finished > 0`;
     return { rank: Number(a[0].n) + 1, total: Number(t[0].n) };
   }
 }

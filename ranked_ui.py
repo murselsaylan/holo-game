@@ -149,7 +149,7 @@ class RankedPanel:
         draw_text(s, t("rk_dl_title"), 34, (255, 170, 80), (self.cw // 2, r.y + 40), max_w=self.cw - 40)
         draw_text(s, t("rk_dl_level", n=d.get("level", "?")), 66, TEXT_WHITE, (self.cw // 2, r.y + 112), max_w=self.cw - 40)
         draw_text(s, t("rk_dl_sub"), 22, TEXT_MUTED, (self.cw // 2, r.y + 166), bold=False, max_w=self.cw - 40)
-        draw_text(s, t("rk_dl_reward", a=d.get("reward", 10), b=d.get("reward_3", 5)), 22, ACCENT_GOLD, (self.cw // 2, r.y + 200),
+        draw_text(s, t("rk_dl_reward", a=int(d.get("reward", 10)) + int(d.get("streak_bonus", 0)), b=d.get("reward_3", 5)), 22, ACCENT_GOLD, (self.cw // 2, r.y + 200),
                   bold=False, max_w=self.cw - 40)
         left = max(0, int(d.get("ends") or 0) - int(time.time()))
         draw_text(s, t("rk_dl_ends", h=left // 3600, m=(left % 3600) // 60), 22, TEXT_MUTED, (self.cw // 2, r.y + 232), bold=False)

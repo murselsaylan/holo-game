@@ -361,6 +361,7 @@ class HoloGame:
             on_daily=self.open_daily, on_endless=self.open_endless,
             on_arena=self.open_arena if ARENA_ENABLED else None)
         self.menu_ui.extra_badges = self._reward_badges
+        self.menu_ui.live_card = self._menu_live_card
         self.menu_ui.build()
         self.level_select_ui = ui.LevelSelectScreen(self.save_mgr, self.on_select_level, self.open_menu)
         self.leaderboard_ui = ui.LeaderboardScreen(self.save_mgr, self.open_menu,
@@ -470,6 +471,15 @@ class HoloGame:
         pilot who has played a little - nobody finds the friends window on their own."""
         sm = self.save_mgr
         if self.toasts or not sm.is_profile_set or sm.levels_cleared < 3 or not self.online.enabled:
+            return
+        d = self.online.ranked.daily
+        today = int(time.time() // 86400)
+        if d and d.get("state") == "open" and sm.data.get("daily_nudge_day") != today and sm.stars_unlocked:
+            sm.data["daily_nudge_day"] = today                  # once a day: the day's level is waiting
+            sm.save()
+            self.toasts.append([t("nudge_daily"), t("nudge_daily_sub", n=d.get("level", "?"),
+                                                    r=int(d.get("reward", 0)) + int(d.get("streak_bonus", 0))), 4.5])
+            self.audio.play_sfx("sfx_coin")
             return
         now = time.time()
         if now - float(sm.data.get("invite_nudge_t", 0) or 0) < 20 * 3600:
@@ -933,6 +943,30 @@ class HoloGame:
     def _play_weekly_level(self, level_id):
         self.on_select_level(level_id)
 
+    def _menu_live_card(self):
+        """What the main screen's card shows: the daily level while its one try is open; else the week's level (play it /
+        claim it). Nothing offline or before the levels open (daily: level 3)."""
+        sm = self.save_mgr
+        if not self.online.enabled or not sm.stars_unlocked:
+            return None
+        d = self.online.ranked.daily
+        if d and d.get("state") == "open":
+            left = max(0, int(d.get("ends") or 0) - int(time.time()))
+            total = int(d.get("reward", 0)) + int(d.get("streak_bonus", 0))             # the streak's extra is part of what it pays
+            streak = int(d.get("streak", 0))
+            sub = (f"{t('rk_dl_level', n=d.get('level', '?'))}  •  {t('win_diamonds', n=total)}"
+                   + (f"  •  {t('dl_streak', n=streak)}" if streak else f"  •  {left // 3600}:{(left % 3600) // 60:02d}"))
+            return {"title": t("rk_dl_title"), "sub": sub, "color": (255, 170, 80),
+                    "cb": lambda: self._open_daily_missions("daily")}
+        w = (self.online.crowd.data or {}).get("wlevel") or {}
+        if w.get("cleared") and not w.get("claimed"):
+            return {"title": t("cw_wl_title"), "sub": t("cw_wl_claim", n=w.get("reward", 0)), "color": (120, 235, 160),
+                    "cb": lambda: self._open_daily_missions("crowd")}
+        if w and not w.get("cleared") and int(w.get("level") or 999) <= sm.unlocked_level:
+            return {"title": t("cw_wl_title"), "sub": f"{t('cw_wl_level', lvl=w.get('level', '?'))}  •  {t('win_diamonds', n=w.get('reward', 0))}",
+                    "color": (120, 200, 255), "cb": lambda: self._open_daily_missions("crowd")}
+        return None
+
     def _reward_badges(self):
         """Extra rewards ready on the daily screen (team goal, level of the week) for the menu's red dot."""
         return self.online.crowd.claimable()
@@ -944,6 +978,8 @@ class HoloGame:
             return
         c = self.online.crowd
         c.refresh(max_age=90.0)
+        if self.save_mgr.stars_unlocked:
+            self.online.ranked.refresh("daily", max_age=120.0)      # the main screen's day-level card
         if self.save_mgr.stars_unlocked:
             self.online.ranked.refresh("stars", max_age=120.0)
         d = c.data

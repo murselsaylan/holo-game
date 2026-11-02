@@ -44,15 +44,16 @@ export class MemRanked implements RankedStore {
     Object.assign(r, { finished: now, score, stars, time, taps });
     return true;
   }
-  private done(day: number) {
-    return [...this.runs.values()].filter((r) => r.day === day && r.finished > 0)
+  private done(day: number, level?: number) {
+    return [...this.runs.values()].filter((r) => r.day === day && r.finished > 0 && (level === undefined || r.level === level))
       .sort((a, b) => b.score - a.score || a.time - b.time || a.finished - b.finished);
   }
-  async dailyBoard(day: number, limit: number): Promise<DailyRow[]> {
-    return this.done(day).slice(0, limit).map((r) => ({ id: r.pid, ...this.names(r.pid), score: r.score, stars: r.stars, time: r.time }));
+  async dailyBoard(day: number, limit: number, level?: number): Promise<DailyRow[]> {
+    return this.done(day, level).slice(0, limit).map((r) => ({ id: r.pid, ...this.names(r.pid), score: r.score, stars: r.stars, time: r.time }));
   }
   async dailyRank(day: number, pid: string) {
-    const d = this.done(day), i = d.findIndex((r) => r.pid === pid);
+    const mine = this.runs.get(day + "|" + pid);
+    const d = this.done(day, mine?.level), i = d.findIndex((r) => r.pid === pid);
     return i < 0 ? null : { rank: i + 1, total: d.length };
   }
 }

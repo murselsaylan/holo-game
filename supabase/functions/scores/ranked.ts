@@ -36,11 +36,13 @@ export interface RankedStore {
   dailyRestart(day: number, pid: string, now: number): Promise<boolean>;
   /** Stores the finished run once (false when already finished). */
   dailyFinish(day: number, pid: string, score: number, stars: number, time: number, taps: number[], now: number): Promise<boolean>;
-  dailyBoard(day: number, limit: number): Promise<DailyRow[]>;
+  dailyBoard(day: number, limit: number, level?: number): Promise<DailyRow[]>;
   dailyRank(day: number, pid: string): Promise<{ rank: number; total: number } | null>;
 }
 
 export interface RankedCtx {
+  /** levels the pilot has cleared (picks the daily level's band); unknown in minimal contexts. */
+  levels?: number;
   rs: RankedStore;
   ws: WalletStore & { playerBests(pid: string): Promise<{ level: number; stars: number }[]> };
   level(n: number): LevelData | null;
@@ -52,13 +54,28 @@ export interface RankedCtx {
 export const utcDay = (nowMs: number) => Math.floor(nowMs / DAY_MS);
 const dayStartS = (day: number) => day * 86_400;
 
+/** Unbroken days of the daily level ending today (when `today` is already cleared) or yesterday. `refs` = the "dlevel" wallet refs. */
+export function dailyStreak(refs: string[], day: number, clearedToday: boolean): number {
+  const have = new Set(refs);
+  let d = clearedToday ? day : day - 1, n = 0;
+  while (have.has(String(d))) { n++; d--; }
+  return n;
+}
+
 /** The level everybody plays on a (UTC) day; never the week's featured level. */
-export function dailyLevel(day: number): number {
-  const n = K.DAILY_LAST - K.DAILY_FIRST + 1;
-  const pick = (d: number) => K.DAILY_FIRST + ((d * 7919 + 17) % n);
+export function dailyLevel(day: number, cleared?: number): number {
+  // 1.0.11: a pool that fits the pilot (nobody could play a level-80 daily with 15 levels cleared). `cleared` unknown ->
+  // the old single pool, which old tests and callers still use.
+  let first = K.DAILY_FIRST, last = K.DAILY_LAST, band = 0;
+  if (cleared !== undefined) {
+    const bands = K.DAILY_BANDS as readonly (readonly number[])[];
+    for (let i = 0; i < bands.length; i++) if (cleared >= bands[i][2]) { first = bands[i][0]; last = bands[i][1]; band = i; }
+  }
+  const n = last - first + 1;
+  const pick = (d: number) => first + ((d * 7919 + 17 + band * 31) % n);
   let lv = pick(day);
   const week = crowdWeekKey(day * DAY_MS);
-  if (lv === weeklyLevel(week)) lv = K.DAILY_FIRST + ((lv - K.DAILY_FIRST + 1) % n);
+  if (lv === weeklyLevel(week)) lv = first + ((lv - first + 1) % n);
   return lv;
 }
 
@@ -128,11 +145,17 @@ async function dailyView(ctx: RankedCtx, pid: string, nowMs: number) {
   const { rs, ws } = ctx;
   const day = utcDay(nowMs);
   const run = await rs.dailyRun(day, pid);
+  const dlevel = run ? run.level : dailyLevel(day, ctx.levels);       // a started day keeps its level, whatever the pilot clears meanwhile
   const rank = run && run.finished > 0 ? await rs.dailyRank(day, pid) : null;
-  const board = await rs.dailyBoard(day, 20);
-  const claimed = (await ws.walletRefs(pid, "dlevel", dayStartS(day) - 86_400)).includes(String(day));
+  const board = await rs.dailyBoard(day, 20, dlevel);
+  const refs = await ws.walletRefs(pid, "dlevel", dayStartS(day) - 40 * 86_400);
+  const claimed = refs.includes(String(day));
+  const streak = dailyStreak(refs, day, claimed);                    // days in a row (today counted once cleared)
+  const before = claimed ? streak - 1 : streak;                      // the streak the next clear continues
+  const streakBonus = K.DAILY_STREAK_STEP * Math.min(before, K.DAILY_STREAK_MAX);
   return {
-    day, level: dailyLevel(day), ends: dayStartS(day + 1), reward: K.DAILY_REWARD, reward_3: K.DAILY_REWARD_3STAR,
+    streak, streak_bonus: streakBonus,
+    day, level: dlevel, ends: dayStartS(day + 1), reward: K.DAILY_REWARD, reward_3: K.DAILY_REWARD_3STAR,
     state: !run ? "open" : run.finished > 0 ? "done" : "started", claimed,
     run: run && run.finished > 0 ? { score: run.score, stars: run.stars, time: run.time } : null,
     rank: rank?.rank ?? 0, total: rank?.total ?? 0,
@@ -189,7 +212,7 @@ export async function rankedOp(ctx: RankedCtx, pid: string, op: string, arg: str
   }
 
   if (op === "daily_start") {
-    const day = utcDay(nowMs), level = dailyLevel(day);
+    const day = utcDay(nowMs), level = (await rs.dailyRun(day, pid))?.level ?? dailyLevel(day, ctx.levels);
     if (!ctx.level(level)) return R(400, { error: "unknown level" });
     const first = await rs.dailyStart(day, pid, level, now);       // the try is used from this moment on
     return R(200, { ok: true, ...(await dailyView(ctx, pid, nowMs)), first });
@@ -214,9 +237,10 @@ export async function rankedOp(ctx: RankedCtx, pid: string, op: string, arg: str
   }
 
   if (op === "daily_submit") {
-    const day = utcDay(nowMs), level = dailyLevel(day);
+    const day = utcDay(nowMs);
     const run = await rs.dailyRun(day, pid);
     if (!run) return R(409, { error: "not started" });
+    const level = run.level;
     if (run.finished > 0) return R(200, { ok: true, ...(await dailyView(ctx, pid, nowMs)), dup: true });
     const taps = d.taps;
     if (!Array.isArray(taps) || !taps.length || taps.length > MAX_DAILY_TAPS || !taps.every((x) => Number.isInteger(x))) {
@@ -237,7 +261,9 @@ export async function rankedOp(ctx: RankedCtx, pid: string, op: string, arg: str
     const fresh = await rs.dailyFinish(day, pid, res.level_total, res.stars, res.time, t, now);
     let added = 0, balance: number | null = await ws.walletBalance(pid);
     if (fresh && balance !== null) {
-      const reward = K.DAILY_REWARD + (res.stars >= 3 ? K.DAILY_REWARD_3STAR : 0);
+      const refs = await ws.walletRefs(pid, "dlevel", dayStartS(day) - 40 * 86_400);
+      const bonus = K.DAILY_STREAK_STEP * Math.min(dailyStreak(refs, day, false), K.DAILY_STREAK_MAX);   // yesterday's run continues
+      const reward = K.DAILY_REWARD + (res.stars >= 3 ? K.DAILY_REWARD_3STAR : 0) + bonus;
       const r = await ws.walletChange(pid, reward, "dlevel", String(day), now);
       added = r.dup ? 0 : reward;
       balance = r.balance;

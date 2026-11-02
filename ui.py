@@ -1130,6 +1130,8 @@ class MainMenu:
         self.btn_ach = None
         self.enter = 1.0                       # 0..1 while the start-up intro slides the edge icons in
         self.extra_badges = None               # () -> extra rewards waiting on the daily screen (team goal, level of the week)
+        self.live_card = None                  # () -> {"title", "sub", "color", "cb"} | None: the day's level / the week's level
+        self.live_chip = None
         self.build()
 
     # ------------------------------------------------------------------ layout
@@ -1161,6 +1163,8 @@ class MainMenu:
                 label, size, bg, hov, tc, cb = self._mode_style(mode, getattr(self.save_mgr, f"{mode}_unlocked"))
                 self.buttons.append(Button((cx - w // 2 + i * (bw + 24), top + 176, bw, 96), label, size, bg_color=bg,
                                            hover_color=hov, text_color=tc, callback=self.callbacks[cb]))
+        self.live_rect = pygame.Rect(cx - w // 2, top + 292, w, 84)         # under the mode row, above Olo
+        self.live_chip = _Chip(self.live_rect, None)
         self.progress_rect = pygame.Rect(cx - 330, self._chip_y() + 34, 660, 80)
         self._progress_down = False
         self.track_page = None            # first sector shown on the progress track (4 at a time, swipe to scroll)
@@ -1235,6 +1239,9 @@ class MainMenu:
                 return b.callback
         if self.chip.handle_event(event):
             return self.chip.callback
+        live = self._live()
+        if live and self.live_chip.handle_event(event):
+            return live["cb"]
         # the progress line + sector track opens the levels page
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             self._progress_down = self.progress_rect.collidepoint(event.pos)
@@ -1358,7 +1365,7 @@ class MainMenu:
         info = self.rank_provider() if self.rank_provider else None
         return (get_language(), VW, VH, id(backdrop), sm.player_name, sm.player_country, sm.levels_cleared,
                 sm.get_total_stars(), (info or {}).get("rank"), sm.campaign_level, sm.diamonds,
-                self._daily_badge(),
+                self._daily_badge(), (lambda c: (c["title"], c["sub"]) if c else None)(self._live()),
                 _event_due(sm) if self.btn_ach else 0,
                 tuple((b.sprite() or (None,))[0] for b in self.buttons),
                 tuple((b.pressed, b.offset) for b in self.icons), self.chip.pressed, self._track_first())
@@ -1380,6 +1387,28 @@ class MainMenu:
     def _extra(self):
         return int(self.extra_badges() or 0) if self.extra_badges else 0
 
+    def _live(self):
+        try:
+            return self.live_card() if self.live_card else None
+        except Exception:
+            return None
+
+    def _draw_live_card(self, surface):
+        """The day's level / the week's level as a card on the main screen - nobody found them inside the quests window."""
+        c = self._live()
+        if not c:
+            return
+        r = self.live_rect
+        col = c.get("color", (255, 170, 80))
+        pygame.draw.rect(surface, (22, 18, 30), r, border_radius=26)
+        pygame.draw.rect(surface, col, r, 3, border_radius=26)
+        draw_text(surface, c["title"], 28, col, (r.x + 30, r.y + 26), anchor="midleft", max_w=r.w - 130)
+        draw_text(surface, c["sub"], 22, (215, 225, 245), (r.x + 30, r.y + 60), anchor="midleft", bold=False, max_w=r.w - 130)
+        dot = (r.right - 36, r.centery)                                  # a red dot, like the other waiting rewards
+        pygame.draw.circle(surface, (255, 60, 70), dot, 17)
+        pygame.draw.circle(surface, (255, 255, 255), dot, 17, 2)
+        draw_text(surface, "!", 24, (255, 255, 255), dot)
+
     def _daily_badge(self):
         """Rewards ready on the daily screen: login reward, missions, the team goal and the level of the week."""
         return (self.save_mgr.daily_claimable_count() + _login_due(self.save_mgr) + self._extra()) if self.btn_daily else 0
@@ -1395,6 +1424,7 @@ class MainMenu:
             rs.append(area)
         for b in self.icons:
             rs.append(b.rect.inflate(40, 80).move(0, 20))
+        rs.append(self.live_rect.inflate(20, 20))
         rs.append(pygame.Rect(self.diamond_x - 110, self.top_y - 30, 180, 60))
         rs.append(pygame.Rect(0, VH - 44, VW, 44))
         return [r for r in rs if r.w > 0 and r.h > 0]
@@ -1466,6 +1496,7 @@ class MainMenu:
             for b in self.buttons:
                 b.draw(surface)
         self._draw_level_card(surface)
+        self._draw_live_card(surface)
         for b in self.icons:
             b.draw(surface)
         self._draw_diamonds(surface)
