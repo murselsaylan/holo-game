@@ -1041,9 +1041,6 @@ class HoloGame:
         for run, is_friend in ((friend, True), (world, False)):
             if run.get("taps") and run.get("id") != me:
                 return run, is_friend
-        ref = self.level.data.raw.get("ref_taps") if self.level is not None and self.level_id >= 1 else None
-        if ref and self.endless_run is None and self.arena_run is None and self.daily_run is None:
-            return {"taps": list(ref), "id": "holo-ref", "name": "HOLO"}, False       # nobody's run yet: the level's own verified route
         return None, False
 
     def show_guide(self):
@@ -1058,8 +1055,7 @@ class HoloGame:
             import threading
             threading.Thread(target=self._build_guide, args=(key, self.level.data, sorted(run["taps"])), daemon=True).start()
         import name_filter
-        who = ("HOLO" if run.get("id") == "holo-ref"
-               else name_filter.shown_name(self.save_mgr, run.get("id"), run.get("name") or "#1") or "#1")
+        who = name_filter.shown_name(self.save_mgr, run.get("id"), run.get("name") or "#1") or "#1"
         self.toasts.append([t("guide_toast", name=who), "", 3.4])
         self.audio.play_sfx("sfx_click")
         if self.failure_modal is not None and self.failure_modal.on_retry:
