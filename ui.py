@@ -4772,9 +4772,9 @@ class LoginRewardModal:
         self.anim = 0.0
         self.top = VH // 2 - 470
         cx = VW // 2
-        self.btn_claim = Button((cx - 300, self.top + 760, 600, 104), "", 38, bg_color=(30, 190, 110),
+        self.btn_claim = Button((cx - 300, self.top + 700, 600, 104), "", 38, bg_color=(30, 190, 110),
                                 hover_color=(70, 225, 150), callback=on_claim)
-        self.btn_later = Button((cx - 150, self.top + 880, 300, 64), "", 24, bg_color=(70, 80, 110), callback=on_close)
+        self.btn_later = Button((cx - 150, self.top + 822, 300, 64), "", 24, bg_color=(70, 80, 110), callback=on_close)
 
     def _today(self):
         if self.claimed:
@@ -4844,10 +4844,40 @@ class LoginRewardModal:
             pygame.draw.circle(surface, (120, 240, 170), cc, 15, 2)
             pygame.draw.lines(surface, (255, 255, 255), False, [(cc[0] - 7, cc[1]), (cc[0] - 2, cc[1] + 5), (cc[0] + 7, cc[1] - 5)], 3)
 
+    def _draw_streak(self, surface, card, today, taken):
+        """Seven linked nodes under the tiles: the streak so far, today pulsing, day 7 as a star; a line says what
+        tomorrow gives (the dead space the calendar used to leave)."""
+        y = self.top + 596
+        x0, x1 = card.x + 96, card.right - 96
+        step = (x1 - x0) / 6
+        done_n = today if taken else today - 1
+        pygame.draw.line(surface, (40, 54, 86), (x0, y), (x1, y), 6)
+        if done_n > 0:
+            pygame.draw.line(surface, (60, 200, 130), (x0, y), (x0 + step * (done_n - 1), y), 6)
+        pulse = 0.5 + 0.5 * math.sin(self.anim * 0.12)
+        for i in range(7):
+            cx_ = int(x0 + step * i)
+            d = i + 1
+            if d <= done_n:
+                pygame.draw.circle(surface, (30, 150, 90), (cx_, y), 13)
+                pygame.draw.circle(surface, (120, 240, 170), (cx_, y), 13, 2)
+            elif d == today:
+                pygame.draw.circle(surface, ACCENT_GOLD, (cx_, y), int(14 + 3 * pulse), 3)
+                pygame.draw.circle(surface, (58, 46, 18), (cx_, y), 11)
+            else:
+                pygame.draw.circle(surface, (20, 28, 48), (cx_, y), 12)
+                pygame.draw.circle(surface, (70, 90, 130), (cx_, y), 12, 2)
+            if d == 7:
+                draw_vector_star(surface, cx_, y, radius=9, filled=d <= done_n)
+        if not self.claimed and not taken:
+            nxt = self.lr.LOGIN_REWARDS[today % 7] if today < 7 else self.lr.LOGIN_REWARDS[0]
+            draw_text(surface, t("login_streak", n=today, tomorrow=nxt), 22, TEXT_MUTED, (VW // 2, y + 44), bold=False,
+                      max_w=card.w - 60)
+
     def draw(self, surface):
         dim(surface, 215, (5, 8, 16))
         today, taken = self._today()
-        card = pygame.Rect(40, self.top, VW - 80, 960)
+        card = pygame.Rect(40, self.top, VW - 80, 910)
         bg = None
         surface.blit(neon_halo(card.w, card.h, ACCENT_GOLD, 30), (card.x - 12, card.y - 12))
         surface.blit(cockpit_surface(card.w, card.h, (24, 30, 52), (8, 10, 22), ACCENT_GOLD, 30), card.topleft)
@@ -4860,23 +4890,28 @@ class LoginRewardModal:
         for i in range(2):
             self._tile(surface, pygame.Rect(x0 + i * (tw + gap), self.top + 160 + th + gap, tw, th), i + 5, today, taken)
         self._tile(surface, pygame.Rect(x0 + 2 * (tw + gap), self.top + 160 + th + gap, 2 * tw + gap, th), 7, today, taken)
+        self._draw_streak(surface, card, today, taken)
         if self.claimed:
             day, gems, stars = self.claimed
-            draw_text(surface, t("login_got", n=gems), 34, (130, 235, 255), (VW // 2, self.top + 640), bg=bg, max_w=card.w - 60)
+            gy = self.top + 640
+            draw_text(surface, t("login_got", n=gems), 30, (130, 235, 255), (VW // 2 - (40 if stars else 0), gy), bg=bg, max_w=card.w - 160)
             if stars:
-                draw_vector_star(surface, VW // 2 - 40, self.top + 690, radius=16, filled=True)
-                draw_text(surface, f"+{stars}", 30, (255, 225, 120), (VW // 2 - 16, self.top + 690), anchor="midleft", bg=bg)
+                draw_vector_star(surface, VW // 2 + 150, gy, radius=15, filled=True)
+                draw_text(surface, f"+{stars}", 28, (255, 225, 120), (VW // 2 + 172, gy), anchor="midleft", bg=bg)
             for sid in self.lr.state(self.save_mgr).get("new_skins", [])[-1:]:
-                draw_text(surface, t("login_skin_got", name=SKINS[sid]["name"]), 28, (255, 190, 120), (VW // 2, self.top + 730),
+                draw_text(surface, t("login_skin_got", name=SKINS[sid]["name"]), 24, (255, 190, 120), (VW // 2, self.top + 672),
                           bg=bg, max_w=card.w - 60)
             self.btn_claim.text = t("login_great")
         elif taken:
-            draw_text(surface, t("login_come_back"), 26, TEXT_MUTED, (VW // 2, self.top + 640), bold=False, bg=bg,
+            draw_text(surface, t("login_come_back"), 26, TEXT_MUTED, (VW // 2, self.top + 655), bold=False, bg=bg,
                       max_w=card.w - 60)
             self.btn_claim.text = t("close")
         else:
             self.btn_claim.text = t("login_claim", n=self.lr.LOGIN_REWARDS[today - 1])
         self.btn_claim.draw(surface)
+        if taken and today < 7:                  # nothing under the button once it is taken: say what tomorrow gives
+            draw_text(surface, t("login_streak", n=today, tomorrow=self.lr.LOGIN_REWARDS[today]), 24, TEXT_MUTED,
+                      (VW // 2, self.top + 850), bold=False, max_w=card.w - 60)
         if not taken:
             self.btn_later.text = t("login_later")
             self.btn_later.draw(surface)
