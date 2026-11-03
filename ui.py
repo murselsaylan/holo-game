@@ -3522,9 +3522,13 @@ class PilotCard:
             draw_text(surface, t("pc_friends", n=friends), 22, TEXT_MUTED, (b.right - 50, b.y + 128), anchor="midright", bold=False)
         # the equipped skin
         sk = SKINS.get(sm.equipped_skin, SKINS["neon_pulse"])
-        py = b.y + 290
-        p1 = (cx + math.cos(self.time_val) * 90, py + math.sin(self.time_val) * 90)
-        p2 = (cx - math.cos(self.time_val) * 90, py - math.sin(self.time_val) * 90)
+        stage = pygame.Rect(b.x + 60, b.y + 170, b.w - 120, 250)              # a stage under the orbs: they were floating
+        pygame.draw.rect(surface, (14, 20, 34), stage, border_radius=24)
+        pygame.draw.rect(surface, (40, 56, 90), stage, 2, border_radius=24)
+        py = stage.y + 100
+        draw_text(surface, sk.get("name", ""), 26, (255, 215, 120), (cx, stage.bottom - 30), max_w=stage.w - 40)
+        p1 = (cx + math.cos(self.time_val) * 68, py + math.sin(self.time_val) * 68)
+        p2 = (cx - math.cos(self.time_val) * 68, py - math.sin(self.time_val) * 68)
         draw_tether(surface, p1, p2, sk, self.time_val)
         draw_orb(surface, p1, 26, sk["color1"], sk["glow1"], False, sk, self.time_val)
         draw_orb(surface, p2, 26, sk["color2"], sk["glow2"], True, sk, self.time_val)
@@ -3548,6 +3552,16 @@ class PilotCard:
         pygame.draw.rect(surface, (32, 42, 62), bar, border_radius=9)
         if pct > 0:
             pygame.draw.rect(surface, (90, 230, 150), (bar.x, bar.y, max(6, int(bar.w * pct)), bar.h), border_radius=9)
+        import login_rewards as lr                          # the streak fills the gap above the buttons
+        st = lr.state(sm)
+        if int(st.get("streak", 0)) > 0:
+            txt = t("pc_streak", n=int(st["streak"]))
+            if int(st.get("best", 0)) > int(st["streak"]):
+                txt += f"  •  {t('pc_best_streak', n=int(st['best']))}"
+            chip = pygame.Rect(b.x + 60, by + 64, b.w - 120, 56)
+            pygame.draw.rect(surface, (40, 32, 14), chip, border_radius=20)
+            pygame.draw.rect(surface, ACCENT_GOLD, chip, 2, border_radius=20)
+            draw_text(surface, txt, 28, (255, 225, 140), chip.center, max_w=chip.w - 30)
         self.btn_edit.draw(surface)
         self.btn_close.draw(surface)
 
@@ -4631,9 +4645,9 @@ class VictoryModal:
         panel(surface, card, (18, 24, 38), (45, 65, 105), 28, 2)
         r = self.r
         top = self.top
-        draw_text(surface, t("level_completed", lvl=self.level_id), 52, ACCENT_CYAN, (VW // 2, top + 70), max_w=card.w - 60)
+        draw_text(surface, t("level_completed", lvl=self.level_id), 52, ACCENT_CYAN, (VW // 2, top + 64), max_w=card.w - 60)
         if self.new_best:
-            draw_text(surface, t("new_best"), 30, ACCENT_GOLD, (VW // 2, top + 122))
+            draw_text(surface, t("new_best"), 30, ACCENT_GOLD, (VW // 2, top + 114))
         for i in range(3):
             delay = 18 * (i + 1)
             act = self.anim >= delay and i < r["stars"]
@@ -4641,13 +4655,13 @@ class VictoryModal:
             if act:
                 el = (self.anim - delay) / 60.0
                 sc = min(1.35, 1.0 + 0.35 * math.sin(el * 8) * max(0.0, 1.0 - el * 2))
-            draw_vector_star(surface, VW // 2 - 110 + i * 110, top + 210, radius=int(42 * sc), filled=act)
+            draw_vector_star(surface, VW // 2 - 120 + i * 120, top + 196, radius=int(46 * sc), filled=act)
         rc = get_rank_color(r["rank"])
-        pygame.draw.circle(surface, (28, 36, 56), (VW // 2, top + 340), 70)
-        pygame.draw.circle(surface, rc, (VW // 2, top + 340), 70, 5)
-        draw_text(surface, r["rank"], 64, rc, (VW // 2, top + 340))
+        pygame.draw.circle(surface, (28, 36, 56), (VW // 2, top + 308), 62)
+        pygame.draw.circle(surface, rc, (VW // 2, top + 308), 62, 5)
+        draw_text(surface, r["rank"], 58, rc, (VW // 2, top + 308))
 
-        box = pygame.Rect(card.x + 40, top + 440, card.w - 80, 560)
+        box = pygame.Rect(card.x + 40, top + 384, card.w - 80, 440)
         panel(surface, box, (24, 32, 50), (40, 52, 78), 18, 1)
         unit = t("pts")
         rows = [
@@ -4658,18 +4672,20 @@ class VictoryModal:
             (t("star_bonus", stars=r["stars"]), f"+{fmt_int(r['star_bonus'])}  (x{r['star_mult']:.2f})", ACCENT_GOLD),
         ]
         for i, (lab, val, col) in enumerate(rows):
-            ry = box.y + 44 + i * 62
+            ry = box.y + 40 + i * 58
             draw_text(surface, lab, 30, TEXT_MUTED, (box.x + 28, ry), anchor="midleft", bold=False, max_w=380)
             draw_text(surface, val, 32, col, (box.right - 28, ry), anchor="midright")
         n = len(rows)
-        pygame.draw.line(surface, (50, 70, 105), (box.x + 24, box.y + 44 + n * 62 - 30), (box.right - 24, box.y + 44 + n * 62 - 30), 2)
-        draw_text(surface, t("level_total"), 34, TEXT_WHITE, (box.x + 28, box.y + 44 + n * 62 + 14), anchor="midleft")
-        draw_text(surface, f"{fmt_int(r['level_total'])} {unit}", 40, ACCENT_CYAN, (box.right - 28, box.y + 44 + n * 62 + 14), anchor="midright")
-        draw_text(surface, t("total_score"), 30, TEXT_MUTED, (box.x + 28, box.y + 44 + (n + 1) * 62 + 24), anchor="midleft", bold=False)
-        draw_text(surface, f"{fmt_int(self.total_score)}", 38, (255, 230, 100), (box.right - 28, box.y + 44 + (n + 1) * 62 + 24), anchor="midright")
+        ly = box.y + 40 + n * 58 - 29
+        pygame.draw.line(surface, (50, 70, 105), (box.x + 24, ly), (box.right - 24, ly), 2)
+        draw_text(surface, t("level_total"), 34, TEXT_WHITE, (box.x + 28, ly + 44), anchor="midleft")
+        draw_text(surface, f"{fmt_int(r['level_total'])} {unit}", 42, ACCENT_CYAN, (box.right - 28, ly + 44), anchor="midright")
+        draw_text(surface, t("total_score"), 30, TEXT_MUTED, (box.x + 28, ly + 104), anchor="midleft", bold=False)
+        draw_text(surface, f"{fmt_int(self.total_score)}", 38, (255, 230, 100), (box.right - 28, ly + 104), anchor="midright")
 
-        # world standing
-        oy = top + 1040
+        # world standing, then the server-paid rewards stacked under it (win / bonus drop / sector): they no longer
+        # overlap the score box or the share buttons
+        oy = top + 868
         info = self.online.last_submit if self.online else None
         if info is not None and info.get("level") not in (None, self.level_id):
             info = None                               # an answer about another level (a retried older run)
@@ -4696,7 +4712,7 @@ class VictoryModal:
                 pop = 1.0 + 0.3 * max(0.0, 1.0 - abs(el - 48) / 14.0)  # a little pop when it lands
                 if win > 0:
                     draw_text(surface, t("win_diamonds", n=int(round(win * eased))), int(34 * pop), (120, 230, 255),
-                              (VW // 2, oy - 118), max_w=card.w - 120)
+                              (VW // 2, oy + 52), max_w=card.w - 120)
                 drop = info.get("drop") if isinstance(info.get("drop"), dict) else None
                 if drop and el > 20:                                    # the bonus: a pop and a glow, it is the surprise
                     kd = min(1.0, (el - 20) / 18.0)
@@ -4705,13 +4721,13 @@ class VictoryModal:
                     cols = {"shield": (110, 235, 255), "revive": (255, 130, 170)}.get(drop.get("kind"), (255, 215, 90))
                     if kd >= 1.0 or int(el) % 2 == 0:
                         draw_text(surface, t(key, n=int(drop.get("payload") or 1)), int(40 * dpop), cols,
-                                  (VW // 2, oy - 64), max_w=card.w - 80)
+                                  (VW // 2, oy + 102), max_w=card.w - 80)
                 if sector > 0 and el > 40:
                     kk = min(1.0, (el - 40) / 30.0)
                     glow = 0.5 + 0.5 * math.sin(el * 0.2)
                     col = (255, int(205 + 40 * glow), int(80 + 60 * glow))
                     draw_text(surface, t("sector_done", n=int(round(sector * kk))), int(38 + 6 * glow), col,
-                              (VW // 2, oy + 58), max_w=card.w - 40)
+                              (VW // 2, oy + 154), max_w=card.w - 40)
         else:
             key = "submit_rejected" if info.get("rejected") else "submit_queued"
             draw_text(surface, t(key), 26, (255, 170, 90), (VW // 2, oy), bold=False, max_w=card.w - 60)
