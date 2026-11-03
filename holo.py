@@ -3012,11 +3012,13 @@ class HoloGame:
         ui.draw_text(view, t(key + "_sub"), 26, (225, 232, 248), (VW // 2, by + 112), bold=False, max_w=860, bg=(6, 12, 26))
         if tut.step == 0 and not crash and self.sim is not None:      # which orb is which, before the very first tap
             oy = self.cam_y
-            for orb, key, col, dx, dy, anc in ((self.sim.rotating, "tut_lbl_spin", (255, 120, 190), 70, -150, "midleft"),
-                                               (self.sim.pivot, "tut_lbl_still", (90, 225, 255), -70, -90, "midright")):
+            for orb, key, col, dx, dy, anc in ((self.sim.rotating, "tut_lbl_spin", (255, 120, 190), 88, -150, "midright"),
+                                               (self.sim.pivot, "tut_lbl_still", (90, 225, 255), -45, -90, "midright")):
                 ox, oyy = int(orb.x + dx), int(orb.y - oy + dy)
                 pygame.draw.line(view, col, (int(orb.x), int(orb.y - oy - 24)), (ox, oyy), 3)
-                ui.draw_text(view, t(key), 30, col, (ox + (8 if dx > 0 else -8), oyy), anchor=anc, max_w=270)
+                tx = ox + (8 if anc == "midleft" else -8)
+                ui.draw_text(view, t(key), 30, col, (tx, oyy), anchor=anc,
+                             max_w=max(110, min(270, tx - 275)))                  # right-aligned: never runs into the arena's left wall
         if tut.need_tap():                            # a hand that taps: rings that grow out of the fingertip
             cx, cy = VW // 2, by - 330
             ph = (self.ui_time * 1.6) % 1.0
