@@ -108,3 +108,15 @@ Kaynak: Supabase `funnel_events` (25 Ekim - 2 Kasım, 80 oyuncu), `wallet_log`, 
 Yapılan: başarısızlık ekranında elmas yetmeyince en büyük düğme gri "ELMAS YETMİYOR" ölü düğmesiydi, altında paralı paketler vardı. Hediye kalkınca her yeni oyuncu bunu görecek. Artık ölü düğme yok: reklamla devam üstte, ücretsiz kalkan/yeniden dene ana eylem, paketler küçük ve ikincil (`store_assets/menu_ui/fail_poor_noad.png`, `fail_poor_ad.png`).
 
 Sıradakiler (veri destekli): (1) level 1-3'te 3. yanıştan sonra yolu göster/kalkanı kendiliğinden öner, (2) skin "bir bölüm dene" (satın almadan önce), (3) yeni oyuncu elmas akışı hediye sonrası için ölçüm.
+
+### Dış kaynaklar: neden tutmuyor (03.11.2026, hepsi blog/forum/sektör yazısı; birincil veri değil)
+
+- Hiper-casual ölçütleri kaynaklara göre değişir: D1 yaklaşık %20-35, D7 %5-10, D30 %1-3 ([Juego Studio](https://www.juegostudio.com/blog/how-to-increase-user-retention-and-increase-your-games-lifetime), [MWM](https://mwm.ai/glossary/retention), [Segwise](https://segwise.ai/blog/mobile-gaming-app-user-retention-strategies.md)). GameAnalytics 2025 tüm türlerde D1 ortancası ~%22, D7 ~%4 ([özet](https://gamedevreports.substack.com/p/gameanalytics-mobile-gaming-benchmarks)). Yani bu türde çoğu oyuncunun gitmesi normal; asıl soru ilk oturumda ne kadar kaybettiğimiz.
+- İlk oturumda terk nedenleri: karışık öğretici, zorluk sıçraması, teknik sorun ([AppFollow](https://appfollow.io/blog/mobile-game-retention)); D1 zayıfsa onboarding, D7 zayıfsa alışkanlık sorunudur ([AppAgent](https://appagent.com/?p=61637)).
+- Crossy Road ekibi: tek dokunuş tek başına tutmadı; kontrol hissi, toplama (karakterler), sosyal paylaşım ve doğru anda puan isteme öne çıktı ([PocketGamer.biz](https://www.pocketgamer.biz/crossy-road-sharing-retention/)).
+- Geometry Dash: kademeli zorluk + "bir deneme daha" döngüsü + müzikle senkron ([özet, zayıf kaynak](https://program.londondesignfestival.com/update2025/news/geometry-dash-classic)).
+- İlk bölüm neredeyse kaybedilemez olmalı; takılana kolaylaştırıcı bir araç verilmeli ([Unity FTUE](https://unity.com/how-to/10-first-time-user-experience-tips-games), forum yorumları).
+
+HOLO verisiyle eşleşme (25 Ekim-2 Kasım): 81 oyuncunun 29'u uygulamayı yalnızca bir kez açmış; 16 oyuncu hiç bölüm geçmemiş, 13'ü 3 günden uzun süredir yok; level 1'de geçenlerin ortalama yanışı 5,2. Esnek (rolling) D1 yaklaşık %51 (39/76), D3 %39 (26/67), D7 yalnızca 8 uygun oyuncu (1 dönen) - ölçüt tanımı farklı olduğu için sektör tablosuyla doğrudan karşılaştırılamaz.
+
+Yapılan: "yolu göster" artık hiçbir oyuncunun koşusu yokken bölümün kendi doğrulanmış çözümünü (`ref_taps`) gösteriyor (3. yanıştan sonra, her bölümde). Her bildirim "BAŞARIM AÇILDI" etiketiyle çıkıyordu; etiket artık yalnız gerçek başarımlarda.

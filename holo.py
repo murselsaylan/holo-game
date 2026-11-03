@@ -1041,6 +1041,9 @@ class HoloGame:
         for run, is_friend in ((friend, True), (world, False)):
             if run.get("taps") and run.get("id") != me:
                 return run, is_friend
+        ref = self.level.data.raw.get("ref_taps") if self.level is not None and self.level_id >= 1 else None
+        if ref and self.endless_run is None and self.arena_run is None and self.daily_run is None:
+            return {"taps": list(ref), "id": "holo-ref", "name": "HOLO"}, False       # nobody's run yet: the level's own verified route
         return None, False
 
     def show_guide(self):
@@ -1055,7 +1058,8 @@ class HoloGame:
             import threading
             threading.Thread(target=self._build_guide, args=(key, self.level.data, sorted(run["taps"])), daemon=True).start()
         import name_filter
-        who = name_filter.shown_name(self.save_mgr, run.get("id"), run.get("name") or "#1") or "#1"
+        who = ("HOLO" if run.get("id") == "holo-ref"
+               else name_filter.shown_name(self.save_mgr, run.get("id"), run.get("name") or "#1") or "#1")
         self.toasts.append([t("guide_toast", name=who), "", 3.4])
         self.audio.play_sfx("sfx_click")
         if self.failure_modal is not None and self.failure_modal.on_retry:
@@ -2082,10 +2086,13 @@ class HoloGame:
             r0 = img.get_rect()
             pygame.draw.rect(img, (10, 22, 46), r0, border_radius=28)
             pygame.draw.rect(img, (0, 214, 255), r0, 3, border_radius=28)
-            ui.draw_vector_star(img, 62, r0.centery, 26)
-            ui.draw_text(img, t("ach_toast"), 22, (120, 230, 255), (120, 26), anchor="midleft", bold=False, bg=(10, 22, 46))
-            ui.draw_text(img, title, 36, (255, 255, 255), (120, 62), anchor="midleft", max_w=w - 160, bg=(10, 22, 46))
-            ui.draw_text(img, sub, 21, (200, 195, 235), (120, 94), anchor="midleft", bold=False, max_w=w - 160, bg=(10, 22, 46))
+            if sub:                                      # an achievement: star, "unlocked" label, title, description
+                ui.draw_vector_star(img, 62, r0.centery, 26)
+                ui.draw_text(img, t("ach_toast"), 22, (120, 230, 255), (120, 26), anchor="midleft", bold=False, bg=(10, 22, 46))
+                ui.draw_text(img, title, 36, (255, 255, 255), (120, 62), anchor="midleft", max_w=w - 160, bg=(10, 22, 46))
+                ui.draw_text(img, sub, 21, (200, 195, 235), (120, 94), anchor="midleft", bold=False, max_w=w - 160, bg=(10, 22, 46))
+            else:                                        # a plain notice: just the text, never labelled as an achievement
+                ui.draw_text(img, title, 32, (255, 255, 255), (w // 2, r0.centery), max_w=w - 80, bg=(10, 22, 46))
             img.set_colorkey((255, 0, 255), pygame.RLEACCEL)
             cached = self._toast_img = (key, img)
         f.blit(cached[1], (VW // 2 - w // 2, int(-130 + 170 * max(0.0, k))))
