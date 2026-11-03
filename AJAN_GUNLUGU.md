@@ -119,3 +119,9 @@ iOS 1.0.10 Apple 5.1.2(i) ile reddedildi (ATT yok). Düzeltme: ads_ios.py ATT is
 - Veri turu (funnel_events/wallet_log/players): level 1 baslayanlarin %25'i gecemiyor, gecenler ort. 5,2 yanis; bakiye ortancasi 1045, 147 oyuncudan 22'si skin almis; yeni oyuncu 15-19/gunden 2-5/gune dusmus (edinim). Ayrintilar docs/ARASTIRMA_HOLO.md dorduncu tur.
 - Duzeltme: ui.FailureModal - elmas yetmeyince olu gri "elmas yetmiyor" dugmesi ve gri kalkan kaldirildi, reklamla devam uste, paketler ikincil. Testler: ui_test, ads_test, smoke_test gecti; ekran goruntuleri store_assets/menu_ui/fail_poor_*.png.
 - Sonraki: level 1-3 icin 3. yanista otomatik yardim onerisi, skin deneme, sunucu deploy + 1.0.11-r2 onayi.
+
+## 2026-11-03 (Europe/Istanbul) - Claude Code - BİTTİ: iOS arka plan çökmesi, checkpoint hız açılışı, hız yayı
+- Değişen: `holo.py` (iOS ses cihazı DIDENTERFOREGROUND'dan 0.6 sn sonra açılır, 4 deneme; hız toparlanma yayı; checkpoint "C2"), `sim.py` + `supabase/functions/scores/sim.ts` + `handler.ts` ("C2": 3 sn spin-up, eski "C" 1.5 sn aynen kalır), `tools/checkpoint_golden.py` / `checkpoint_test.py` / `smoke_test.py`.
+- Neden: Sunucu raporlarında iOS 1.0.9'da 60/90, 1.0.10'da 41/52 çökme arka plandan dönüşten hemen sonra; birkaçında "Session activation failed" (ses oturumu aktif olmadan açılıyordu).
+- Test: deno paketi tamamı geçti (checkpoint parity 261 vaka, hem C hem C2), smoke_test, checkpoint_test, ui_test ALL OK. iOS cihazında doğrulanmadı; ancak yayından sonra `reports` ile ölçülür.
+- Bekleyen (kullanıcı onayı): sunucu yayını (`functions deploy`), 1.0.11-r2 derleme ve etiket. Sunucu önce yayınlanmalı, yoksa "C2" istekleri reddedilir.

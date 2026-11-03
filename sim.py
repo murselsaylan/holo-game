@@ -51,6 +51,7 @@ SIM_VERSION = 10
 MAX_LEVELS = 140
 CP_RADIUS = 60.0                   # checkpoints (1.0.9): either orb this close to the flag lights it
 CHECKPOINT_SHIELD_S = 1.2          # resume from a checkpoint (free, light help): every hit bounces for this long (or until the first tap) ...
+CHECKPOINT_SLOW_S_V2 = 3.0          # assist "C2" (1.0.11-r2): the same spin-up, twice as long (1.5 s felt like a sudden jump to full speed)
 CHECKPOINT_SLOW_S = 1.5            # ... and the pair spins up from 12 % to full speed over this long (paid R3: unlimited shield until the tap, 4 s)
 CHECKPOINT_FREE_RESUMES = 2        # the 3rd resume in a row from the SAME flag gets neither shield nor slow start
 CP_PENALTY = 0.95                  # a clear that resumed from a checkpoint scores 95 % (the time of the death counts anyway)
@@ -588,7 +589,7 @@ class Sim:
         o = self.pivot
         self._ev("checkpoint", o.x, o.y, self.cp_next)
 
-    def resume_checkpoint(self):
+    def resume_checkpoint(self, slow_s=CHECKPOINT_SLOW_S):
         """Continue after dying from the latest lit checkpoint (free, assist "C"). Returns False when none was lit.
         The pair gets back its motion, speed, tether, shields, the stars and smashed walls it had there (what it
         picked up since is back on the track); time, swaps and taps are not rewound, and the chasers are in the same
@@ -622,7 +623,7 @@ class Sim:
             self.guard_t = CHECKPOINT_SHIELD_S
             self.guard_walls = True
             self.spin_ramp = 0.0
-            self.spin_ramp_s = CHECKPOINT_SLOW_S
+            self.spin_ramp_s = slow_s
         else:
             self.guard = False
             self.guard_t = 0.0
@@ -1115,6 +1116,8 @@ def replay(lvl, taps, margin=0.0, max_seconds=400.0, jitter=None, assists=None):
                 sim.add_shield()
             elif helps[hi][1] == "C":
                 sim.resume_checkpoint()
+            elif helps[hi][1] == "C2":
+                sim.resume_checkpoint(CHECKPOINT_SLOW_S_V2)
             else:
                 sim.revive(guarded=helps[hi][1] in ("R2", "R3"), walls=helps[hi][1] == "R3")
             hi += 1

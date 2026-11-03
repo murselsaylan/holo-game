@@ -455,17 +455,17 @@ async function submit(store: Store, d: Record<string, unknown>, ip: string, nowM
   if (d.assists !== undefined) {
     if (!Array.isArray(d.assists) || d.assists.length > MAX_ASSISTS) return R(400, { error: "bad assists" });
     for (const a of d.assists) {
-      if (!Array.isArray(a) || a.length !== 2 || !Number.isInteger(a[0]) || a[0] < 0 || (a[1] !== "S" && a[1] !== "R" && a[1] !== "R2" && a[1] !== "R3" && a[1] !== "C")) {
+      if (!Array.isArray(a) || a.length !== 2 || !Number.isInteger(a[0]) || a[0] < 0 || (a[1] !== "S" && a[1] !== "R" && a[1] !== "R2" && a[1] !== "R3" && a[1] !== "C" && a[1] !== "C2")) {
         return R(400, { error: "bad assists" });
       }
     }
-    assists = (d.assists as [number, "S" | "R" | "R2" | "R3" | "C"][]).map((a) => [a[0], a[1]] as Assist);
+    assists = (d.assists as [number, "S" | "R" | "R2" | "R3" | "C" | "C2"][]).map((a) => [a[0], a[1]] as Assist);
     if (assists.length && !safeEqual(String(d.asig ?? ""), await signAssisted(pl.secret, pid, level, ts, taps, assists))) {
       return R(403, { error: "bad signature" });
     }
   }
   const revives = assists.filter((a) => a[1] === "R" || a[1] === "R2" || a[1] === "R3").length;
-  const resumes = assists.filter((a) => a[1] === "C").length;           // 1.0.9: free checkpoint resumes ("C", not paid, not ranked as a clean run)
+  const resumes = assists.filter((a) => a[1] === "C" || a[1] === "C2").length;           // 1.0.9: free checkpoint resumes ("C", not paid, not ranked as a clean run)
   const limitS = Math.max(90.0, lvl.parTime * 8) + (revives + resumes) * 30.0;          // each revive may add a retry's worth of time
   const { result } = replay(lvl, taps, limitS, assists);
   if (!result) return R(422, { error: "replay did not clear the level" });

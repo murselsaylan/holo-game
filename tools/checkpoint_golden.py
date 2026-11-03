@@ -13,7 +13,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-from sim import LevelData, Sim, replay, MIN_TAP_GAP  # noqa: E402
+from sim import LevelData, Sim, replay, MIN_TAP_GAP, CHECKPOINT_SLOW_S, CHECKPOINT_SLOW_S_V2  # noqa: E402
 
 OUT = os.path.join(ROOT, "supabase", "functions", "scores", "checkpoint_golden.json")
 
@@ -53,8 +53,9 @@ def one(level, rng, noise, bot=False):
         if s.dead:
             if s.cp_state is None or len(helps) >= 4:
                 break
-            helps.append([s.n, "C"])
-            assert s.resume_checkpoint()
+            v2 = rng.random() < 0.5                       # both rules stay in the golden set: "C" (1.0.9-1.0.11, 1.5 s) and "C2" (3 s)
+            helps.append([s.n, "C2" if v2 else "C"])
+            assert s.resume_checkpoint(CHECKPOINT_SLOW_S_V2 if v2 else CHECKPOINT_SLOW_S)
             nxt = s.n + rng.randint(8, 40)           # after a resume the bot taps at random
             if bot:
                 nxt = s.n + (_plan(s) or 0) + 1

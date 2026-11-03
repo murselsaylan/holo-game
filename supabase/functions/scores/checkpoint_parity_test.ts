@@ -8,7 +8,7 @@ const golden = JSON.parse(readFileSync(new URL("./checkpoint_golden.json", impor
 let bad = 0, maxDiff = 0, resumes = 0;
 for (const g of golden) {
   const lvl = new LevelData(LEVELS[String(g.level)], DIGESTS[String(g.level)]);
-  resumes += g.assists.filter((a: any) => a[1] === "C").length;
+  resumes += g.assists.filter((a: any) => a[1] === "C" || a[1] === "C2").length;
   const { sim, result } = replay(lvl, g.taps, 100.0, g.assists);
   const p = g.py;
   const probs: string[] = [];

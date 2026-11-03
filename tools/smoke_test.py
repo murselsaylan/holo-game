@@ -63,6 +63,6 @@ if __name__ == "__main__":
         flags = len(game.level.data.checkpoints)          # checkpoints (1.0.9): the reference run lights them all, in order
         if flags:
             print(f"  checkpoints: {game.sim.cp_next}/{flags} lit")
-            ok &= (game.sim.cp_next == flags and not any(a[1] == "C" for a in game.assists))
+            ok &= (game.sim.cp_next == flags and not any(a[1] in ("C", "C2") for a in game.assists))
     print("ALL OK" if ok else "FAILURES")
     sys.exit(0 if ok else 1)

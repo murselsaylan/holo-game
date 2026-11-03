@@ -40,6 +40,7 @@ export const BARRIER_PASS = 0.8;   // a shield phases the pair through energy ba
 export const MAX_LEVELS = 140;
 export const CP_RADIUS = 60.0;       // checkpoints (1.0.9): either orb this close to the flag lights it
 export const CHECKPOINT_SHIELD_S = 1.2;   // resume from a checkpoint (free, light help): every hit bounces for this long (or until the first tap) ...
+export const CHECKPOINT_SLOW_S_V2 = 3.0;  // assist "C2" (1.0.11-r2): the same spin-up, twice as long
 export const CHECKPOINT_SLOW_S = 1.5;     // ... and the pair spins up from 12 % over this long (paid R3: unlimited shield until the tap, 4 s)
 export const CHECKPOINT_FREE_RESUMES = 2; // the 3rd resume in a row from the SAME flag gets neither shield nor slow start
 export const CP_PENALTY = 0.95;       // a clear that resumed from a checkpoint scores 95 %
@@ -489,7 +490,7 @@ export class Sim {
   }
 
   /** Continue after dying from the latest lit checkpoint (free, assist "C"); mirror of sim.py resume_checkpoint. */
-  resumeCheckpoint(): boolean {
+  resumeCheckpoint(slowS: number = CHECKPOINT_SLOW_S): boolean {
     const cp = this.cpState;
     if (cp === null || !this.dead) return false;
     this.dead = false;
@@ -522,7 +523,7 @@ export class Sim {
       this.guardT = CHECKPOINT_SHIELD_S;
       this.guardWalls = true;
       this.spinRamp = 0.0;
-      this.spinRampS = CHECKPOINT_SLOW_S;
+      this.spinRampS = slowS;
     } else {
       this.guard = false;
       this.guardT = 0.0;
@@ -936,7 +937,7 @@ export function computeResult(sim: Sim): Result {
   };
 }
 
-export type Assist = [number, "S" | "R" | "R2" | "R3" | "C"];
+export type Assist = [number, "S" | "R" | "R2" | "R3" | "C" | "C2"];
 
 /** `assists`: paid help, [step, "S"] = a bought shield put on before that step, [step, "R"] = revive after dying at
  *  that step (mirror of sim.py replay). */
@@ -951,6 +952,7 @@ export function replay(lvl: LevelData, tapsIn: number[], maxSeconds = 400.0,
     while (hi < helps.length && helps[hi][0] <= sim.n && (helps[hi][1] === "S" || sim.dead)) {
       if (helps[hi][1] === "S") sim.addShield();
       else if (helps[hi][1] === "C") sim.resumeCheckpoint();
+      else if (helps[hi][1] === "C2") sim.resumeCheckpoint(CHECKPOINT_SLOW_S_V2);
       else sim.revive(helps[hi][1] === "R2" || helps[hi][1] === "R3", helps[hi][1] === "R3");
       hi++;
     }

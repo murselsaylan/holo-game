@@ -69,7 +69,7 @@ def main(level_id):
     died_n, attempts = s.n, game.attempts
     game.retry_after_fail()
     assert game.state == "playing" and not s.dead
-    assert game.assists == [[died_n, "C"]], game.assists
+    assert game.assists == [[died_n, "C2"]], game.assists
     assert game.sim is s and s.n == died_n, "the run must go on (time not rewound)"
     assert game.attempts == attempts + 1
     cp = cps[0]

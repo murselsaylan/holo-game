@@ -42,7 +42,7 @@ GHOST_EVERY = 30                # steps between two samples of the pace ghost (e
 import arena as A
 from arena_view import ArenaLevel
 from sim import LevelData, Sim, SIM_DT, compute_result, MAX_LEVELS, SHIELD_INVULN, MIN_TAP_GAP
-from sim import ARENA_W
+from sim import ARENA_W, CHECKPOINT_SLOW_S_V2
 from locales import t
 from online import OnlineClient
 from theme import BG_DARK
@@ -1403,8 +1403,8 @@ class HoloGame:
     def _resume_checkpoint_now(self, s):
         """Free resume from the latest lit checkpoint (assist "C": the server replays the same rule - sim.py
         Sim.resume_checkpoint). Death count, attempts and hints stay as they are; the clock keeps running."""
-        self.assists.append([s.n, "C"])
-        s.resume_checkpoint()
+        self.assists.append([s.n, "C2"])
+        s.resume_checkpoint(CHECKPOINT_SLOW_S_V2)
         self.particles.clear()
         self.rewind_cam_start = self.cam_y
         self.rewind_fx_t = 0.45
@@ -1707,7 +1707,7 @@ class HoloGame:
             on_menu=self.open_menu, on_levels=self.open_level_select, new_best=improved, attempts=self.attempts,
             online=self.online, is_last=(nxt > MAX_LEVELS), assisted=False)   # paid help is ranked now
         self._offer_share(lid, res, improved, first_clear)
-        paid = any(a[1] not in ("S", "C") for a in self.assists)           # a checkpoint resume is free
+        paid = any(a[1] not in ("S", "C", "C2") for a in self.assists)           # a checkpoint resume is free
         if self._headless_safe_review() and review.should_ask(self.save_mgr.data, lid, first_clear, paid):
             # the store's "rate HOLO" sheet a moment after this win screen (Olo stays quiet then: one voice at a time)
             review.mark_asked(self.save_mgr.data, lid)
@@ -2834,6 +2834,10 @@ class HoloGame:
                 self.particles.draw_spawn_shield(view, pos[0], pos[1], tt, life)
             if s.invuln > 0 or s.barrier_t > 0:
                 self.particles.draw_spawn_shield(view, pos[0], pos[1], tt, min(1.0, max(s.invuln, s.barrier_t) / 0.5))
+            if s.spin_ramp < 1.0 and not s.dead:       # after a revive / checkpoint: a green arc fills up as the turning speed comes back
+                big = pygame.Rect(0, 0, (radius + 14) * 2, (radius + 14) * 2)
+                big.center = ring.center
+                pygame.draw.arc(view, (90, 255, 190), big, math.pi / 2, math.pi / 2 + 2 * math.pi * max(0.03, s.spin_ramp), 4)
         self.particles.draw(view, oy)
 
         # rewind visual overlay (holographic cyan scanlines + vector rewind arrows)
