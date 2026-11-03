@@ -67,6 +67,9 @@ class HoloGame:
 
         self.clock = pygame.time.Clock()
         self.running = True
+        self._fg_wait = 0
+        self._audio_back_t = -1.0
+        self._audio_tries = 0
         self._bg = False                 # in the background (phones): no update, no drawing until it comes back
         self._logged_state = None
         self._crumb_t = 0.0
@@ -2254,6 +2257,31 @@ class HoloGame:
         target = self._camera_target()
         self.cam_y += (target - self.cam_y) * (1.0 - math.exp(-7.0 * dt))
 
+    def _come_back(self):
+        if self._bg:
+            print(f"[app] back in front (state {self.state})")
+            if paths.is_ios():
+                self._audio_back_t = 0.6                # the sound device opens a moment later, not inside the return itself
+                self._audio_tries = 0
+        self._bg = False
+        self._fg_pending = False
+        self._fg_wait = 0
+        self.accum = 0.0
+
+    def _audio_back(self, dt):
+        """iOS, after a return: open the audio device once the app has been active for a moment; try again a few times."""
+        self._audio_back_t -= dt
+        if self._audio_back_t > 0:
+            return
+        self._audio_back_t = -1.0
+        try:
+            self.audio.resume()
+        except Exception as e:
+            print("audio resume:", e)
+        if not self.audio.initialized and self._audio_tries < 4:
+            self._audio_tries += 1
+            self._audio_back_t = 2.0
+
     # ------------------------------------------------------------------ events
     def handle_event(self, event):
         st = self.state
@@ -2283,13 +2311,14 @@ class HoloGame:
                 self.save_mgr.save()
                 self._sync_cloud(now=True)              # the app may be closed from the background
             return
+        if event.type == getattr(pygame, "APP_WILLENTERFOREGROUND", -1) and self._bg and paths.is_ios():
+            # iOS: the app is not active yet - opening the audio session now fails ("Session activation failed",
+            # 41 of 52 iOS 1.0.10 crash reports came right after a return); wait for DIDENTERFOREGROUND
+            self._fg_wait = 0
+            self._fg_pending = True
+            return
         if event.type in (getattr(pygame, "APP_WILLENTERFOREGROUND", -1), getattr(pygame, "APP_DIDENTERFOREGROUND", -1)):
-            if self._bg:
-                print(f"[app] back in front (state {self.state})")
-                if paths.is_ios():
-                    self.audio.resume()
-            self._bg = False
-            self.accum = 0.0
+            self._come_back()
             return
         if event.type == getattr(pygame, "APP_LOWMEMORY", -1):
             from render_cache import SurfaceCache
@@ -3142,7 +3171,11 @@ class HoloGame:
                     self.handle_event(event)
                 if self._bg:
                     pygame.time.wait(100)
-                    continue
+                    self._fg_wait += 1
+                    if self._fg_wait == 10 and paths.is_ios() and getattr(self, "_fg_pending", False):
+                        self._come_back()                   # DIDENTERFOREGROUND never came: do not stay frozen
+                    else:
+                        continue
             t_loop = time.perf_counter()
             if prof is not None:
                 prof.frame_start(self.state)
@@ -3152,6 +3185,8 @@ class HoloGame:
                 self.handle_event(event)
             if self._bg:
                 continue
+            if self._audio_back_t >= 0.0:
+                self._audio_back(dt)
             self._crumb_t -= dt
             if self._crumb_t <= 0.0:
                 self._crumb_t = 3.0
