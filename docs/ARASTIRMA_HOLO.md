@@ -120,3 +120,10 @@ Sıradakiler (veri destekli): (1) level 1-3'te 3. yanıştan sonra yolu göster/
 HOLO verisiyle eşleşme (25 Ekim-2 Kasım): 81 oyuncunun 29'u uygulamayı yalnızca bir kez açmış; 16 oyuncu hiç bölüm geçmemiş, 13'ü 3 günden uzun süredir yok; level 1'de geçenlerin ortalama yanışı 5,2. Esnek (rolling) D1 yaklaşık %51 (39/76), D3 %39 (26/67), D7 yalnızca 8 uygun oyuncu (1 dönen) - ölçüt tanımı farklı olduğu için sektör tablosuyla doğrudan karşılaştırılamaz.
 
 Yapılan: "yolu göster" artık hiçbir oyuncunun koşusu yokken bölümün kendi doğrulanmış çözümünü (`ref_taps`) gösteriyor (3. yanıştan sonra, her bölümde). Her bildirim "BAŞARIM AÇILDI" etiketiyle çıkıyordu; etiket artık yalnız gerçek başarımlarda.
+
+## Beşinci tur: menü, mağaza, bildirim görünümü (3 Kasım 2026)
+Kaynaklar zayıf (blog ve danışman yorumu, ilk elden değil; oyunun içinde ayrıca doğrulanmadı):
+- Royal Match mağazası: "Popular" / "Best Value" etiketleri yalnız seçili paketlerde ([Gamigion](https://www.gamigion.com/game-shop-best-practices-royal-match-from-dream-games/)).
+- Brawl Stars: tek odak, az teklif ([Pratt SI eleştirisi](https://ixd.prattsi.org/2025/02/design-critique-brawl-stars/)).
+- Toast: kullanıcıyı kesmeyen, kendiliğinden kapanan, düşük önemli mesajlar için ([Microsoft toast yönergesi](https://learn.microsoft.com/cs-cz/windows/apps/design/shell/tiles-and-notifications/toast-ux-guidance)).
+Uyarlanan: elmas paketlerinde POPÜLER (350) ve EN AVANTAJLI (2500) rozeti + paket başına "+%N" (en küçük pakete göre elmas/para oranı); bildirim şeridi 700x116 yerine 620x92, "BAŞARI KİLİDİ AÇILDI" etiketi kalktı, başlığın içinde zaten var. Etkisi (dönüşüm) yayından sonra `wallet_log` / `purchases` ile ölçülecek.

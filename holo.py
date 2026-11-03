@@ -2075,26 +2075,25 @@ class HoloGame:
         if sub and self.state in ("playing", "dying", "howto"):
             return
         k = min(1.0, left / 0.35, (4.0 - left) / 0.35)
-        w = 700
+        w = 620
         # the card is rendered once per toast (colour-keyed corners) and then only copied while it slides / waits
         key = (title, sub, ui.get_language())
         cached = getattr(self, "_toast_img", None)
         if cached is None or cached[0] != key:
-            img = gfx.cv(pygame.Surface((w, 116)))
+            img = gfx.cv(pygame.Surface((w, 92)))
             img.fill((255, 0, 255))
             r0 = img.get_rect()
-            pygame.draw.rect(img, (10, 22, 46), r0, border_radius=28)
-            pygame.draw.rect(img, (0, 214, 255), r0, 3, border_radius=28)
+            pygame.draw.rect(img, (10, 22, 46), r0, border_radius=26)
+            pygame.draw.rect(img, (0, 214, 255), r0, 2, border_radius=26)
             if sub:                                      # an achievement: star, "unlocked" label, title, description
-                ui.draw_vector_star(img, 62, r0.centery, 26)
-                ui.draw_text(img, t("ach_toast"), 22, (120, 230, 255), (120, 26), anchor="midleft", bold=False, bg=(10, 22, 46))
-                ui.draw_text(img, title, 36, (255, 255, 255), (120, 62), anchor="midleft", max_w=w - 160, bg=(10, 22, 46))
-                ui.draw_text(img, sub, 21, (200, 195, 235), (120, 94), anchor="midleft", bold=False, max_w=w - 160, bg=(10, 22, 46))
+                ui.draw_vector_star(img, 54, r0.centery, 22)
+                ui.draw_text(img, title, 30, (255, 255, 255), (96, 32), anchor="midleft", max_w=w - 130, bg=(10, 22, 46))
+                ui.draw_text(img, sub, 20, (170, 205, 235), (96, 64), anchor="midleft", bold=False, max_w=w - 130, bg=(10, 22, 46))
             else:                                        # a plain notice: just the text, never labelled as an achievement
                 ui.draw_text(img, title, 32, (255, 255, 255), (w // 2, r0.centery), max_w=w - 80, bg=(10, 22, 46))
             img.set_colorkey((255, 0, 255), pygame.RLEACCEL)
             cached = self._toast_img = (key, img)
-        f.blit(cached[1], (VW // 2 - w // 2, int(-130 + 170 * max(0.0, k))))
+        f.blit(cached[1], (VW // 2 - w // 2, int(-110 + 130 * max(0.0, k))))
 
     def update(self, dt, v_mouse):
         self.ui_time += dt

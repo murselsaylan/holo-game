@@ -2,6 +2,7 @@
 
 TUTORIAL = {
     "tr": {
+        "pack_popular": "POPÜLER", "pack_best": "EN AVANTAJLI",
         "set_reminders": "Hatırlatmalar (bildirim)",
         "mission_progress": "DEVAM EDİYOR", "daily_level_one": "1 bölüm tamamla",
         "pc_levels": "BÖLÜM", "pc_stars": "YILDIZ", "pc_three": "3 YILDIZLI BÖLÜM", "pc_srank": "S+ DERECE", "pc_endless": "SONSUZ REKOR", "pc_skins": "SKİN", "pc_code": "KOD", "pc_friends": "{n} arkadaş", "pc_collection": "Skin koleksiyonu: %{pct}",
@@ -35,6 +36,7 @@ TUTORIAL = {
         "tut_done_title": "EĞİTİM TAMAM!", "tut_done_sub": "+{n} elmas  •  şimdi 1. bölüm",
     },
     "en": {
+        "pack_popular": "POPULAR", "pack_best": "BEST VALUE",
         "set_reminders": "Reminders (notifications)",
         "mission_progress": "IN PROGRESS", "daily_level_one": "Complete 1 level",
         "pc_levels": "LEVELS", "pc_stars": "STARS", "pc_three": "3-STAR LEVELS", "pc_srank": "S+ RANKS", "pc_endless": "ENDLESS BEST", "pc_skins": "SKINS", "pc_code": "CODE", "pc_friends": "{n} friends", "pc_collection": "Skin collection: {pct}%",
@@ -68,6 +70,7 @@ TUTORIAL = {
         "tut_done_title": "TRAINING DONE!", "tut_done_sub": "+{n} diamonds  •  now level 1",
     },
     "de": {
+        "pack_popular": "BELIEBT", "pack_best": "BESTER WERT",
         "set_reminders": "Erinnerungen (Benachrichtigungen)",
         "mission_progress": "LÄUFT", "daily_level_one": "1 Level abschließen",
         "pc_levels": "LEVEL", "pc_stars": "STERNE", "pc_three": "3-STERNE-LEVEL", "pc_srank": "S+-RÄNGE", "pc_endless": "ENDLOS-REKORD", "pc_skins": "SKINS", "pc_code": "CODE", "pc_friends": "{n} Freunde", "pc_collection": "Skin-Sammlung: {pct} %",
@@ -101,6 +104,7 @@ TUTORIAL = {
         "tut_done_title": "TRAINING GESCHAFFT!", "tut_done_sub": "+{n} Diamanten  •  jetzt Level 1",
     },
     "es": {
+        "pack_popular": "POPULAR", "pack_best": "MEJOR VALOR",
         "set_reminders": "Recordatorios (notificaciones)",
         "mission_progress": "EN CURSO", "daily_level_one": "Completa 1 nivel",
         "pc_levels": "NIVELES", "pc_stars": "ESTRELLAS", "pc_three": "NIVELES 3 ESTRELLAS", "pc_srank": "RANGOS S+", "pc_endless": "RÉCORD INFINITO", "pc_skins": "ASPECTOS", "pc_code": "CÓDIGO", "pc_friends": "{n} amigos", "pc_collection": "Colección de aspectos: {pct} %",

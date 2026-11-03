@@ -2899,6 +2899,16 @@ def _icon_rocket(s, cx, cy, k):
     pygame.draw.polygon(s, (255, 210, 90), [(cx - 6 * k, cy + 14 * k), (cx + 6 * k, cy + 14 * k), (cx, cy + 28 * k)])
 
 
+def _pack_more(packs, i):
+    """How many percent more diamonds per money pack i gives than the smallest pack (0 for the smallest)."""
+    try:
+        def rate(p):
+            return p[1] / float(str(p[2]).replace("$", "").replace(",", "."))
+        return max(0, int(round((rate(packs[i]) / rate(packs[0]) - 1.0) * 100)))
+    except (ValueError, ZeroDivisionError, IndexError):
+        return 0
+
+
 class ShopScreen:
     """Diamonds are the shop currency. One scrolling page (1.0.6): the selected skin's preview and buy buttons stay at
     the top, below them every shop skin, the diamond packs and the shield scroll in one list. The list is rendered
@@ -3305,6 +3315,18 @@ class ShopScreen:
             draw_text(img, f"{amt} {t('diamonds').upper()}", 23, (255, 255, 255), (b.rect.centerx, b.rect.y + 115), max_w=b.rect.w - 16)
             pygame.draw.line(img, (35, 76, 100), (b.rect.x + 20, b.rect.y + 134), (b.rect.right - 20, b.rect.y + 134))
             draw_text(img, price, 24, (255, 215, 120), (b.rect.centerx, b.rect.y + 151), bold=False)
+            more = _pack_more(shop_mod.DIAMOND_PACKS, i)
+            if more:                                         # more diamonds per money than the smallest pack
+                pill = pygame.Rect(0, 0, 62, 24)
+                pill.topright = (b.rect.right - 10, b.rect.y + 10)
+                pygame.draw.rect(img, (20, 70, 52), pill, border_radius=12)
+                draw_text(img, f"+{more}%", 16, (120, 255, 170), pill.center, max_w=pill.w - 6)
+            badge = {"pack_350": ("pack_popular", (140, 90, 235)), "pack_2500": ("pack_best", (255, 190, 50))}.get(pid)
+            if badge and not getattr(self.shop, "first_bonus", False):
+                tag = pygame.Rect(0, 0, b.rect.w - 24, 26)
+                tag.midbottom = (b.rect.centerx, b.rect.y + 6)
+                pygame.draw.rect(img, badge[1], tag, border_radius=12)
+                draw_text(img, t(badge[0]), 15, (255, 255, 255) if badge[0] == "pack_popular" else (50, 30, 0), tag.center, max_w=tag.w - 8)
             if getattr(self.shop, "first_bonus", False):    # 1.0.8: the account's first pack pays double
                 tag = pygame.Rect(0, 0, min(b.rect.w - 8, 170), 24)
                 tag.midbottom = (b.rect.centerx, b.rect.y + 4)
