@@ -91,3 +91,20 @@ Dış kalıplar (aynı sektör yazıları, birincil veri sınırlı): ana ekran 
 | Ana ekran | Sektör hedefi, günün bölümü kartı | Önceki tur |
 
 Henüz yapılmayanlar (öncelik sırası): bedava kapsül (4 saatte bir), skin makinesi (elmasla rastgele skin, tekrar = iade), başlangıç paketi (ilk 3 gün, mağaza ürünü gerekir), mağaza ve skin ekranı ayrıntı denetimi, öğretici sonrası ilk 3 bölüm için mini görevler.
+
+## Dördüncü tur: veriyle derinleştirme (03.11.2026)
+
+Kaynak: Supabase `funnel_events` (25 Ekim - 2 Kasım, 80 oyuncu), `wallet_log`, `players`. Örneklem küçük; kesin sonuç değil, yön gösterir.
+
+| Bulgu | Sayı | Anlamı |
+|---|---|---|
+| Level 1'e başlayan 56 oyuncudan geçemeyen | 14 (%25) | En kolay bölüm (zorluk puanı 14,7) ama en büyük sızıntı; l2/l3/l5 temizleme oranı %93-95. Sorun bölüm zorluğu değil ilk yanışlardan sonraki deneyim |
+| Level 1'i geçenlerin ortalama yanışı | 5,2 (en çok 31) | Öğretici sonrası kontrol alışması uzun sürüyor |
+| 1 günden uzun kalan / 3 günden uzun / 7 günden uzun | 40 / 27 / 2 (80 içinde) | 7. gün penceresi henüz kısa; D7 yorumlanamaz |
+| Yeni oyuncu (app_open ilk gün) | 15-19/gün (26-28 Ekim) → 2-5/gün (30 Ekim sonrası) | Düşüş edinim tarafında, oyun içinde değil |
+| Bakiye ortancası | 1045 (%90'ı 3600 üstü değil, %90'ı 500 üstü) | Mevcut oyuncular zengin; bölüm başına +3 elmas onlar için görünmez, yeni oyuncu için anlamlı |
+| Elmas harcaması | canlanma 66k, prestij skin 46k, skin 28k (22 oyuncu), kalkan 10k | 147 oyuncudan yalnız 22'si skin almış; çoğunun 1000+ elması var → skin değeri algısı zayıf (deneme imkânı yok) |
+
+Yapılan: başarısızlık ekranında elmas yetmeyince en büyük düğme gri "ELMAS YETMİYOR" ölü düğmesiydi, altında paralı paketler vardı. Hediye kalkınca her yeni oyuncu bunu görecek. Artık ölü düğme yok: reklamla devam üstte, ücretsiz kalkan/yeniden dene ana eylem, paketler küçük ve ikincil (`store_assets/menu_ui/fail_poor_noad.png`, `fail_poor_ad.png`).
+
+Sıradakiler (veri destekli): (1) level 1-3'te 3. yanıştan sonra yolu göster/kalkanı kendiliğinden öner, (2) skin "bir bölüm dene" (satın almadan önce), (3) yeni oyuncu elmas akışı hediye sonrası için ölçüm.

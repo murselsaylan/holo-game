@@ -4384,6 +4384,9 @@ class FailureModal:
             return None
         return shield_offer(sm)
 
+    def _shield_shown(self):
+        return self.shield_mode() not in (None, "short")
+
     def _shield(self):
         mode = self.shield_mode()
         if self.waiting or mode is None:
@@ -4420,10 +4423,21 @@ class FailureModal:
         if self.shop:
             self.shop.buy_diamonds(pid)
 
+    def _layout(self):
+        """Can't pay the revive: no dead grey button - the ad (or the packs, small) takes its place, the free shield stays."""
+        cx, top = VW // 2, self.top
+        poor = not self._enough()
+        self.btn_ad.rect = pygame.Rect(cx - 320, top + (480 if poor else 644), 640, 96 if poor else 78)
+        for i, b in enumerate(self.pack_buttons):
+            b.rect.y = top + (510 if poor else 644)
+
     def update(self, mouse_pos, dt=1.0):
         self.anim += dt
-        buttons = [self.btn_retry, self.btn_levels, self.btn_menu, self.btn_revive]
-        if self.shield_mode() is not None:
+        self._layout()
+        buttons = [self.btn_retry, self.btn_levels, self.btn_menu]
+        if self._enough():
+            buttons.append(self.btn_revive)
+        if self._shield_shown():
             buttons.append(self.btn_shield)
         if self._help_state() is not None:
             buttons.append(self.btn_help)
@@ -4435,9 +4449,11 @@ class FailureModal:
             b.update(mouse_pos, dt)
 
     def handle_event(self, event):
-        cbs = [(self.btn_retry, self.on_retry), (self.btn_levels, self.on_levels), (self.btn_menu, self.on_menu),
-              (self.btn_revive, self._revive)]
-        if self.shield_mode() is not None:
+        self._layout()
+        cbs = [(self.btn_retry, self.on_retry), (self.btn_levels, self.on_levels), (self.btn_menu, self.on_menu)]
+        if self._enough():
+            cbs.append((self.btn_revive, self._revive))
+        if self._shield_shown():
             cbs.append((self.btn_shield, self._shield))
         if self._help_state() is False:
             cbs.append((self.btn_help, self._help))
@@ -4474,10 +4490,13 @@ class FailureModal:
         for i in range(3):
             draw_vector_star(surface, VW // 2 - 60 + i * 60, self.top + 380, radius=22, filled=i < self.stars, color=(255, 205, 65))
 
+        self._layout()
         enough = self._enough()
         eb = self.btn_revive
-        eb.bg_color, eb.hover_color = ((0, 190, 235), (60, 225, 255)) if enough else ((55, 60, 72), (65, 70, 84))
-        if self.waiting:
+        eb.bg_color, eb.hover_color = (0, 190, 235), (60, 225, 255)
+        if not enough:
+            pass
+        elif self.waiting:
             eb.text, eb.icon = ". . .", None
         elif self._free():
             eb.text, eb.icon = t("fr_revive_free"), None
@@ -4485,9 +4504,8 @@ class FailureModal:
             eb.text, eb.icon = t("sx_revive_stock", n=self._stock()), None
         elif enough:
             eb.text, eb.icon = t("revive_btn", cost=self.revive_cost), "gem"
-        else:
-            eb.text, eb.icon = t("revive_need", cost=self.revive_cost), None
-        eb.draw(surface)
+        if enough:
+            eb.draw(surface)
         self._draw_shield(surface)
         hs = self._help_state()
         if hs is not None:
@@ -4499,7 +4517,7 @@ class FailureModal:
             self.btn_ad.draw(surface)
         elif not enough:
             have = self.save_mgr.diamonds if self.save_mgr else 0
-            draw_text(surface, t("revive_short", have=have, cost=self.revive_cost), 22, (255, 200, 160), (VW // 2, self.top + 628), bold=False)
+            draw_text(surface, t("revive_short", have=have, cost=self.revive_cost), 22, (255, 200, 160), (VW // 2, self.top + 484), bold=False)
             for b in self.pack_buttons:
                 b.draw(surface)
                 pid, amt, price, lbl = b.pack
@@ -4513,7 +4531,7 @@ class FailureModal:
     def _draw_shield(self, surface):
         """'Retry with a shield' under the continue button: free from the stock / today's free one, or 10 diamonds."""
         mode = self.shield_mode()
-        if mode is None:
+        if mode is None or not self._shield_shown():
             return
         b, sm = self.btn_shield, self.save_mgr
         b.text, b.icon = (". . .", None) if self.waiting else shield_label(sm, mode)
