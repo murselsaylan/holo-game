@@ -10,7 +10,7 @@ RANKED = {
         
         
         
-        "rk_got": "+{n} elmas!", "rk_skin_ok": "Skin senin!",
+        "rk_got": "+{n} elmas!", "rk_skin_ok": "Görünüm senin!",
         "rk_dl_title": "GÜNÜN BÖLÜMÜ", "rk_dl_level": "Bölüm {n}", "rk_dl_sub": "Herkes aynı bölümü oynar • tek deneme",
         "rk_dl_play": "OYNA (TEK HAK)", "rk_dl_warn": "Sadece bir denemen var. Hazır mısın?", "rk_dl_go": "BAŞLA",
         "rk_dl_done": "Bugünkü sonucun: {s} puan", "rk_dl_rank": "{r}. sıra / {n} pilot",

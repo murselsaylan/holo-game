@@ -5,7 +5,7 @@ TUTORIAL = {
         "pack_popular": "POPÜLER", "pack_best": "EN AVANTAJLI",
         "set_reminders": "Hatırlatmalar (bildirim)",
         "mission_progress": "DEVAM EDİYOR", "daily_level_one": "1 bölüm tamamla",
-        "pc_levels": "BÖLÜM", "pc_stars": "YILDIZ", "pc_three": "3 YILDIZLI BÖLÜM", "pc_srank": "S+ DERECE", "pc_endless": "SONSUZ REKOR", "pc_skins": "SKİN", "pc_code": "KOD", "pc_friends": "{n} arkadaş", "pc_collection": "Skin koleksiyonu: %{pct}", "pc_streak": "Giriş serisi: {n} gün", "pc_best_streak": "rekor {n}",
+        "pc_levels": "BÖLÜM", "pc_stars": "YILDIZ", "pc_three": "3 YILDIZLI BÖLÜM", "pc_srank": "S+ DERECE", "pc_endless": "SONSUZ REKOR", "pc_skins": "GÖRÜNÜM", "pc_code": "KOD", "pc_friends": "{n} arkadaş", "pc_collection": "Görünüm koleksiyonu: %{pct}", "pc_streak": "Giriş serisi: {n} gün", "pc_best_streak": "rekor {n}",
         "guide_btn": "YOLU GÖSTER", "guide_on": "YOL AÇIK", "guide_toast": "{name} bu bölümü böyle geçti: noktaları takip et",
         "dl_streak": "SERİ {n} GÜN",
         "nudge_daily": "GÜNÜN BÖLÜMÜ HAZIR!", "nudge_daily_sub": "Bölüm {n}  •  +{r} elmas  •  tek deneme",
