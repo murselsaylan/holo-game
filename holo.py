@@ -1794,7 +1794,12 @@ class HoloGame:
                 skin = get_skin(self.save_mgr.equipped_skin)
                 r = s.rotating
                 if s.n % 2 == 0:
-                    self.particles.emit_trail(r.x, r.y, skin["color2"], radius=int(r.r * 0.55), kind=trail_kind(skin))
+                    self.particles.emit_trail(r.x, r.y, skin["color2"], radius=int(r.r * 0.68), kind=trail_kind(skin))
+                pv = s.pivot                              # the anchor leaves its own colour behind while it travels
+                lp = getattr(self, "_trail_pv", None)
+                self._trail_pv = (pv.x, pv.y)
+                if s.n % 4 == 0 and lp is not None and abs(pv.x - lp[0]) + abs(pv.y - lp[1]) > 1.5:
+                    self.particles.emit_trail(pv.x, pv.y, skin["color1"], radius=int(pv.r * 0.6), kind=trail_kind(skin))
                 if s.n % 3 == 0 and run is None:
                     self.particles.emit_portal_particles(*self.level.data.end)
             self._step_ghost()

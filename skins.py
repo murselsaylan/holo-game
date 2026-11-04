@@ -846,6 +846,12 @@ def trail_kind(skin):
     return skin.get("trail") or TRAIL_BY_TETHER.get(skin.get("tether_type"), "circle")
 
 
+from skin_trails import TRAILS as _TRAILS
+for _sid, _kind in _TRAILS.items():                  # a shape of its own for every skin (skin_trails.py)
+    if _sid in SKINS:
+        SKINS[_sid]["trail"] = _kind
+
+
 def _draw_shape_orb(surface, x, y, rad, color, tv, style):
     cr, cg, cb = color[:3]
     body = (cr, cg, cb)

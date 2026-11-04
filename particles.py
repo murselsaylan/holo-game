@@ -74,6 +74,9 @@ class Shockwave:
         return self.life > 0 and self.radius < self.max_radius
 
 
+from skin_trails import DRIFT as _TRAIL_DRIFT
+
+
 def draw_shape(surface, kind, x, y, rad, col):
     """Small vector shapes used by skin trails and explosions."""
     x, y, rad = int(x), int(y), max(1, int(rad))
@@ -110,6 +113,43 @@ def draw_shape(surface, kind, x, y, rad, col):
     elif kind == "rainbow":
         pygame.draw.circle(surface, (col[2], col[0], col[1]), (x, y), rad)
         pygame.draw.circle(surface, col, (x, y), max(1, rad // 2))
+    elif kind == "diamond":
+        pygame.draw.polygon(surface, col, [(x, y - rad * 1.5), (x + rad, y), (x, y + rad * 1.5), (x - rad, y)])
+    elif kind == "ring":
+        pygame.draw.circle(surface, col, (x, y), rad + 2, 2)
+    elif kind == "spark":
+        pygame.draw.polygon(surface, col, [(x, y - rad * 1.8), (x + rad * 0.35, y - rad * 0.35), (x + rad * 1.8, y),
+                                           (x + rad * 0.35, y + rad * 0.35), (x, y + rad * 1.8), (x - rad * 0.35, y + rad * 0.35),
+                                           (x - rad * 1.8, y), (x - rad * 0.35, y - rad * 0.35)])
+    elif kind == "petal":
+        pygame.draw.ellipse(surface, col, (x - rad, y - rad // 2 - 1, rad * 2, rad + 2))
+        pygame.draw.line(surface, (col[0] // 2, col[1] // 2, col[2] // 2), (x - rad, y), (x + rad, y), 1)
+    elif kind == "crescent":
+        pygame.draw.circle(surface, col, (x, y), rad + 1)
+        pygame.draw.circle(surface, (0, 0, 0), (x + rad // 2 + 1, y - rad // 3), rad)
+    elif kind == "gear":
+        pygame.draw.circle(surface, col, (x, y), rad)
+        for a in range(0, 360, 90):
+            ca, sa = math.cos(math.radians(a)), math.sin(math.radians(a))
+            pygame.draw.rect(surface, col, (x + ca * rad * 1.3 - 1, y + sa * rad * 1.3 - 1, 3, 3))
+    elif kind == "coin":
+        pygame.draw.circle(surface, col, (x, y), rad + 1)
+        pygame.draw.circle(surface, (col[0] // 2, col[1] // 2, col[2] // 2), (x, y), max(1, rad // 2), 1)
+    elif kind == "yin":
+        pygame.draw.circle(surface, col, (x, y), rad + 1, 1)
+        pygame.draw.circle(surface, col, (x, y - rad // 2), max(1, rad // 3))
+    elif kind == "drop":
+        pygame.draw.circle(surface, col, (x, y + rad // 3), rad)
+        pygame.draw.polygon(surface, col, [(x - rad + 1, y), (x + rad - 1, y), (x, y - rad * 1.7)])
+    elif kind == "crown":
+        pygame.draw.polygon(surface, col, [(x - rad, y + rad), (x - rad, y - rad // 2), (x - rad // 2, y), (x, y - rad),
+                                           (x + rad // 2, y), (x + rad, y - rad // 2), (x + rad, y + rad)])
+    elif kind == "fish":
+        pygame.draw.ellipse(surface, col, (x - rad, y - rad // 2, rad * 2, rad + 1))
+        pygame.draw.polygon(surface, col, [(x + rad, y), (x + rad * 2, y - rad // 2 - 1), (x + rad * 2, y + rad // 2 + 1)])
+    elif kind == "cross":
+        pygame.draw.line(surface, col, (x - rad, y), (x + rad, y), 2)
+        pygame.draw.line(surface, col, (x, y - rad), (x, y + rad), 2)
     else:
         pygame.draw.circle(surface, col, (x, y), rad)
 
@@ -171,7 +211,7 @@ class ParticleSystem:
         self.floating_texts.append(FloatingText(x, y, text, color))
 
     def emit_trail(self, x, y, color, radius=12, kind="circle"):
-        self.trails.append({'x': x, 'y': y, 'color': color, 'radius': radius, 'life': 1.0, 'decay': 0.07, 'kind': kind})
+        self.trails.append({'x': x, 'y': y, 'color': color, 'radius': radius, 'life': 1.0, 'decay': 0.05, 'kind': kind})
 
     def _burst(self, x, y, color, n, smin, smax, rmin, rmax, dmin, dmax, shape, gravity=0.0, white=0.0):
         n = int(n * self.quality)
@@ -235,6 +275,10 @@ class ParticleSystem:
         del self.shockwaves[write:]
         for t in self.trails:
             t['life'] -= t['decay'] * dt
+            dx, dy = _TRAIL_DRIFT.get(t.get('kind'), (0.0, 0.0))
+            if dx or dy:
+                t['x'] += dx * dt
+                t['y'] += dy * dt
         write = 0
         for item in self.trails:
             if item['life'] > 0:
@@ -318,12 +362,12 @@ class ParticleSystem:
                 continue
             rad = max(1, int(t['radius'] * (0.3 + 0.7 * f)))
             r, g, b = t['color'][:3]
-            col = (int(r * f * 0.6), int(g * f * 0.6), int(b * f * 0.6))
+            col = (int(r * f * 0.85), int(g * f * 0.85), int(b * f * 0.85))
             kind = t.get('kind', 'circle')
             if kind == 'circle':
                 pygame.draw.circle(surface, col, (int(t['x']), int(screen_y)), rad)
             else:
-                draw_shape(surface, kind, t['x'], screen_y - (0 if kind != 'flame' else (1.0 - f) * 12), max(2, rad * 0.55), col)
+                draw_shape(surface, kind, t['x'], screen_y - (0 if kind != 'flame' else (1.0 - f) * 12), max(2, rad * 0.85), col)
         for sw in self.shockwaves:
             if sw.life <= 0.03 or sw.radius < 2:
                 continue
